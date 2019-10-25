@@ -22,6 +22,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "interface", "interface", "{3BB8493E-D18E-4485-A320-CB40F90F55AE}"
 	ProjectSection(SolutionItems) = preProject
 		src\modules\interface\lowlevel_keyboard_event_data.h = src\modules\interface\lowlevel_keyboard_event_data.h
+		src\modules\interface\lowlevel_mouse_event_data.h = src\modules\interface\lowlevel_mouse_event_data.h
 		src\modules\interface\powertoy_module_interface.h = src\modules\interface\powertoy_module_interface.h
 		src\modules\interface\win_hook_event_data.h = src\modules\interface\win_hook_event_data.h
 	EndProjectSection
@@ -76,6 +77,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PowerRenameUnitTests", "src
 		{51920F1F-C28C-4ADF-8660-4238766796C2} = {51920F1F-C28C-4ADF-8660-4238766796C2}
 		{B25AC7A5-FB9F-4789-B392-D5C85E948670} = {B25AC7A5-FB9F-4789-B392-D5C85E948670}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "always_on_top", "src\modules\always_on_top\always_on_top.vcxproj", "{928C382C-6300-4310-BA54-D6C1320E9A8C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -145,6 +148,10 @@ Global
 		{2151F984-E006-4A9F-92EF-C6DDE3DC8413}.Debug|x64.Build.0 = Debug|x64
 		{2151F984-E006-4A9F-92EF-C6DDE3DC8413}.Release|x64.ActiveCfg = Release|x64
 		{2151F984-E006-4A9F-92EF-C6DDE3DC8413}.Release|x64.Build.0 = Release|x64
+		{928C382C-6300-4310-BA54-D6C1320E9A8C}.Debug|x64.ActiveCfg = Debug|x64
+		{928C382C-6300-4310-BA54-D6C1320E9A8C}.Debug|x64.Build.0 = Debug|x64
+		{928C382C-6300-4310-BA54-D6C1320E9A8C}.Release|x64.ActiveCfg = Release|x64
+		{928C382C-6300-4310-BA54-D6C1320E9A8C}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -167,6 +174,7 @@ Global
 		{0E072714-D127-460B-AFAD-B4C40B412798} = {89E20BCE-EB9C-46C8-8B50-E01A82E6FDC3}
 		{A3935CF4-46C5-4A88-84D3-6B12E16E6BA2} = {89E20BCE-EB9C-46C8-8B50-E01A82E6FDC3}
 		{2151F984-E006-4A9F-92EF-C6DDE3DC8413} = {89E20BCE-EB9C-46C8-8B50-E01A82E6FDC3}
+		{928C382C-6300-4310-BA54-D6C1320E9A8C} = {4574FDD0-F61D-4376-98BF-E5A1262C11EC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C3A2F9D1-7930-4EF4-A6FC-7EE0A99821D0}
