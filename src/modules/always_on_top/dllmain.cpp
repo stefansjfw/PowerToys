@@ -24,14 +24,11 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
   return TRUE;
 }
 
-// The PowerToy name that will be shown in the settings.
 const static wchar_t* MODULE_NAME = L"AlwaysOnTop";
-// Add a description that will we shown in the module settings page.
 const static wchar_t* MODULE_DESC = L"<no description>";
 
-// These are the properties shown in the Settings page.
 struct AllwaysOnTopSettings {
-  int test_int_prop = 10;
+
 } g_settings;
 
 namespace {
@@ -58,20 +55,24 @@ private:
   void ResetAll();
 
 public:
-  AlwaysOnTop() {
+  AlwaysOnTop()
+  {
     init_settings();
   }
 
-  virtual void destroy() override {
+  virtual void destroy() override
+  {
     ResetAll();
     delete this;
   }
 
-  virtual const wchar_t* get_name() override {
+  virtual const wchar_t* get_name() override
+  {
     return MODULE_NAME;
   }
 
-  virtual const wchar_t** get_events() override {
+  virtual const wchar_t** get_events() override
+  {
     static const wchar_t* events[] = { ll_keyboard,
                                        ll_mouse,
                                        win_hook_event,
@@ -80,51 +81,52 @@ public:
     return events;
   }
 
-  virtual bool get_config(wchar_t* buffer, int* buffer_size) override {
+  virtual bool get_config(wchar_t* buffer, int* buffer_size) override
+  {
     HINSTANCE hinstance = reinterpret_cast<HINSTANCE>(&__ImageBase);
-
-    // Create a Settings object.
     PowerToysSettings::Settings settings(hinstance, get_name());
     return settings.serialize_to_buffer(buffer, buffer_size);
   }
 
-  virtual void set_config(const wchar_t* config) override {
+  virtual void set_config(const wchar_t* config) override
+  {
 
   }
 
-  virtual void call_custom_action(const wchar_t* action) override {
+  virtual void call_custom_action(const wchar_t* action) override
+  {
 
   }
 
-  virtual void enable() {
+  virtual void enable()
+  {
     mEnabled = true;
   }
 
-  virtual void disable() {
+  virtual void disable()
+  {
     ResetAll();
     mEnabled = false;
   }
 
-  virtual bool is_enabled() override {
+  virtual bool is_enabled() override
+  {
     return mEnabled;
   }
 
-  // Handle incoming event, data is event-specific
-  virtual intptr_t signal_event(const wchar_t* name, intptr_t data) override {
-  if (mEnabled) {
-    if (wcscmp(name, ll_keyboard) == 0)
-    {
-      return HandleKeyboardHookEvent(*(reinterpret_cast<LowlevelKeyboardEvent*>(data)));
+  virtual intptr_t signal_event(const wchar_t* name, intptr_t data) override
+  {
+    if (mEnabled) {
+      if (wcscmp(name, ll_keyboard) == 0) {
+        return HandleKeyboardHookEvent(*(reinterpret_cast<LowlevelKeyboardEvent*>(data)));
+      }
+      else if (wcscmp(name, ll_mouse) == 0) {
+        HandleMouseHookEvent(*(reinterpret_cast<LowlevelMouseEvent*>(data)));
+      }
+      else if (wcscmp(name, win_hook_event) == 0) {
+        HandleWinHookEvent(*(reinterpret_cast<WinHookEvent*>(data)));
+      }
     }
-    else if (wcscmp(name, ll_mouse) == 0)
-    {
-      HandleMouseHookEvent(*(reinterpret_cast<LowlevelMouseEvent*>(data)));
-    }
-    else if (wcscmp(name, win_hook_event) == 0)
-    {
-      HandleWinHookEvent(*(reinterpret_cast<WinHookEvent*>(data)));
-    }
-  }
     return 0;
   }
 };
@@ -138,22 +140,22 @@ void AlwaysOnTop::HandleWinHookEvent(const WinHookEvent& data) noexcept
 {
   HWND window = GetForegroundWindow();
   switch (data.event) {
-  case EVENT_SYSTEM_MENUSTART:
-  {
-    (void)InjectMenuItem(window);
-    break;
-  }
-  case EVENT_OBJECT_INVOKED:
-  {
-    if (data.idChild == KAlwaysOnTopMenuID) {
-      bool alreadyOnTop = (mCurrentlyOnTop.first == window);
-      ResetCurrentOnTop();
-      if (!alreadyOnTop) {
-        (void)SetWindowOnTop(window);
-      }
+    case EVENT_SYSTEM_MENUSTART:
+    {
+      (void)InjectMenuItem(window);
+      break;
     }
-    break;
-  }
+    case EVENT_OBJECT_INVOKED:
+    {
+      if (data.idChild == KAlwaysOnTopMenuID) {
+        bool alreadyOnTop = (mCurrentlyOnTop.first == window);
+        ResetCurrentOnTop();
+        if (!alreadyOnTop) {
+          (void)SetWindowOnTop(window);
+        }
+      }
+      break;
+    }
   }
 }
 
@@ -175,8 +177,7 @@ bool AlwaysOnTop::SetWindowOnTop(HWND aWindow)
 void AlwaysOnTop::ResetCurrentOnTop()
 {
   if (mCurrentlyOnTop.first &&
-      SetWindowPos(mCurrentlyOnTop.first, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE))
-  {
+      SetWindowPos(mCurrentlyOnTop.first, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE)) {
     if (mCurrentlyOnTop.second) {
       (void)CheckMenuItem(mCurrentlyOnTop.second, KAlwaysOnTopMenuID, MF_BYCOMMAND | MF_UNCHECKED);
     }
@@ -196,7 +197,8 @@ bool AlwaysOnTop::InjectMenuItem(HWND aWindow)
   return false;
 }
 
-void AlwaysOnTop::ResetAll() {
+void AlwaysOnTop::ResetAll()
+{
   ResetCurrentOnTop();
   for (const auto& menu : mModified) {
     DeleteMenu(menu, KAlwaysOnTopSeparatorID, MF_BYCOMMAND);
@@ -205,22 +207,12 @@ void AlwaysOnTop::ResetAll() {
   mModified.clear();
 }
 
-void AlwaysOnTop::init_settings() {
-  try {
-    // Load and parse the settings file for this PowerToy.
-    PowerToysSettings::PowerToyValues settings =
-      PowerToysSettings::PowerToyValues::load_from_settings_file(AlwaysOnTop::get_name());
+void AlwaysOnTop::init_settings()
+{
 
-    // Load the int property.
-    if (settings.is_int_value(L"test_int_spinner")) {
-      g_settings.test_int_prop = settings.get_int_value(L"test_int_spinner");
-    }
-  }
-  catch (std::exception & ex) {
-    // Error while loading from the settings file. Let default values stay as they are.
-  }
 }
 
-extern "C" __declspec(dllexport) PowertoyModuleIface* __cdecl powertoy_create() {
+extern "C" __declspec(dllexport) PowertoyModuleIface* __cdecl powertoy_create()
+{
   return new AlwaysOnTop();
 }
