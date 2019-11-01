@@ -33,9 +33,6 @@
     <ClCompile Include="win_hook_event.cpp">
       <Filter>Events</Filter>
     </ClCompile>
-    <ClCompile Include="lowlevel_mouse_event.cpp">
-      <Filter>Events</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -68,9 +65,6 @@
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="win_hook_event.h">
-      <Filter>Events</Filter>
-    </ClInclude>
-    <ClInclude Include="lowlevel_mouse_event.h">
       <Filter>Events</Filter>
     </ClInclude>
   </ItemGroup>
