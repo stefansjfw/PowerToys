@@ -98,6 +98,7 @@
   <ItemGroup>
     <ClCompile Include="auto_start_helper.cpp" />
     <ClCompile Include="general_settings.cpp" />
+    <ClCompile Include="lowlevel_mouse_event.cpp" />
     <ClCompile Include="lowlevel_keyboard_event.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -115,6 +116,7 @@
   <ItemGroup>
     <ClInclude Include="auto_start_helper.h" />
     <ClInclude Include="general_settings.h" />
+    <ClInclude Include="lowlevel_mouse_event.h" />
     <ClInclude Include="lowlevel_keyboard_event.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="powertoys_events.h" />

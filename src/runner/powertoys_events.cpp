@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "powertoys_events.h"
 #include "lowlevel_keyboard_event.h"
+#include "lowlevel_mouse_event.h"
 #include "win_hook_event.h"
 
 void first_subscribed(const std::wstring& event) {
@@ -8,6 +9,8 @@ void first_subscribed(const std::wstring& event) {
     start_lowlevel_keyboard_hook();
   else if (event == win_hook_event)
     start_win_hook_event();
+  else if (event == ll_mouse)
+    start_lowlevel_mouse_hook();
 }
 
 void last_unsubscribed(const std::wstring& event) {
@@ -15,6 +18,8 @@ void last_unsubscribed(const std::wstring& event) {
     stop_lowlevel_keyboard_hook();
   else if (event == win_hook_event)
     stop_win_hook_event();
+  else if (event == ll_mouse)
+    stop_lowlevel_mouse_hook();
 }
 
 PowertoysEvents& powertoys_events() {
