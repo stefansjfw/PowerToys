@@ -1,7 +1,6 @@
 #include "pch.h"
 #include <interface/powertoy_module_interface.h>
 #include <interface/lowlevel_keyboard_event_data.h>
-#include <interface/lowlevel_mouse_event_data.h>
 #include <interface/win_hook_event_data.h>
 #include <common/settings_objects.h>
 #include <set>
@@ -54,7 +53,6 @@ private:
 
   intptr_t HandleKeyboardHookEvent(const LowlevelKeyboardEvent& data) noexcept;
   void HandleWinHookEvent(const WinHookEvent& data) noexcept;
-  void HandleMouseHookEvent(const LowlevelMouseEvent& data) noexcept;
 
   void ProcessCommand(HWND aWindow);
   bool SetWindowOnTop(HWND aWindow);
@@ -88,7 +86,6 @@ public:
   virtual const wchar_t** get_events() override
   {
     static const wchar_t* events[] = { ll_keyboard,
-                                       ll_mouse,
                                        win_hook_event,
                                        nullptr };
 
@@ -146,9 +143,6 @@ public:
       if (wcscmp(name, ll_keyboard) == 0) {
         return HandleKeyboardHookEvent(*(reinterpret_cast<LowlevelKeyboardEvent*>(data)));
       }
-      else if (wcscmp(name, ll_mouse) == 0) {
-        HandleMouseHookEvent(*(reinterpret_cast<LowlevelMouseEvent*>(data)));
-      }
       else if (wcscmp(name, win_hook_event) == 0) {
         HandleWinHookEvent(*(reinterpret_cast<WinHookEvent*>(data)));
       }
@@ -190,11 +184,6 @@ void AlwaysOnTop::HandleWinHookEvent(const WinHookEvent& data) noexcept
       break;
     }
   }
-}
-
-void AlwaysOnTop::HandleMouseHookEvent(const LowlevelMouseEvent& data) noexcept
-{
-
 }
 
 void AlwaysOnTop::ProcessCommand(HWND aWindow)
