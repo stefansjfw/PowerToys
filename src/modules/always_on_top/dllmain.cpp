@@ -227,6 +227,8 @@ void AlwaysOnTop::ResetCurrentOnTop()
 bool AlwaysOnTop::InjectMenuItem(HWND aWindow)
 {
   HMENU systemMenu = GetSystemMenu(aWindow, false);
+  EnableMenuItem(systemMenu, KAlwaysOnTopMenuID, MF_BYCOMMAND | MF_ENABLED); // Some apps disables newly added menu items (e.g. telegram)
+                                                                             // so re-enable 'AlwaysOnTop' every time system meny is opened
   if (systemMenu && (mModified.find(systemMenu) == mModified.end())) {
     AppendMenu(systemMenu, MF_SEPARATOR, KAlwaysOnTopSeparatorID, {});
     AppendMenu(systemMenu, MF_BYCOMMAND | MF_UNCHECKED, KAlwaysOnTopMenuID, L"AlwaysOnTop");
