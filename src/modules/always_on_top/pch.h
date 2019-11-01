@@ -3,5 +3,3 @@
 #include <windows.h>
 #include <common/common.h>
 #include <ProjectTelemetry.h>
-#include <wil\resource.h>
-#include <wil\result.h>

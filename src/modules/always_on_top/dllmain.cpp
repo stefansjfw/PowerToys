@@ -33,7 +33,7 @@ struct AllwaysOnTopSettings {
   // Default hotkey WIN + ALT + T
   PowerToysSettings::HotkeyObject editorHotkey =
     PowerToysSettings::HotkeyObject::from_settings(true, false, true, false, VK_OEM_3, L"t");
-} gSettings;
+};
 
 namespace {
 constexpr int KAlwaysOnTopSeparatorID = 0x1234;
@@ -46,6 +46,7 @@ private:
   bool                   mEnabled{ false };
   std::pair<HWND, HMENU> mCurrentlyOnTop{ nullptr, nullptr };
   std::set<HMENU>        mModified;
+  AllwaysOnTopSettings   mSettings;
 
   void init_settings();
 
@@ -59,8 +60,8 @@ private:
   bool InjectMenuItem(HWND aWindow);
   void ResetAll();
 
-  void LoadSettings(PCWSTR config, bool aFromFile) noexcept;
-  void SaveSettings() noexcept;
+  void LoadSettings(PCWSTR config, bool aFromFile);
+  void SaveSettings();
 
 public:
 
@@ -97,7 +98,7 @@ public:
     HINSTANCE hinstance = reinterpret_cast<HINSTANCE>(&__ImageBase);
 
     PowerToysSettings::Settings settings(hinstance, get_name());
-    settings.add_hotkey(HOTKEY_NAME, IDS_SETTING_ALWAYS_ON_TOP_HOTKEY, gSettings.editorHotkey);
+    settings.add_hotkey(HOTKEY_NAME, IDS_SETTING_ALWAYS_ON_TOP_HOTKEY, mSettings.editorHotkey);
 
     return settings.serialize_to_buffer(buffer, buffer_size);
   }
@@ -110,10 +111,10 @@ public:
     PowerToysSettings::PowerToyValues values =
       PowerToysSettings::PowerToyValues::from_json_string(config);
     if (values.is_object_value(HOTKEY_NAME)) {
-      gSettings.editorHotkey = PowerToysSettings::HotkeyObject::from_json(values.get_json(HOTKEY_NAME));
+      mSettings.editorHotkey = PowerToysSettings::HotkeyObject::from_json(values.get_json(HOTKEY_NAME));
     }
     UnregisterHotKey(NULL, 1);
-    RegisterHotKey(NULL, 1, gSettings.editorHotkey.get_modifiers(), gSettings.editorHotkey.get_code());
+    RegisterHotKey(NULL, 1, mSettings.editorHotkey.get_modifiers(), mSettings.editorHotkey.get_code());
   }
 
   virtual void call_custom_action(const wchar_t* action) override
@@ -248,26 +249,30 @@ void AlwaysOnTop::ResetAll()
   mModified.clear();
 }
 
-void AlwaysOnTop::LoadSettings(PCWSTR config, bool aFromFile) noexcept try
+void AlwaysOnTop::LoadSettings(PCWSTR config, bool aFromFile)
 {
-  PowerToysSettings::PowerToyValues values = aFromFile ?
-    PowerToysSettings::PowerToyValues::load_from_settings_file(get_name()) :
-    PowerToysSettings::PowerToyValues::from_json_string(config);
+  try {
+    PowerToysSettings::PowerToyValues values = aFromFile ?
+      PowerToysSettings::PowerToyValues::load_from_settings_file(get_name()) :
+      PowerToysSettings::PowerToyValues::from_json_string(config);
 
-  if (values.is_object_value(HOTKEY_NAME))
-  {
-    gSettings.editorHotkey = PowerToysSettings::HotkeyObject::from_json(values.get_json(HOTKEY_NAME));
+    if (values.is_object_value(HOTKEY_NAME))
+    {
+      mSettings.editorHotkey = PowerToysSettings::HotkeyObject::from_json(values.get_json(HOTKEY_NAME));
+    }
   }
+  catch (std::exception & e) {}
 }
-CATCH_LOG();
 
-void AlwaysOnTop::SaveSettings() noexcept try
+void AlwaysOnTop::SaveSettings()
 {
   PowerToysSettings::PowerToyValues values(get_name());
-  values.add_property(HOTKEY_NAME, gSettings.editorHotkey);
-  values.save_to_settings_file();
+  values.add_property(HOTKEY_NAME, mSettings.editorHotkey);
+  try {
+    values.save_to_settings_file();
+  }
+  catch (std::exception & e) {}
 }
-CATCH_LOG();
 
 void AlwaysOnTop::init_settings()
 {
