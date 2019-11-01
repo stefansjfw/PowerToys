@@ -38,6 +38,8 @@ struct AllwaysOnTopSettings {
 namespace {
 constexpr int KAlwaysOnTopSeparatorID = 0x1234;
 constexpr int KAlwaysOnTopMenuID      = 0x5678;
+constexpr int KMenuItemStringSize = 14;
+CHAR KMenuItemString[KMenuItemStringSize] = "Always On Top";
 }
 
 class AlwaysOnTop : public PowertoyModuleIface {
@@ -231,8 +233,22 @@ bool AlwaysOnTop::InjectMenuItem(HWND aWindow)
   EnableMenuItem(systemMenu, KAlwaysOnTopMenuID, MF_BYCOMMAND | MF_ENABLED); // Some apps disables newly added menu items (e.g. telegram)
                                                                              // so re-enable 'AlwaysOnTop' every time system meny is opened
   if (systemMenu && (mModified.find(systemMenu) == mModified.end())) {
-    AppendMenu(systemMenu, MF_SEPARATOR, KAlwaysOnTopSeparatorID, {});
-    AppendMenu(systemMenu, MF_BYCOMMAND | MF_UNCHECKED, KAlwaysOnTopMenuID, L"AlwaysOnTop");
+    MENUITEMINFOA menuItem;
+    menuItem.cbSize = sizeof(menuItem);
+    menuItem.fMask = MIIM_ID | MIIM_STRING | MIIM_STATE;
+    menuItem.fState = MF_UNCHECKED | MF_ENABLED;
+    menuItem.wID = KAlwaysOnTopMenuID;
+    menuItem.dwTypeData = KMenuItemString;
+    menuItem.cch = KMenuItemStringSize;
+
+    MENUITEMINFOA separator;
+    separator.cbSize = sizeof(separator);
+    separator.fMask = MIIM_ID | MIIM_FTYPE;
+    separator.fType = MFT_SEPARATOR;
+    separator.wID = KAlwaysOnTopSeparatorID;
+
+    InsertMenuItemA(systemMenu, GetMenuItemCount(systemMenu) - 1, true, &separator);
+    InsertMenuItemA(systemMenu, GetMenuItemCount(systemMenu) - 2, true, &menuItem);
     mModified.insert(systemMenu);
     return true;
   }
