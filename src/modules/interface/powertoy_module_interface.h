@@ -28,7 +28,7 @@
     - unload the DLL.
  */
 
-using sysMenuActionCallback = void (*)(const std::wstring&);
+using sysMenuActionCallback = void (*)(const int&);
 
 class PowertoyModuleIface {
 public:

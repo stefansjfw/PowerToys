@@ -12,6 +12,7 @@ class PowertoyModule;
 struct PowertoyModuleDeleter {
   void operator()(PowertoyModuleIface* module) const {
     if (module) {
+      powertoys_events().unregister_sys_menu_action_module(module);
       powertoys_events().unregister_receiver(module);
       module->destroy();
     }

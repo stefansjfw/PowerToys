@@ -4,6 +4,8 @@
 #include "win_hook_event.h"
 #include "custom_system_menu.h"
 
+#include <common/settings_helpers.h>
+
 void first_subscribed(const std::wstring& event) {
   if (event == ll_keyboard)
     start_lowlevel_keyboard_hook();
@@ -52,7 +54,10 @@ void PowertoysEvents::register_sys_menu_action_module(PowertoyModuleIface* modul
 void PowertoysEvents::unregister_sys_menu_action_module(PowertoyModuleIface* module)
 {
   std::unique_lock lock(mutex);
-  sysMenuActionModules.erase(sysMenuActionModules.find(module));
+  auto it = sysMenuActionModules.find(module);
+  if (it != sysMenuActionModules.end()) {
+    sysMenuActionModules.erase(it);
+  }
 }
 
 
@@ -70,11 +75,9 @@ void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
     if (module) {
       auto it = sysMenuActionModules.find(module);
       if (it != sysMenuActionModules.end()) {
-        // TODO: Serialize event information to JSON formatted string.
-        std::wstring event_data;
-        sysMenuActionCallback callback;
-        std::tie(event_data, callback) = it->second;
-        callback(event_data);
+        sysMenuActionCallback callbackFunc;
+        std::tie(std::ignore, callbackFunc) = it->second;
+        callbackFunc(data.idChild);
         CustomSystemMenuUtils::ToggleItem(data.hwnd, data.idChild);
       }
     }
