@@ -152,7 +152,7 @@ public:
 
   virtual bool get_custom_system_menu_config(std::wstring& config, sysMenuActionCallback callback)
   {
-    // TODO: Serialize configuration into JSON formatted string.
+
     return true;
   }
 };

@@ -14,7 +14,11 @@ public:
   static void DeleteCustomItem (HWND aWindow, const int& aItemId);
   static void ToggleItem       (HWND aWindow, const int& aItemId);
   static void CleanUp          (PowertoyModuleIface* module);
-  static PowertoyModuleIface* GetModuleFromItemId(const int& aItemId);
+
+  static PowertoyModuleIface* GetModuleFromItemId  (const int& aItemId);
+  static std::wstring         GetItemNameFromItemId(const int& aItemId);
 private:
-  static std::unordered_map<int, PowertoyModuleIface*> CustomItemsPerModule;
+  using CustomItemInfo = std::tuple<PowertoyModuleIface*, std::wstring>;
+
+  static std::unordered_map<int, CustomItemInfo> CustomItemsPerModule;
 };

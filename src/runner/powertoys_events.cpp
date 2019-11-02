@@ -60,13 +60,21 @@ void PowertoysEvents::unregister_sys_menu_action_module(PowertoyModuleIface* mod
   }
 }
 
-
 void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
 {
+  using namespace web::json;
   if (data.event == EVENT_SYSTEM_MENUSTART) {
     for (auto& [module, actionData] : sysMenuActionModules) {
-      // TODO: Based on JSON configuration bound to each module, create
-      // custom menu items by invoking CustomSystemMenuUtils API.
+      std::wstring config;
+      std::tie(config, std::ignore) = actionData;
+      value json_config = value::parse(config);
+      array array_config = json_config.at(U("custom_items")).as_array();
+      for (auto item : array_config)
+      {
+        auto itemName = item.at(U("name")).as_string();
+        auto itemHotkey = item.at(U("hotkey")).as_string(); // TODO: This should be displayed along with command name.
+        CustomSystemMenuUtils::IncjectCustomItem(module, data.hwnd, itemName);
+      }
     }
   }
   else if (data.event == EVENT_OBJECT_INVOKED)
@@ -77,7 +85,7 @@ void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
       if (it != sysMenuActionModules.end()) {
         sysMenuActionCallback callbackFunc;
         std::tie(std::ignore, callbackFunc) = it->second;
-        callbackFunc(data.idChild);
+        callbackFunc(CustomSystemMenuUtils::GetItemNameFromItemId(data.idChild));
         CustomSystemMenuUtils::ToggleItem(data.hwnd, data.idChild);
       }
     }
