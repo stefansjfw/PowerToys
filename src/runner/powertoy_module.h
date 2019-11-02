@@ -12,6 +12,7 @@ class PowertoyModule;
 struct PowertoyModuleDeleter {
   void operator()(PowertoyModuleIface* module) const {
     if (module) {
+      powertoys_events().unregister_sys_menu_action_module(module);
       powertoys_events().unregister_receiver(module);
       module->destroy();
     }
@@ -38,6 +39,7 @@ public:
         powertoys_events().register_receiver(*want_signals, module);
       }
     }
+    custom_system_menu_config();
   }
 
   const std::wstring& get_name() const {
@@ -81,6 +83,8 @@ public:
   }
 
 private:
+  void custom_system_menu_config();
+
   std::unique_ptr<HMODULE, PowertoyModuleDLLDeleter> handle;
   std::unique_ptr<PowertoyModuleIface, PowertoyModuleDeleter> module;
   std::wstring name;

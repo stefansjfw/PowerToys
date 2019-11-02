@@ -63,6 +63,17 @@ public:
        * win_hook_event: see win_hook_event_data.h
   */
   virtual intptr_t signal_event(const wchar_t* name, intptr_t data) = 0;
+  /* Fills a buffer with custom system menu configuration (if any),
+   * and provides pointer to callback function which should be triggered
+   * when user interacts with custom system menu. Function returns false
+   * if no custom system menu configuration required.
+   */
+  virtual bool get_custom_system_menu_config(wchar_t* config, int* size)
+  {
+    return false;
+  }
+  /* Handle activity on custom menu items. */
+  virtual void handle_custom_system_menu_action(const wchar_t* name) {}
   /* Destroy the PowerToy and free all memory. */
   virtual void destroy() = 0;
 };

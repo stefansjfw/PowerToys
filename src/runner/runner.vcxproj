@@ -97,6 +97,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="auto_start_helper.cpp" />
+    <ClCompile Include="custom_system_menu.cpp" />
     <ClCompile Include="general_settings.cpp" />
     <ClCompile Include="lowlevel_keyboard_event.cpp" />
     <ClCompile Include="pch.cpp">
@@ -114,6 +115,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="auto_start_helper.h" />
+    <ClInclude Include="custom_system_menu.h" />
     <ClInclude Include="general_settings.h" />
     <ClInclude Include="lowlevel_keyboard_event.h" />
     <ClInclude Include="pch.h" />
