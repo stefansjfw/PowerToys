@@ -46,7 +46,7 @@ void PowertoysEvents::register_sys_menu_action_module(PowertoyModuleIface* modul
   const std::wstring& config, sysMenuActionCallback callback)
 {
   std::unique_lock lock(mutex);
-  sysMenuActionModules[module] = SysMenuActionData{ config, callback };
+  sysMenuActionModules[module] = std::make_tuple(config, callback);
 }
 
 void PowertoysEvents::unregister_sys_menu_action_module(PowertoyModuleIface* module)
@@ -72,7 +72,9 @@ void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
       if (it != sysMenuActionModules.end()) {
         // TODO: Serialize event information to JSON formatted string.
         std::wstring event_data;
-        it->second.func(event_data);
+        sysMenuActionCallback callback;
+        std::tie(event_data, callback) = it->second;
+        callback(event_data);
         CustomSystemMenuUtils::ToggleItem(data.hwnd, data.idChild);
       }
     }

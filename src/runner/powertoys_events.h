@@ -16,10 +16,7 @@ public:
 
   intptr_t signal_event(const std::wstring& event, intptr_t data);
 private:
-  struct SysMenuActionData {
-    std::wstring config;
-    sysMenuActionCallback func;
-  };
+  using SysMenuActionData = std::tuple<std::wstring, sysMenuActionCallback>;
 
   std::shared_mutex mutex;
   std::unordered_map<std::wstring, std::vector<PowertoyModuleIface*>> receivers;
