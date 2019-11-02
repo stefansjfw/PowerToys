@@ -163,11 +163,15 @@ intptr_t AlwaysOnTop::HandleKeyboardHookEvent(const LowlevelKeyboardEvent& data)
     MSG msg = { 0 };
     while (GetMessage(&msg, NULL, 0, 0) != 0)
     {
+      bool isHotkey = false;
       if (msg.message == WM_HOTKEY) {
         ProcessCommand(GetForegroundWindow());
-        break;
+        isHotkey = true;
       }
       DispatchMessage(&msg);
+      if (isHotkey) {
+        break;
+      }
     }
   }
   return 0;
