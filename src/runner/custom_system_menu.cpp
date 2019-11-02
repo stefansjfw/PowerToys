@@ -3,6 +3,8 @@
 
 #include <interface/powertoy_module_interface.h>
 
+std::unordered_map<int, PowertoyModuleIface*> CustomSystemMenuUtils::CustomItemsPerModule{};
+
 namespace {
   constexpr int KSeparatorPos = 1;
   constexpr int KNewItemPos   = 2;
