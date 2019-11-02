@@ -9,18 +9,16 @@ public:
   void unregister_receiver(PowertoyModuleIface* module);
 
   void register_sys_menu_action_module  (PowertoyModuleIface* module,
-                                         const std::wstring& config,
-                                         sysMenuActionCallback callback);
+                                         const std::wstring& config);
   void unregister_sys_menu_action_module(PowertoyModuleIface* module);
   void handle_sys_menu_action           (const WinHookEvent& data);
 
   intptr_t signal_event(const std::wstring& event, intptr_t data);
 private:
-  using SysMenuActionData = std::tuple<std::wstring, sysMenuActionCallback>;
 
   std::shared_mutex mutex;
   std::unordered_map<std::wstring, std::vector<PowertoyModuleIface*>> receivers;
-  std::unordered_map<PowertoyModuleIface*, SysMenuActionData> sysMenuActionModules;
+  std::unordered_map<PowertoyModuleIface*, std::wstring> sysMenuActionModules;
 };
 
 PowertoysEvents& powertoys_events();

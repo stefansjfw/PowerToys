@@ -44,11 +44,10 @@ void PowertoysEvents::unregister_receiver(PowertoyModuleIface* module) {
   }
 }
 
-void PowertoysEvents::register_sys_menu_action_module(PowertoyModuleIface* module,
-  const std::wstring& config, sysMenuActionCallback callback)
+void PowertoysEvents::register_sys_menu_action_module(PowertoyModuleIface* module, const std::wstring& config)
 {
   std::unique_lock lock(mutex);
-  sysMenuActionModules[module] = std::make_tuple(config, callback);
+  sysMenuActionModules[module] = config;
 }
 
 void PowertoysEvents::unregister_sys_menu_action_module(PowertoyModuleIface* module)
@@ -64,9 +63,7 @@ void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
 {
   using namespace web::json;
   if (data.event == EVENT_SYSTEM_MENUSTART) {
-    for (auto& [module, actionData] : sysMenuActionModules) {
-      std::wstring config;
-      std::tie(config, std::ignore) = actionData;
+    for (auto& [module, config] : sysMenuActionModules) {
       value json_config = value::parse(config);
       array array_config = json_config.at(U("custom_items")).as_array();
       for (auto item : array_config)
@@ -81,13 +78,7 @@ void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
   {
     PowertoyModuleIface* module = CustomSystemMenuUtils::GetModuleFromItemId(data.idChild);
     if (module) {
-      auto it = sysMenuActionModules.find(module);
-      if (it != sysMenuActionModules.end()) {
-        sysMenuActionCallback callbackFunc;
-        std::tie(std::ignore, callbackFunc) = it->second;
-        callbackFunc(CustomSystemMenuUtils::GetItemNameFromItemId(data.idChild));
-        CustomSystemMenuUtils::ToggleItem(data.hwnd, data.idChild);
-      }
+      module->handle_custom_system_menu_action(data.idChild);
     }
   }
 }

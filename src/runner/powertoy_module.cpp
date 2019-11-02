@@ -26,8 +26,7 @@ PowertoyModule load_powertoy(const std::wstring& filename) {
 void PowertoyModule::custom_system_menu_config()
 {
   std::wstring config;
-  sysMenuActionCallback callback{ nullptr };
-  if (module->get_custom_system_menu_config(config, callback)) {
-    powertoys_events().register_sys_menu_action_module(module.get(), config, callback);
+  if (module->get_custom_system_menu_config(config)) {
+    powertoys_events().register_sys_menu_action_module(module.get(), config);
   }
 }

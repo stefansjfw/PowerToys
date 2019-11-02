@@ -28,8 +28,6 @@
     - unload the DLL.
  */
 
-using sysMenuActionCallback = void (*)(const std::wstring&);
-
 class PowertoyModuleIface {
 public:
   /* Returns the name of the PowerToy, this will be cached by the runner. */
@@ -70,10 +68,12 @@ public:
    * when user interacts with custom system menu. Function returns false
    * if no custom system menu configuration required.
    */
-  virtual bool get_custom_system_menu_config(std::wstring& config, sysMenuActionCallback callback)
+  virtual bool get_custom_system_menu_config(std::wstring& config)
   {
     return false;
   }
+  /* Handle activity on custom menu items. */
+  virtual void handle_custom_system_menu_action(const int& id) {}
   /* Destroy the PowerToy and free all memory. */
   virtual void destroy() = 0;
 };
