@@ -266,7 +266,7 @@ void AlwaysOnTop::LoadSettings(PCWSTR config, bool aFromFile)
       mSettings.editorHotkey = PowerToysSettings::HotkeyObject::from_json(values.get_json(HOTKEY_NAME));
     }
   }
-  catch (std::exception & e) {}
+  catch (std::exception&) {}
 }
 
 void AlwaysOnTop::SaveSettings()
@@ -276,7 +276,7 @@ void AlwaysOnTop::SaveSettings()
   try {
     values.save_to_settings_file();
   }
-  catch (std::exception & e) {}
+  catch (std::exception&) {}
 }
 
 void AlwaysOnTop::init_settings()

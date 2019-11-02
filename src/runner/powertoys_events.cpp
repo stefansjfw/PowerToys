@@ -2,6 +2,7 @@
 #include "powertoys_events.h"
 #include "lowlevel_keyboard_event.h"
 #include "win_hook_event.h"
+#include "custom_system_menu.h"
 
 void first_subscribed(const std::wstring& event) {
   if (event == ll_keyboard)
@@ -37,6 +38,43 @@ void PowertoysEvents::unregister_receiver(PowertoyModuleIface* module) {
     subscribers.erase(remove(begin(subscribers), end(subscribers), module), end(subscribers));
     if (subscribers.empty()) {
       last_unsubscribed(event);
+    }
+  }
+}
+
+void PowertoysEvents::register_sys_menu_action_module(PowertoyModuleIface* module,
+  const std::wstring& config, sysMenuActionCallback callback)
+{
+  std::unique_lock lock(mutex);
+  sysMenuActionModules[module] = SysMenuActionData{ config, callback };
+}
+
+void PowertoysEvents::unregister_sys_menu_action_module(PowertoyModuleIface* module)
+{
+  std::unique_lock lock(mutex);
+  sysMenuActionModules.erase(sysMenuActionModules.find(module));
+}
+
+
+void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
+{
+  if (data.event == EVENT_SYSTEM_MENUSTART) {
+    for (auto& [module, actionData] : sysMenuActionModules) {
+      // TODO: Based on JSON configuration bound to each module, create
+      // custom menu items by invoking CustomSystemMenuUtils API.
+    }
+  }
+  else if (data.event == EVENT_OBJECT_INVOKED)
+  {
+    PowertoyModuleIface* module = CustomSystemMenuUtils::GetModuleFromItemId(data.idChild);
+    if (module) {
+      auto it = sysMenuActionModules.find(module);
+      if (it != sysMenuActionModules.end()) {
+        // TODO: Serialize event information to JSON formatted string.
+        std::wstring event_data;
+        it->second.func(event_data);
+        CustomSystemMenuUtils::ToggleItem(data.hwnd, data.idChild);
+      }
     }
   }
 }
