@@ -43,9 +43,11 @@ bool CustomSystemMenuUtils::IncjectCustomItem(PowertoyModuleIface* module, HWND 
     menuItem.dwTypeData = const_cast<WCHAR*>(aItemName.c_str());
     menuItem.cch = aItemName.size() + 1;
 
-    if (InsertMenuItem(systemMenu, GetMenuItemCount(systemMenu) - KNewItemPos, true, &menuItem)) {
-      CustomItemsPerModule[menuItem.wID] = module;
-      return true;
+    if (CustomItemsPerModule.find(menuItem.wID) == CustomItemsPerModule.end()) {
+      if (InsertMenuItem(systemMenu, GetMenuItemCount(systemMenu) - KNewItemPos, true, &menuItem)) {
+        CustomItemsPerModule[menuItem.wID] = module;
+        return true;
+      }
     }
   }
   return false;
