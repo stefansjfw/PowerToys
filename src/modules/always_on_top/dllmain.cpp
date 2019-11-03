@@ -138,8 +138,24 @@ public:
     return 0;
   }
 
-  virtual bool get_custom_system_menu_config(std::wstring& config)
+  virtual bool get_custom_system_menu_config(wchar_t* config)
   {
+    auto id = 1234;
+    web::json::value customItem;
+    customItem[L"ID"] = web::json::value::number(id);
+    customItem[L"name"] = web::json::value::string(KMenuItemName);
+    customItem[L"hotkey"] = web::json::value::string(mSettings.editorHotkey.to_string());
+
+    web::json::value customItems;
+    customItems[0] = customItem;
+
+    web::json::value root;
+    root[L"custom_items"] = customItems;
+
+    std::wstring serialized = root.serialize();
+    //L"{\"custom_items\":[{\"ID\":1234, \"name\":\"AlwaysOnTop\", \"hotkey\":\"Win + Alt + T\"}]} ";
+    wcscpy_s(config, serialized.size() + 1, serialized.c_str());
+
     return true;
   }
 

@@ -68,7 +68,7 @@ public:
    * when user interacts with custom system menu. Function returns false
    * if no custom system menu configuration required.
    */
-  virtual bool get_custom_system_menu_config(std::wstring& config)
+  virtual bool get_custom_system_menu_config(wchar_t* config)
   {
     return false;
   }
