@@ -1,7 +1,6 @@
 #include "pch.h"
 #include <interface/powertoy_module_interface.h>
 #include <interface/lowlevel_keyboard_event_data.h>
-#include <interface/win_hook_event_data.h>
 #include <common/settings_objects.h>
 #include <set>
 #include "trace.h"
@@ -35,30 +34,23 @@ struct AllwaysOnTopSettings {
 };
 
 namespace {
-constexpr int KAlwaysOnTopSeparatorID = 0x1234;
-constexpr int KAlwaysOnTopMenuID      = 0x5678;
-constexpr int KMenuItemStringSize = 14;
-WCHAR KMenuItemString[KMenuItemStringSize] = L"Always On Top";
+  const std::wstring KMenuItemName = L"Always on top";
 }
 
 class AlwaysOnTop : public PowertoyModuleIface {
 private:
 
-  bool                   mEnabled{ false };
-  std::pair<HWND, HMENU> mCurrentlyOnTop{ nullptr, nullptr };
-  std::set<HMENU>        mModified;
-  AllwaysOnTopSettings   mSettings;
+  bool                 mEnabled{ false };
+  HWND                 mCurrentlyOnTop{ nullptr };
+  AllwaysOnTopSettings mSettings;
 
   void init_settings();
 
   intptr_t HandleKeyboardHookEvent(const LowlevelKeyboardEvent& data) noexcept;
-  void HandleWinHookEvent(const WinHookEvent& data) noexcept;
 
   void ProcessCommand(HWND aWindow);
   bool SetWindowOnTop(HWND aWindow);
   void ResetCurrentOnTop();
-  bool InjectMenuItem(HWND aWindow);
-  void ResetAll();
 
   void LoadSettings(PCWSTR config, bool aFromFile);
   void SaveSettings();
@@ -74,7 +66,7 @@ public:
 
   virtual void destroy() override
   {
-    ResetAll();
+    ResetCurrentOnTop();
     delete this;
   }
 
@@ -86,7 +78,6 @@ public:
   virtual const wchar_t** get_events() override
   {
     static const wchar_t* events[] = { ll_keyboard,
-                                       win_hook_event,
                                        nullptr };
 
     return events;
@@ -128,7 +119,7 @@ public:
 
   virtual void disable()
   {
-    ResetAll();
+    ResetCurrentOnTop();
     mEnabled = false;
   }
 
@@ -142,9 +133,6 @@ public:
     if (mEnabled) {
       if (wcscmp(name, ll_keyboard) == 0) {
         return HandleKeyboardHookEvent(*(reinterpret_cast<LowlevelKeyboardEvent*>(data)));
-      }
-      else if (wcscmp(name, win_hook_event) == 0) {
-        HandleWinHookEvent(*(reinterpret_cast<WinHookEvent*>(data)));
       }
     }
     return 0;
@@ -181,28 +169,9 @@ intptr_t AlwaysOnTop::HandleKeyboardHookEvent(const LowlevelKeyboardEvent& data)
   return 0;
 }
 
-void AlwaysOnTop::HandleWinHookEvent(const WinHookEvent& data) noexcept
-{
-  HWND window = GetForegroundWindow();
-  switch (data.event) {
-    case EVENT_SYSTEM_MENUSTART:
-    {
-      (void)InjectMenuItem(window);
-      break;
-    }
-    case EVENT_OBJECT_INVOKED:
-    {
-      if (data.idChild == KAlwaysOnTopMenuID) {
-        ProcessCommand(window);
-      }
-      break;
-    }
-  }
-}
-
 void AlwaysOnTop::ProcessCommand(HWND aWindow)
 {
-  bool alreadyOnTop = (mCurrentlyOnTop.first == aWindow);
+  bool alreadyOnTop = (mCurrentlyOnTop == aWindow);
   ResetCurrentOnTop();
   if (!alreadyOnTop) {
     (void)SetWindowOnTop(aWindow);
@@ -212,8 +181,7 @@ void AlwaysOnTop::ProcessCommand(HWND aWindow)
 bool AlwaysOnTop::SetWindowOnTop(HWND aWindow)
 {
   if (SetWindowPos(aWindow, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE)) {
-    mCurrentlyOnTop = std::make_pair(aWindow, GetSystemMenu(aWindow, false));
-    (void)CheckMenuItem(mCurrentlyOnTop.second, KAlwaysOnTopMenuID, MF_BYCOMMAND | MF_CHECKED);
+    mCurrentlyOnTop = aWindow;
     return true;
   }
   return false;
@@ -221,51 +189,10 @@ bool AlwaysOnTop::SetWindowOnTop(HWND aWindow)
 
 void AlwaysOnTop::ResetCurrentOnTop()
 {
-  if (mCurrentlyOnTop.first &&
-      SetWindowPos(mCurrentlyOnTop.first, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE)) {
-    if (mCurrentlyOnTop.second) {
-      (void)CheckMenuItem(mCurrentlyOnTop.second, KAlwaysOnTopMenuID, MF_BYCOMMAND | MF_UNCHECKED);
-    }
+  if (mCurrentlyOnTop &&
+      SetWindowPos(mCurrentlyOnTop, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE)) {
   }
-  mCurrentlyOnTop = { nullptr, nullptr };
-}
-
-bool AlwaysOnTop::InjectMenuItem(HWND aWindow)
-{
-  HMENU systemMenu = GetSystemMenu(aWindow, false);
-  EnableMenuItem(systemMenu, KAlwaysOnTopMenuID, MF_BYCOMMAND | MF_ENABLED); // Some apps disables newly added menu items (e.g. telegram)
-                                                                             // so re-enable 'AlwaysOnTop' every time system meny is opened
-  if (systemMenu && (mModified.find(systemMenu) == mModified.end())) {
-    MENUITEMINFO menuItem;
-    menuItem.cbSize = sizeof(menuItem);
-    menuItem.fMask = MIIM_ID | MIIM_STRING | MIIM_STATE;
-    menuItem.fState = MF_UNCHECKED | MF_ENABLED;
-    menuItem.wID = KAlwaysOnTopMenuID;
-    menuItem.dwTypeData = KMenuItemString;
-    menuItem.cch = KMenuItemStringSize;
-
-    MENUITEMINFO separator;
-    separator.cbSize = sizeof(separator);
-    separator.fMask = MIIM_ID | MIIM_FTYPE;
-    separator.fType = MFT_SEPARATOR;
-    separator.wID = KAlwaysOnTopSeparatorID;
-
-    InsertMenuItem(systemMenu, GetMenuItemCount(systemMenu) - 1, true, &separator);
-    InsertMenuItem(systemMenu, GetMenuItemCount(systemMenu) - 2, true, &menuItem);
-    mModified.insert(systemMenu);
-    return true;
-  }
-  return false;
-}
-
-void AlwaysOnTop::ResetAll()
-{
-  ResetCurrentOnTop();
-  for (const auto& menu : mModified) {
-    DeleteMenu(menu, KAlwaysOnTopSeparatorID, MF_BYCOMMAND);
-    DeleteMenu(menu, KAlwaysOnTopMenuID, MF_BYCOMMAND);
-  }
-  mModified.clear();
+  mCurrentlyOnTop = nullptr;
 }
 
 void AlwaysOnTop::LoadSettings(PCWSTR config, bool aFromFile)

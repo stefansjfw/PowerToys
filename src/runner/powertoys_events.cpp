@@ -64,14 +64,18 @@ void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
   using namespace web::json;
   if (data.event == EVENT_SYSTEM_MENUSTART) {
     for (auto& [module, config] : sysMenuActionModules) {
-      value json_config = value::parse(config);
-      array array_config = json_config.at(U("custom_items")).as_array();
-      for (auto item : array_config)
-      {
-        auto itemName = item.at(U("name")).as_string();
-        auto itemHotkey = item.at(U("hotkey")).as_string(); // TODO: This should be displayed along with command name.
-        CustomSystemMenuUtils::IncjectCustomItem(module, data.hwnd, itemName);
+      try {
+        value json_config = value::parse(config);
+        array array_config = json_config.at(U("custom_items")).as_array();
+        for (auto item : array_config)
+        {
+          auto itemId     = item[L"ID"].as_integer();
+          auto itemName   = item[L"name"].as_string();
+          auto itemHotkey = item[L"hotkey"].as_string(); // TODO: This should be displayed along with command name.
+          CustomSystemMenuUtils::IncjectCustomItem(module, data.hwnd, itemName, itemId);
+        }
       }
+      catch (std::exception&) {}
     }
   }
   else if (data.event == EVENT_OBJECT_INVOKED)

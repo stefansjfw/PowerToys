@@ -13,7 +13,7 @@ namespace {
   }
 }
 
-bool CustomSystemMenuUtils::InjectSepparator(PowertoyModuleIface* module, HWND aWindow)
+bool CustomSystemMenuUtils::InjectSepparator(PowertoyModuleIface* module, HWND aWindow, const int& aSeparatorId)
 {
   HMENU systemMenu = GetSystemMenu(aWindow, false);
   if (systemMenu) {
@@ -21,7 +21,7 @@ bool CustomSystemMenuUtils::InjectSepparator(PowertoyModuleIface* module, HWND a
     separator.cbSize = sizeof(separator);
     separator.fMask = MIIM_ID | MIIM_FTYPE;
     separator.fType = MFT_SEPARATOR;
-    separator.wID = GenerateItemId(module); // Not random entirely, all items bound to same module MUST have same ID.
+    separator.wID = aSeparatorId;
 
     if (InsertMenuItem(systemMenu, GetMenuItemCount(systemMenu) - KSeparatorPos, true, &separator)) {
       CustomItemsPerModule[separator.wID] = module;
@@ -31,7 +31,7 @@ bool CustomSystemMenuUtils::InjectSepparator(PowertoyModuleIface* module, HWND a
   return false;
 }
 
-bool CustomSystemMenuUtils::IncjectCustomItem(PowertoyModuleIface* module, HWND aWindow, const std::wstring& aItemName)
+bool CustomSystemMenuUtils::IncjectCustomItem(PowertoyModuleIface* module, HWND aWindow, const std::wstring& aItemName, const int& aItemId)
 {
   HMENU systemMenu = GetSystemMenu(aWindow, false);
   if (systemMenu) {
@@ -39,8 +39,8 @@ bool CustomSystemMenuUtils::IncjectCustomItem(PowertoyModuleIface* module, HWND 
     menuItem.cbSize = sizeof(menuItem);
     menuItem.fMask = MIIM_ID | MIIM_STRING | MIIM_STATE;
     menuItem.fState = MF_UNCHECKED | MF_ENABLED;
-    menuItem.wID = GenerateItemId(module); // Not random entirely, all items bound to same module MUST have same ID.
-    // menuItem.dwTypeData = &aItemName[0];
+    menuItem.wID = aItemId;
+    menuItem.dwTypeData = const_cast<WCHAR*>(aItemName.c_str());
     menuItem.cch = aItemName.size() + 1;
 
     if (InsertMenuItem(systemMenu, GetMenuItemCount(systemMenu) - KNewItemPos, true, &menuItem)) {
