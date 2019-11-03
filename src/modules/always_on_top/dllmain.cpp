@@ -138,7 +138,7 @@ public:
     return 0;
   }
 
-  virtual bool get_custom_system_menu_config(wchar_t* config)
+  virtual bool get_custom_system_menu_config(wchar_t* config, int& size)
   {
     auto id = 1234;
     web::json::value customItem;
@@ -155,13 +155,14 @@ public:
     std::wstring serialized = root.serialize();
     //L"{\"custom_items\":[{\"ID\":1234, \"name\":\"AlwaysOnTop\", \"hotkey\":\"Win + Alt + T\"}]} ";
     wcscpy_s(config, serialized.size() + 1, serialized.c_str());
-
     return true;
   }
 
-  virtual void handle_custom_system_menu_action(const int& id)
+  virtual void handle_custom_system_menu_action(const wchar_t* name)
   {
-
+    if (name == KMenuItemName.c_str()) {
+      ProcessCommand(GetForegroundWindow());
+    }
   }
 };
 

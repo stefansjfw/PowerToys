@@ -3,7 +3,7 @@
 
 #include <interface/powertoy_module_interface.h>
 
-std::unordered_map<int, PowertoyModuleIface*> CustomSystemMenuUtils::CustomItemsPerModule{};
+std::unordered_map<int, CustomSystemMenuUtils::CustomItemData> CustomSystemMenuUtils::CustomItemsPerModule{};
 
 namespace {
   constexpr int KSeparatorPos = 1;
@@ -24,7 +24,7 @@ bool CustomSystemMenuUtils::InjectSepparator(PowertoyModuleIface* module, HWND a
     separator.wID = aSeparatorId;
 
     if (InsertMenuItem(systemMenu, GetMenuItemCount(systemMenu) - KSeparatorPos, true, &separator)) {
-      CustomItemsPerModule[separator.wID] = module;
+      CustomItemsPerModule[separator.wID] = {module, L"separator"};
       return true;
     }
   }
@@ -43,11 +43,9 @@ bool CustomSystemMenuUtils::IncjectCustomItem(PowertoyModuleIface* module, HWND 
     menuItem.dwTypeData = const_cast<WCHAR*>(aItemName.c_str());
     menuItem.cch = aItemName.size() + 1;
 
-    if (CustomItemsPerModule.find(menuItem.wID) == CustomItemsPerModule.end()) {
-      if (InsertMenuItem(systemMenu, GetMenuItemCount(systemMenu) - KNewItemPos, true, &menuItem)) {
-        CustomItemsPerModule[menuItem.wID] = module;
-        return true;
-      }
+    if (InsertMenuItem(systemMenu, GetMenuItemCount(systemMenu) - KNewItemPos, true, &menuItem)) {
+      CustomItemsPerModule[menuItem.wID] = { module, aItemName };
+      return true;
     }
   }
   return false;
@@ -70,10 +68,23 @@ void CustomSystemMenuUtils::ToggleItem(HWND aWindow, const int& aItemId)
 
 void CustomSystemMenuUtils::CleanUp(PowertoyModuleIface* module)
 {
-  // TODO: Delete all custom menu items for specified window.
+  // TODO: Delete all custom menu items for specified module.
 }
 
 PowertoyModuleIface* CustomSystemMenuUtils::GetModuleFromItemId(const int& aItemId)
 {
-  return CustomItemsPerModule[aItemId];
+  auto it = CustomItemsPerModule.find(aItemId);
+  if (it != CustomItemsPerModule.end()) {
+    return std::get<0>(it->second);
+  }
+  return nullptr;
+}
+
+const std::wstring CustomSystemMenuUtils::GetItemNameFromItemid(const int& aItemId)
+{
+  auto it = CustomItemsPerModule.find(aItemId);
+  if (it != CustomItemsPerModule.end()) {
+    return std::get<1>(it->second);
+  }
+  return std::wstring{};
 }

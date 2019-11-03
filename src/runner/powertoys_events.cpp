@@ -55,6 +55,7 @@ void PowertoysEvents::unregister_sys_menu_action_module(PowertoyModuleIface* mod
   std::unique_lock lock(mutex);
   auto it = sysMenuActionModules.find(module);
   if (it != sysMenuActionModules.end()) {
+    // TODO: Clean all custom menu items allocated by this module!
     sysMenuActionModules.erase(it);
   }
 }
@@ -74,7 +75,7 @@ void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
           std::wstring itemHotkey{};
           if (item.has_string_field(L"hotkey")) {
             itemHotkey = item[L"hotkey"].as_string();
-            itemName += L"\t" + itemHotkey; // TODO: On hotkey change, update menu item shortcut
+            itemName += L"\t" + itemHotkey; // TODO: On hotkey change, update menu item shortcut!
           }
           CustomSystemMenuUtils::IncjectCustomItem(module, data.hwnd, itemName, itemId);
         }
@@ -86,7 +87,8 @@ void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
   {
     PowertoyModuleIface* module = CustomSystemMenuUtils::GetModuleFromItemId(data.idChild);
     if (module) {
-      module->handle_custom_system_menu_action(data.idChild);
+      module->handle_custom_system_menu_action(
+        CustomSystemMenuUtils::GetItemNameFromItemid(data.idChild).c_str());
       CustomSystemMenuUtils::ToggleItem(data.hwnd, data.idChild);
     }
   }

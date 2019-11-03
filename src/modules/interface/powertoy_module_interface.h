@@ -73,7 +73,7 @@ public:
     return false;
   }
   /* Handle activity on custom menu items. */
-  virtual void handle_custom_system_menu_action(const int& id) {}
+  virtual void handle_custom_system_menu_action(const wchar_t* name) {}
   /* Destroy the PowerToy and free all memory. */
   virtual void destroy() = 0;
 };
