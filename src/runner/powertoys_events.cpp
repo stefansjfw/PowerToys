@@ -71,7 +71,11 @@ void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
         {
           auto itemId     = item[L"ID"].as_integer();
           auto itemName   = item[L"name"].as_string();
-          auto itemHotkey = item[L"hotkey"].as_string(); // TODO: This should be displayed along with command name.
+          std::wstring itemHotkey{};
+          if (item.has_string_field(L"hotkey")) {
+            itemHotkey = item[L"hotkey"].as_string();
+            itemName += L"\t" + itemHotkey; // TODO: On hotkey change, update menu item shortcut
+          }
           CustomSystemMenuUtils::IncjectCustomItem(module, data.hwnd, itemName, itemId);
         }
       }
