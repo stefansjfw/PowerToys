@@ -150,10 +150,14 @@ public:
     return 0;
   }
 
-  virtual bool get_custom_system_menu_config(const int& id)
+  virtual bool get_custom_system_menu_config(std::wstring& config)
+  {
+    return true;
+  }
+
+  virtual void handle_custom_system_menu_action(const int& id)
   {
 
-    return true;
   }
 };
 
