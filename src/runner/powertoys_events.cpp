@@ -79,6 +79,7 @@ void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
     PowertoyModuleIface* module = CustomSystemMenuUtils::GetModuleFromItemId(data.idChild);
     if (module) {
       module->handle_custom_system_menu_action(data.idChild);
+      CustomSystemMenuUtils::ToggleItem(data.hwnd, data.idChild);
     }
   }
 }

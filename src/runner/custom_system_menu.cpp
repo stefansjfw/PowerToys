@@ -3,7 +3,7 @@
 
 #include <interface/powertoy_module_interface.h>
 
-std::unordered_map<int, CustomSystemMenuUtils::CustomItemInfo> CustomSystemMenuUtils::CustomItemsPerModule{};
+std::unordered_map<int, PowertoyModuleIface*> CustomSystemMenuUtils::CustomItemsPerModule{};
 
 namespace {
   constexpr int KSeparatorPos = 1;
@@ -24,7 +24,7 @@ bool CustomSystemMenuUtils::InjectSepparator(PowertoyModuleIface* module, HWND a
     separator.wID = GenerateItemId(module); // Not random entirely, all items bound to same module MUST have same ID.
 
     if (InsertMenuItem(systemMenu, GetMenuItemCount(systemMenu) - KSeparatorPos, true, &separator)) {
-      CustomItemsPerModule[separator.wID] = std::make_tuple(module, std::wstring{});
+      CustomItemsPerModule[separator.wID] = module;
       return true;
     }
   }
@@ -44,7 +44,7 @@ bool CustomSystemMenuUtils::IncjectCustomItem(PowertoyModuleIface* module, HWND 
     menuItem.cch = aItemName.size() + 1;
 
     if (InsertMenuItem(systemMenu, GetMenuItemCount(systemMenu) - KNewItemPos, true, &menuItem)) {
-      CustomItemsPerModule[menuItem.wID] = std::make_tuple(module, menuItem.dwTypeData);
+      CustomItemsPerModule[menuItem.wID] = module;
       return true;
     }
   }
@@ -73,16 +73,5 @@ void CustomSystemMenuUtils::CleanUp(PowertoyModuleIface* module)
 
 PowertoyModuleIface* CustomSystemMenuUtils::GetModuleFromItemId(const int& aItemId)
 {
-  auto it = CustomItemsPerModule.find(aItemId);
-  if (it != CustomItemsPerModule.end()) {
-    return std::get<0>(it->second);
-  }
-}
-
-std::wstring CustomSystemMenuUtils::GetItemNameFromItemId(const int& aItemId)
-{
-  auto it = CustomItemsPerModule.find(aItemId);
-  if (it != CustomItemsPerModule.end()) {
-    return std::get<1>(it->second);
-  }
+  return CustomItemsPerModule[aItemId];
 }

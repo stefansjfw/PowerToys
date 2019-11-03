@@ -16,9 +16,7 @@ public:
   static void CleanUp          (PowertoyModuleIface* module);
 
   static PowertoyModuleIface* GetModuleFromItemId  (const int& aItemId);
-  static std::wstring         GetItemNameFromItemId(const int& aItemId);
 private:
-  using CustomItemInfo = std::tuple<PowertoyModuleIface*, std::wstring>;
 
-  static std::unordered_map<int, CustomItemInfo> CustomItemsPerModule;
+  static std::unordered_map<int, PowertoyModuleIface*> CustomItemsPerModule;
 };
