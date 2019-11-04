@@ -22,16 +22,17 @@ bool CustomSystemMenuUtils::IncjectCustomItems(PowertoyModuleIface* module, HWND
     // Some apps disables newly added menu items (e.g. telegram), so re-enable custom menus every time system meny is opened
   }
 
-  auto it = ProcessedWindows.find(aWindow);
-  if (it == ProcessedWindows.end()) {
-    InjectSepparator(module, aWindow);
-    for (const auto& name : aItemNames) {
-      IncjectCustomItem(module, aWindow, name);
+  for (const auto& m : ProcessedWindows[aWindow]) {
+    if (module == m) {
+      return false;
     }
-    ProcessedWindows[aWindow].push_back(module);
-    return true;
   }
-  return false;
+  InjectSepparator(module, aWindow);
+  for (const auto& name : aItemNames) {
+    IncjectCustomItem(module, aWindow, name);
+  }
+  ProcessedWindows[aWindow].push_back(module);
+  return true;
 }
 
 void CustomSystemMenuUtils::ToggleItem(HWND aWindow, const int& aItemId)
