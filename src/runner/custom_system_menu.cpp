@@ -17,6 +17,11 @@ namespace {
 
 bool CustomSystemMenuUtils::IncjectCustomItems(PowertoyModuleIface* module, HWND aWindow, std::vector<std::wstring> aItemNames)
 {
+  for (auto& [id, info] : ItemInfo) {
+    EnableMenuItem(GetSystemMenu(aWindow, false), id, MF_BYCOMMAND | MF_ENABLED);
+    // Some apps disables newly added menu items (e.g. telegram), so re-enable custom menus every time system meny is opened
+  }
+
   auto it = ProcessedWindows.find(aWindow);
   if (it == ProcessedWindows.end()) {
     InjectSepparator(module, aWindow);
