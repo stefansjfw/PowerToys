@@ -43,7 +43,7 @@ private:
   bool                 mEnabled{ false };
   HWND                 mCurrentlyOnTop{ nullptr };
   AllwaysOnTopSettings mSettings;
-  std::wstring         itemName;
+  std::wstring         itemName{ KMenuItemName };
 
   void init_settings();
 
@@ -139,9 +139,8 @@ public:
     return 0;
   }
 
-  virtual bool get_custom_system_menu_config(wchar_t* config)
+  virtual bool get_custom_system_menu_config(wchar_t* config, int* size) override
   {
-    auto id = 1234;
     web::json::value customItem;
     customItem[L"name"] = web::json::value::string(itemName);
 
@@ -152,6 +151,10 @@ public:
     root[L"custom_items"] = customItems;
 
     std::wstring serialized = root.serialize();
+    *size = serialized.size();
+    if (config == nullptr) {
+      return true;
+    }
     wcscpy_s(config, serialized.size() + 1, serialized.c_str());
     return true;
   }
