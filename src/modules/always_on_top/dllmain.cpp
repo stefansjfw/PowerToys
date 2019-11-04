@@ -43,6 +43,7 @@ private:
   bool                 mEnabled{ false };
   HWND                 mCurrentlyOnTop{ nullptr };
   AllwaysOnTopSettings mSettings;
+  std::wstring         itemName;
 
   void init_settings();
 
@@ -138,13 +139,11 @@ public:
     return 0;
   }
 
-  virtual bool get_custom_system_menu_config(wchar_t* config, int& size)
+  virtual bool get_custom_system_menu_config(wchar_t* config)
   {
     auto id = 1234;
     web::json::value customItem;
-    customItem[L"ID"] = web::json::value::number(id);
-    customItem[L"name"] = web::json::value::string(KMenuItemName);
-    customItem[L"hotkey"] = web::json::value::string(mSettings.editorHotkey.to_string());
+    customItem[L"name"] = web::json::value::string(itemName);
 
     web::json::value customItems;
     customItems[0] = customItem;
@@ -153,14 +152,14 @@ public:
     root[L"custom_items"] = customItems;
 
     std::wstring serialized = root.serialize();
-    //L"{\"custom_items\":[{\"ID\":1234, \"name\":\"AlwaysOnTop\", \"hotkey\":\"Win + Alt + T\"}]} ";
+    //L"{\"custom_items\":[{\"name\":\"AlwaysOnTop\", \"hotkey\":\"Win + Alt + T\"}]} ";
     wcscpy_s(config, serialized.size() + 1, serialized.c_str());
     return true;
   }
 
   virtual void handle_custom_system_menu_action(const wchar_t* name)
   {
-    if (name == KMenuItemName.c_str()) {
+    if (!wcscmp(name, itemName.c_str())) {
       ProcessCommand(GetForegroundWindow());
     }
   }
@@ -222,6 +221,7 @@ void AlwaysOnTop::LoadSettings(PCWSTR config, bool aFromFile)
     if (values.is_object_value(HOTKEY_NAME))
     {
       mSettings.editorHotkey = PowerToysSettings::HotkeyObject::from_json(values.get_json(HOTKEY_NAME));
+      itemName = KMenuItemName + L"\t" + mSettings.editorHotkey.to_string();
     }
   }
   catch (std::exception&) {}

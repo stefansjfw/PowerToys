@@ -9,8 +9,7 @@ class PowertoyModuleIface;
 class CustomSystemMenuUtils
 {
 public:
-  static bool InjectSepparator (PowertoyModuleIface* module, HWND aWindow, const int& aSeparatorId);
-  static bool IncjectCustomItem(PowertoyModuleIface* module, HWND aWindow, const std::wstring& aItemName, const int& aItemId);
+  static bool IncjectCustomItems(PowertoyModuleIface* module, HWND aWindow, std::vector<std::wstring> aItemNames);
   static void DeleteCustomItem (HWND aWindow, const int& aItemId);
   static void ToggleItem       (HWND aWindow, const int& aItemId);
   static void CleanUp          (PowertoyModuleIface* module);
@@ -18,7 +17,9 @@ public:
   static PowertoyModuleIface* GetModuleFromItemId  (const int& aItemId);
   static const std::wstring   GetItemNameFromItemid(const int& aItemId);
 private:
-  using CustomItemData = std::tuple<PowertoyModuleIface*, std::wstring>;
+  static bool InjectSepparator (PowertoyModuleIface* module, HWND aWindow);
+  static bool IncjectCustomItem(PowertoyModuleIface* module, HWND aWindow, const std::wstring& aItemName);
 
-  static std::unordered_map<int, CustomItemData> CustomItemsPerModule;
+  static std::unordered_map<HWND, std::vector<PowertoyModuleIface*>> ProcessedWindows;
+  static std::unordered_map<int, std::pair<PowertoyModuleIface*, std::wstring>> ItemInfo;
 };

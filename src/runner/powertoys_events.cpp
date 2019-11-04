@@ -68,17 +68,13 @@ void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
       try {
         value json_config = value::parse(config);
         array array_config = json_config.at(U("custom_items")).as_array();
+        std::vector<std::wstring> names{};
         for (auto item : array_config)
         {
-          auto itemId     = item[L"ID"].as_integer();
-          auto itemName   = item[L"name"].as_string();
-          std::wstring itemHotkey{};
-          if (item.has_string_field(L"hotkey")) {
-            itemHotkey = item[L"hotkey"].as_string();
-            itemName += L"\t" + itemHotkey; // TODO: On hotkey change, update menu item shortcut!
-          }
-          CustomSystemMenuUtils::IncjectCustomItem(module, data.hwnd, itemName, itemId);
+          auto itemName = item[L"name"].as_string();
+          names.push_back(itemName);
         }
+        CustomSystemMenuUtils::IncjectCustomItems(module, data.hwnd, names);
       }
       catch (std::exception&) {}
     }
