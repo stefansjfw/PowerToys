@@ -9,9 +9,9 @@ std::unordered_map<int, std::pair<PowertoyModuleIface*, std::wstring>> CustomSys
 namespace {
   constexpr int KSeparatorPos = 1;
   constexpr int KNewItemPos   = 2;
-  int GenerateItemId(PowertoyModuleIface* module, bool separator) {
-    // TODO:
-    return 0x00000001;
+  int GenerateItemId() {
+    static int generator = 0xDEADBEEF;
+    return ++generator;
   }
 }
 
@@ -76,7 +76,7 @@ bool CustomSystemMenuUtils::InjectSepparator(PowertoyModuleIface* module, HWND a
     separator.cbSize = sizeof(separator);
     separator.fMask = MIIM_ID | MIIM_FTYPE;
     separator.fType = MFT_SEPARATOR;
-    separator.wID = GenerateItemId(module, true);
+    separator.wID = GenerateItemId();
 
     if (InsertMenuItem(systemMenu, GetMenuItemCount(systemMenu) - KSeparatorPos, true, &separator)) {
       ItemInfo[separator.wID] = { module, L"sepparator_dummy_name" };
@@ -94,7 +94,7 @@ bool CustomSystemMenuUtils::IncjectCustomItem(PowertoyModuleIface* module, HWND 
     menuItem.cbSize = sizeof(menuItem);
     menuItem.fMask = MIIM_ID | MIIM_STRING | MIIM_STATE;
     menuItem.fState = MF_UNCHECKED | MF_ENABLED;
-    menuItem.wID = GenerateItemId(module, false);
+    menuItem.wID = GenerateItemId();
     menuItem.dwTypeData = const_cast<WCHAR*>(aItemName.c_str());
     menuItem.cch = aItemName.size() + 1;
 

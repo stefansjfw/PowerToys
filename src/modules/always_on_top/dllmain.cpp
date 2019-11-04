@@ -152,7 +152,6 @@ public:
     root[L"custom_items"] = customItems;
 
     std::wstring serialized = root.serialize();
-    //L"{\"custom_items\":[{\"name\":\"AlwaysOnTop\", \"hotkey\":\"Win + Alt + T\"}]} ";
     wcscpy_s(config, serialized.size() + 1, serialized.c_str());
     return true;
   }
