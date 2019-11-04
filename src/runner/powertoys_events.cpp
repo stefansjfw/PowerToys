@@ -55,7 +55,7 @@ void PowertoysEvents::unregister_sys_menu_action_module(PowertoyModuleIface* mod
   std::unique_lock lock(mutex);
   auto it = sysMenuActionModules.find(module);
   if (it != sysMenuActionModules.end()) {
-    // TODO: Clean all custom menu items allocated by this module!
+    CustomSystemMenuUtils::CleanUp(it->first);
     sysMenuActionModules.erase(it);
   }
 }

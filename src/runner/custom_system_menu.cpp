@@ -47,7 +47,14 @@ void CustomSystemMenuUtils::ToggleItem(HWND aWindow, const int& aItemId)
 
 void CustomSystemMenuUtils::CleanUp(PowertoyModuleIface* module)
 {
-  // TODO: Delete all custom menu items for specified module.
+  for (auto& [window, modules] : ProcessedWindows) {
+    for (auto& [id, info] : ItemInfo) {
+      HMENU sysMenu{ nullptr };
+      if (info.first == module && (sysMenu = GetSystemMenu(window, false))) {
+        DeleteMenu(GetSystemMenu(window, false), id, MF_BYCOMMAND);
+      }
+    }
+  }
 }
 
 PowertoyModuleIface* CustomSystemMenuUtils::GetModuleFromItemId(const int& aItemId)
