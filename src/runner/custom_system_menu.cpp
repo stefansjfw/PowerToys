@@ -29,13 +29,6 @@ bool CustomSystemMenuUtils::IncjectCustomItems(PowertoyModuleIface* module, HWND
   return false;
 }
 
-void CustomSystemMenuUtils::DeleteCustomItem(HWND aWindow, const int& aItemId)
-{
-  HMENU systemMenu = GetSystemMenu(aWindow, false);
-  if (systemMenu) {
-    DeleteMenu(systemMenu, aItemId, MF_BYCOMMAND);
-  }
-}
 void CustomSystemMenuUtils::ToggleItem(HWND aWindow, const int& aItemId)
 {
   HMENU systemMenu = GetSystemMenu(aWindow, false);

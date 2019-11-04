@@ -10,7 +10,6 @@ class CustomSystemMenuUtils
 {
 public:
   static bool IncjectCustomItems(PowertoyModuleIface* module, HWND aWindow, std::vector<std::wstring> aItemNames);
-  static void DeleteCustomItem (HWND aWindow, const int& aItemId);
   static void ToggleItem       (HWND aWindow, const int& aItemId);
   static void CleanUp          (PowertoyModuleIface* module);
 
