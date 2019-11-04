@@ -40,8 +40,8 @@ void CustomSystemMenuUtils::ToggleItem(HWND aWindow, const int& aItemId)
 {
   HMENU systemMenu = GetSystemMenu(aWindow, false);
   if (systemMenu) {
-    // TODO: Toggle item state.
-    // CheckMenuItem(systemMenu, aItemId, MF_BYCOMMAND | MF_CHECKED);
+    int state = (GetMenuState(systemMenu, aItemId, MF_BYCOMMAND) == MF_CHECKED) ? MF_UNCHECKED : MF_CHECKED;
+    CheckMenuItem(systemMenu, aItemId, MF_BYCOMMAND | state);
   }
 }
 

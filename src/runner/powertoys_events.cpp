@@ -85,7 +85,7 @@ void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
     if (module) {
       module->handle_custom_system_menu_action(
         CustomSystemMenuUtils::GetItemNameFromItemid(data.idChild).c_str());
-      CustomSystemMenuUtils::ToggleItem(data.hwnd, data.idChild);
+      CustomSystemMenuUtils::ToggleItem(GetForegroundWindow(), data.idChild);
     }
   }
 }
