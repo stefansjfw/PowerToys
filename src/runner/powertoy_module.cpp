@@ -20,17 +20,6 @@ PowertoyModule load_powertoy(const std::wstring& filename) {
     FreeLibrary(handle);
     winrt::throw_last_error();
   }
+  module->register_system_menu_helper(&SystemMenuHelperInstace());
   return PowertoyModule(module, handle);
-}
-
-void PowertoyModule::custom_system_menu_config()
-{
-  wchar_t *config;
-  int size = 0;
-  module->get_custom_system_menu_config(nullptr, &size);
-  config = new wchar_t[size + 1];
-  if (module->get_custom_system_menu_config(config, &size)) {
-    powertoys_events().register_sys_menu_action_module(module.get(), config);
-  }
-  delete[] config;
 }

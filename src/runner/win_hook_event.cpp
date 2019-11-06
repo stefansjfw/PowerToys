@@ -77,6 +77,6 @@ void stop_win_hook_event() {
 void intercept_system_menu_action(intptr_t data) {
   WinHookEvent* evt = reinterpret_cast<WinHookEvent*>(data);
   if (evt->event == EVENT_SYSTEM_MENUSTART || evt->event == EVENT_OBJECT_INVOKED) {
-    powertoys_events().handle_sys_menu_action(*evt);
+    powertoys_events().handle_system_menu_action(*evt);
   }
 }

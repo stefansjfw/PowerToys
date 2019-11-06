@@ -33,7 +33,7 @@
     <ClCompile Include="win_hook_event.cpp">
       <Filter>Events</Filter>
     </ClCompile>
-    <ClCompile Include="custom_system_menu.cpp">
+    <ClCompile Include="system_menu_helper.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
   </ItemGroup>
@@ -70,7 +70,7 @@
     <ClInclude Include="win_hook_event.h">
       <Filter>Events</Filter>
     </ClInclude>
-    <ClInclude Include="custom_system_menu.h">
+    <ClInclude Include="system_menu_helper.h">
       <Filter>Utils</Filter>
     </ClInclude>
   </ItemGroup>

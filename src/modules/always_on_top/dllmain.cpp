@@ -1,6 +1,7 @@
 #include "pch.h"
 #include <interface/powertoy_module_interface.h>
 #include <interface/lowlevel_keyboard_event_data.h>
+#include <interface/powertoy_system_menu.h>
 #include <common/settings_objects.h>
 #include <set>
 #include "trace.h"
@@ -35,15 +36,32 @@ struct AllwaysOnTopSettings {
 
 namespace {
   const std::wstring KMenuItemName = L"Always on top";
+
+  std::wstring AlwaysOnTopConfig(const std::wstring& name)
+  {
+    web::json::value customItem;
+    customItem[L"name"]   = web::json::value::string(name);
+    customItem[L"enable"] = web::json::value::boolean(true);
+    customItem[L"check"]  = web::json::value::boolean(true);
+
+    web::json::value customItems;
+    customItems[0] = customItem;
+
+    web::json::value root;
+    root[L"custom_items"] = customItems;
+
+    return root.serialize();
+  }
 }
 
 class AlwaysOnTop : public PowertoyModuleIface {
 private:
 
-  bool                 mEnabled{ false };
-  HWND                 mCurrentlyOnTop{ nullptr };
-  AllwaysOnTopSettings mSettings;
-  std::wstring         itemName{ KMenuItemName };
+  bool                     mEnabled{ false };
+  HWND                     mCurrentlyOnTop{ nullptr };
+  AllwaysOnTopSettings     mSettings;
+  std::wstring             mItemName{ KMenuItemName };
+  PowertoySystemMenuIface* mSystemMenuHelper{ nullptr };
 
   void init_settings();
 
@@ -106,6 +124,9 @@ public:
     }
     UnregisterHotKey(NULL, 1);
     RegisterHotKey(NULL, 1, mSettings.editorHotkey.get_modifiers(), mSettings.editorHotkey.get_code());
+
+    // Perform update with new hotkey.
+    mSystemMenuHelper->SetConfiguration(this, AlwaysOnTopConfig(mItemName).c_str());
   }
 
   virtual void call_custom_action(const wchar_t* action) override
@@ -139,29 +160,17 @@ public:
     return 0;
   }
 
-  virtual bool get_custom_system_menu_config(wchar_t* config, int* size) override
+  virtual void register_system_menu_helper(PowertoySystemMenuIface* helper) override
   {
-    web::json::value customItem;
-    customItem[L"name"] = web::json::value::string(itemName);
+    mSystemMenuHelper = helper;
 
-    web::json::value customItems;
-    customItems[0] = customItem;
-
-    web::json::value root;
-    root[L"custom_items"] = customItems;
-
-    std::wstring serialized = root.serialize();
-    *size = serialized.size();
-    if (config == nullptr) {
-      return true;
-    }
-    wcscpy_s(config, serialized.size() + 1, serialized.c_str());
-    return true;
+    // Initial configuration with default hotkey.
+    mSystemMenuHelper->SetConfiguration(this, AlwaysOnTopConfig(mItemName).c_str());
   }
 
-  virtual void handle_custom_system_menu_action(const wchar_t* name)
+  virtual void signal_system_menu_action(const wchar_t* name) override
   {
-    if (!wcscmp(name, itemName.c_str())) {
+    if (!wcscmp(name, mItemName.c_str())) {
       ProcessCommand(GetForegroundWindow());
     }
   }
@@ -223,7 +232,7 @@ void AlwaysOnTop::LoadSettings(PCWSTR config, bool aFromFile)
     if (values.is_object_value(HOTKEY_NAME))
     {
       mSettings.editorHotkey = PowerToysSettings::HotkeyObject::from_json(values.get_json(HOTKEY_NAME));
-      itemName = KMenuItemName + L"\t" + mSettings.editorHotkey.to_string();
+      mItemName = KMenuItemName + L"\t" + mSettings.editorHotkey.to_string();
     }
   }
   catch (std::exception&) {}

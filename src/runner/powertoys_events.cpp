@@ -2,7 +2,7 @@
 #include "powertoys_events.h"
 #include "lowlevel_keyboard_event.h"
 #include "win_hook_event.h"
-#include "custom_system_menu.h"
+#include "system_menu_helper.h"
 
 #include <common/settings_helpers.h>
 
@@ -44,48 +44,35 @@ void PowertoysEvents::unregister_receiver(PowertoyModuleIface* module) {
   }
 }
 
-void PowertoysEvents::register_sys_menu_action_module(PowertoyModuleIface* module, const std::wstring& config)
+void PowertoysEvents::register_system_menu_action(PowertoyModuleIface* module)
 {
   std::unique_lock lock(mutex);
-  sysMenuActionModules[module] = config;
+  sysMenuActionModules.insert(module);
 }
 
-void PowertoysEvents::unregister_sys_menu_action_module(PowertoyModuleIface* module)
+void PowertoysEvents::unregister_system_menu_action(PowertoyModuleIface* module)
 {
   std::unique_lock lock(mutex);
   auto it = sysMenuActionModules.find(module);
   if (it != sysMenuActionModules.end()) {
-    CustomSystemMenuUtils::CleanUp(it->first);
+    SystemMenuHelperInstace().Reset(module);
     sysMenuActionModules.erase(it);
   }
 }
 
-void PowertoysEvents::handle_sys_menu_action(const WinHookEvent& data)
+void PowertoysEvents::handle_system_menu_action(const WinHookEvent& data)
 {
-  using namespace web::json;
   if (data.event == EVENT_SYSTEM_MENUSTART) {
-    for (auto& [module, config] : sysMenuActionModules) {
-      try {
-        value json_config = value::parse(config);
-        array array_config = json_config.at(U("custom_items")).as_array();
-        std::vector<std::wstring> names{};
-        for (auto item : array_config)
-        {
-          auto itemName = item[L"name"].as_string();
-          names.push_back(itemName);
-        }
-        CustomSystemMenuUtils::IncjectCustomItems(module, data.hwnd, names);
-      }
-      catch (std::exception&) {}
+    for (auto& module : sysMenuActionModules) {
+      SystemMenuHelperInstace().Customize(module, data.hwnd);
     }
   }
   else if (data.event == EVENT_OBJECT_INVOKED)
   {
-    PowertoyModuleIface* module = CustomSystemMenuUtils::GetModuleFromItemId(data.idChild);
-    if (module) {
-      module->handle_custom_system_menu_action(
-        CustomSystemMenuUtils::GetItemNameFromItemid(data.idChild).c_str());
-      CustomSystemMenuUtils::ToggleItem(GetForegroundWindow(), data.idChild);
+    if (PowertoyModuleIface* module{ SystemMenuHelperInstace().ModuleFromItemId(data.idChild) }) {
+      module->signal_system_menu_action(
+        SystemMenuHelperInstace().ItemNameFromItemId(data.idChild).c_str());
+      SystemMenuHelperInstace().HandleAction(GetForegroundWindow(), data.idChild);
     }
   }
 }
