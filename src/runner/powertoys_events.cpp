@@ -70,9 +70,12 @@ void PowertoysEvents::handle_system_menu_action(const WinHookEvent& data)
   else if (data.event == EVENT_OBJECT_INVOKED)
   {
     if (PowertoyModuleIface* module{ SystemMenuHelperInstace().ModuleFromItemId(data.idChild) }) {
-      module->signal_system_menu_action(
-        SystemMenuHelperInstace().ItemNameFromItemId(data.idChild).c_str());
-      SystemMenuHelperInstace().HandleAction(GetForegroundWindow(), data.idChild);
+      std::wstring name = SystemMenuHelperInstace().ItemNameFromItemId(data.idChild);
+
+      // Process event on specified system menu item by responsible module.
+      module->signal_system_menu_action(name.c_str());
+      // Process event on specified system menu item by system menu helper (check/uncheck if needed).
+      SystemMenuHelperInstace().RegisterAction(module, GetForegroundWindow(), name.c_str());
     }
   }
 }

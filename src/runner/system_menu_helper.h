@@ -13,10 +13,10 @@ class SystemMenuHelper : public PowertoySystemMenuIface
 public:
   // PowertoySystemMenuIface
   virtual void SetConfiguration(PowertoyModuleIface* module, const wchar_t* config) override;
+  virtual void RegisterAction  (PowertoyModuleIface* module, HWND window, const wchar_t* name) override;
 
   bool Customize   (PowertoyModuleIface* module, HWND window);
   void Reset       (PowertoyModuleIface* module);
-  void HandleAction(HWND window, const int& id);
 
   bool HasCustomConfig(PowertoyModuleIface* module);
 

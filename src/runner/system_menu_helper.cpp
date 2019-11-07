@@ -31,6 +31,24 @@ void SystemMenuHelper::SetConfiguration(PowertoyModuleIface* module, const wchar
   }
 }
 
+void SystemMenuHelper::RegisterAction(PowertoyModuleIface* module, HWND window, const wchar_t* name)
+{
+  for (auto& item : Configurations[module]) {
+    if (!wcscmp(name, item.name.c_str()) && item.check) {
+      // Handle check/uncheck action only if specified by module configuration.
+      for (auto& [id, data] : IdMappings) {
+        if (data.second == name) {
+          HMENU systemMenu = GetSystemMenu(window, false);
+          int state = (GetMenuState(systemMenu, id, MF_BYCOMMAND) == MF_CHECKED) ? MF_UNCHECKED : MF_CHECKED;
+          CheckMenuItem(systemMenu, id, MF_BYCOMMAND | state);
+          break;
+        }
+      }
+      break;
+    }
+  }
+}
+
 bool SystemMenuHelper::Customize(PowertoyModuleIface* module, HWND window)
 {
   for (const auto& m : ProcessedWindows[window]) {
@@ -54,23 +72,6 @@ void SystemMenuHelper::Reset(PowertoyModuleIface* module)
       if (data.first == module && (sysMenu = GetSystemMenu(window, false))) {
         DeleteMenu(GetSystemMenu(window, false), id, MF_BYCOMMAND);
       }
-    }
-  }
-}
-
-void SystemMenuHelper::HandleAction(HWND window, const int& id)
-{
-  PowertoyModuleIface* module = ModuleFromItemId(id);
-  std::wstring name           = ItemNameFromItemId(id);
-  for (auto& item : Configurations[module]) {
-    if (name == item.name && item.check) {
-      // Handle check/uncheck action only if specified by module configuration.
-      HMENU systemMenu = GetSystemMenu(window, false);
-      if (systemMenu) {
-        int state = (GetMenuState(systemMenu, id, MF_BYCOMMAND) == MF_CHECKED) ? MF_UNCHECKED : MF_CHECKED;
-        CheckMenuItem(systemMenu, id, MF_BYCOMMAND | state);
-      }
-      break;
     }
   }
 }

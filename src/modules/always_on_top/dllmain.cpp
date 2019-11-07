@@ -249,7 +249,11 @@ void AlwaysOnTop::SaveSettings()
 LRESULT AlwaysOnTop::WndProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) noexcept
 {
   if (message == WM_HOTKEY) {
-    ProcessCommand(GetForegroundWindow());
+    if (HWND fw{ GetForegroundWindow() }) {
+      ProcessCommand(fw);
+      // Register this action with system menu helper as well (check/uncheck item).
+      mSystemMenuHelper->RegisterAction(this, fw, mItemName.c_str());
+    }
   }
   return 0;
 }
