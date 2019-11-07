@@ -2,7 +2,7 @@
 #include <interface/powertoy_module_interface.h>
 #include <interface/win_hook_event_data.h>
 #include <string>
-#include <set>
+#include <unordered_set>
 
 class PowertoysEvents {
 public:
@@ -18,7 +18,7 @@ private:
 
   std::shared_mutex mutex;
   std::unordered_map<std::wstring, std::vector<PowertoyModuleIface*>> receivers;
-  std::set<PowertoyModuleIface*> sysMenuActionModules;
+  std::unordered_set<PowertoyModuleIface*> sysMenuActionModules;
 };
 
 PowertoysEvents& powertoys_events();

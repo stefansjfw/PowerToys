@@ -1,6 +1,5 @@
 #include "pch.h"
 #include <interface/powertoy_module_interface.h>
-#include <interface/lowlevel_keyboard_event_data.h>
 #include <interface/powertoy_system_menu.h>
 #include <common/settings_objects.h>
 #include <set>
@@ -31,7 +30,7 @@ const static wchar_t* HOTKEY_NAME = L"AlwaysOnTop_HotKey";
 struct AllwaysOnTopSettings {
   // Default hotkey WIN + ALT + T
   PowerToysSettings::HotkeyObject editorHotkey =
-    PowerToysSettings::HotkeyObject::from_settings(true, false, true, false, VK_OEM_3, L"t");
+    PowerToysSettings::HotkeyObject::from_settings(true, false, true, false, 0x54, L"T"); // ASCII code for T 0x54
 };
 
 namespace {
@@ -58,6 +57,7 @@ class AlwaysOnTop : public PowertoyModuleIface {
 private:
 
   bool                     mEnabled{ false };
+  HWND                     mHotKeyHandleWindow{ nullptr };
   HWND                     mCurrentlyOnTop{ nullptr };
   AllwaysOnTopSettings     mSettings;
   std::wstring             mItemName{ KMenuItemName };
@@ -65,14 +65,18 @@ private:
 
   void init_settings();
 
-  intptr_t HandleKeyboardHookEvent(const LowlevelKeyboardEvent& data) noexcept;
-
   void ProcessCommand(HWND aWindow);
   bool SetWindowOnTop(HWND aWindow);
   void ResetCurrentOnTop();
 
   void LoadSettings(PCWSTR config, bool aFromFile);
   void SaveSettings();
+
+  LRESULT WndProc(HWND, UINT, WPARAM, LPARAM) noexcept;
+
+protected:
+
+  static LRESULT CALLBACK WndProc_Helper(HWND, UINT, WPARAM, LPARAM) noexcept;
 
 public:
 
@@ -86,6 +90,10 @@ public:
   virtual void destroy() override
   {
     ResetCurrentOnTop();
+    if (mHotKeyHandleWindow) {
+      DestroyWindow(mHotKeyHandleWindow);
+      mHotKeyHandleWindow = nullptr;
+    }
     delete this;
   }
 
@@ -96,9 +104,7 @@ public:
 
   virtual const wchar_t** get_events() override
   {
-    static const wchar_t* events[] = { ll_keyboard,
-                                       nullptr };
-
+    static const wchar_t* events[] = { nullptr };
     return events;
   }
 
@@ -122,8 +128,9 @@ public:
     if (values.is_object_value(HOTKEY_NAME)) {
       mSettings.editorHotkey = PowerToysSettings::HotkeyObject::from_json(values.get_json(HOTKEY_NAME));
     }
-    UnregisterHotKey(NULL, 1);
-    RegisterHotKey(NULL, 1, mSettings.editorHotkey.get_modifiers(), mSettings.editorHotkey.get_code());
+
+    UnregisterHotKey(mHotKeyHandleWindow, 1);
+    RegisterHotKey  (mHotKeyHandleWindow, 1, mSettings.editorHotkey.get_modifiers(), mSettings.editorHotkey.get_code());
 
     // Perform update with new hotkey.
     mSystemMenuHelper->SetConfiguration(this, AlwaysOnTopConfig(mItemName).c_str());
@@ -136,6 +143,22 @@ public:
 
   virtual void enable()
   {
+    HINSTANCE hinstance = reinterpret_cast<HINSTANCE>(&__ImageBase);
+
+    WNDCLASSEXW wcex{};
+    wcex.cbSize        = sizeof(WNDCLASSEX);
+    wcex.lpfnWndProc   = WndProc_Helper;
+    wcex.hInstance     = hinstance;
+    wcex.lpszClassName = L"HotkeyHandleWindow";
+    RegisterClassExW(&wcex);
+
+    mHotKeyHandleWindow = CreateWindowExW(WS_EX_TOOLWINDOW, L"HotkeyHandleWindow", L"", WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, hinstance, this);
+    if (!mHotKeyHandleWindow) {
+      return;
+    }
+
+    RegisterHotKey(mHotKeyHandleWindow, 1, mSettings.editorHotkey.get_modifiers(), mSettings.editorHotkey.get_code());
+
     mEnabled = true;
   }
 
@@ -152,11 +175,6 @@ public:
 
   virtual intptr_t signal_event(const wchar_t* name, intptr_t data) override
   {
-    if (mEnabled) {
-      if (wcscmp(name, ll_keyboard) == 0) {
-        return HandleKeyboardHookEvent(*(reinterpret_cast<LowlevelKeyboardEvent*>(data)));
-      }
-    }
     return 0;
   }
 
@@ -175,26 +193,6 @@ public:
     }
   }
 };
-
-intptr_t AlwaysOnTop::HandleKeyboardHookEvent(const LowlevelKeyboardEvent& data) noexcept
-{
-  if (data.wParam == WM_KEYDOWN) {
-    MSG msg = { 0 };
-    while (GetMessage(&msg, NULL, 0, 0) != 0)
-    {
-      bool isHotkey = false;
-      if (msg.message == WM_HOTKEY) {
-        ProcessCommand(GetForegroundWindow());
-        isHotkey = true;
-      }
-      DispatchMessage(&msg);
-      if (isHotkey) {
-        break;
-      }
-    }
-  }
-  return 0;
-}
 
 void AlwaysOnTop::ProcessCommand(HWND aWindow)
 {
@@ -246,6 +244,29 @@ void AlwaysOnTop::SaveSettings()
     values.save_to_settings_file();
   }
   catch (std::exception&) {}
+}
+
+LRESULT AlwaysOnTop::WndProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) noexcept
+{
+  if (message == WM_HOTKEY) {
+    ProcessCommand(GetForegroundWindow());
+  }
+  return 0;
+}
+
+LRESULT CALLBACK AlwaysOnTop::WndProc_Helper(HWND window, UINT message, WPARAM wparam, LPARAM lparam) noexcept
+{
+  auto thisRef = reinterpret_cast<AlwaysOnTop*>(GetWindowLongPtr(window, GWLP_USERDATA));
+
+  if (!thisRef && (message == WM_CREATE))
+  {
+    const auto createStruct = reinterpret_cast<LPCREATESTRUCT>(lparam);
+    thisRef = reinterpret_cast<AlwaysOnTop*>(createStruct->lpCreateParams);
+    SetWindowLongPtr(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(thisRef));
+  }
+
+  return thisRef ? thisRef->WndProc(window, message, wparam, lparam) :
+    DefWindowProc(window, message, wparam, lparam);
 }
 
 void AlwaysOnTop::init_settings()

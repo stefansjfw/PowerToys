@@ -158,17 +158,19 @@ namespace PowerToysSettings {
       if (alt_pressed()) {
         if (!result.empty()) {
           result += L" + ";
-        }result += L"Alt";
+        }
+        result += L"Alt";
       }
       if (shift_pressed()) {
         if (!result.empty()) {
           result += L" + ";
-        }result += L"Shift";
+        }
+        result += L"Shift";
       }
       if (!result.empty()) {
         result += L" + ";
       }
-      result += std::toupper(get_key()[0]);
+      result += get_key();
       return result;
     }
   protected:

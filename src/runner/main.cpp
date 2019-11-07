@@ -55,7 +55,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
       L"shortcut_guide.dll",
       L"fancyzones.dll",
       L"PowerRenameExt.dll",
-	  L"always_on_top.dll"
+      L"always_on_top.dll"
     };
     for (auto& file : std::filesystem::directory_iterator(L"modules/")) {
       if (file.path().extension() != L".dll")
