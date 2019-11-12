@@ -5,6 +5,8 @@
 #include <interface/win_hook_event_data.h>
 #include <lib/ZoneSet.h>
 #include <lib/RegistryHelpers.h>
+#include <lib/JsonHelpers.h>
+#include <filesystem>
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -97,6 +99,71 @@ STDAPI PersistZoneSet(
         return S_OK;
     }
     return E_FAIL;
+}
+
+namespace {
+  std::wstring UUIDToWString(const UUID& uuid) {
+    std::wstring result{};
+    RPC_WSTR wstrUuid = NULL;
+    if (::UuidToStringW(&uuid, &wstrUuid) == RPC_S_OK)
+    {
+      result = (WCHAR*)wstrUuid;
+      ::RpcStringFreeW(&wstrUuid);
+    }
+    return result;
+  }
+}
+// This function is exported and called from FancyZonesEditor.exe to save a layout from the editor.
+//persistZoneSet( name, type, zone-count, custom-zoneset-uuid);
+STDAPI PersistZoneSetNew(
+  PCWSTR zoneSetName,
+  int zoneSetType,
+  int zoneCount,
+  PCWSTR customZoneSetUUID)
+{
+  std::wstring uuid;
+  std::wstring persistFancyZonesFilePath = JSONHelpers::GetPersistFancyZonesJSONPath();
+
+  if (std::filesystem::exists(persistFancyZonesFilePath))
+  {
+    web::json::value root = web::json::value::parse(persistFancyZonesFilePath);
+    auto appliedZoneSets = root[L"applied-zone-sets"].as_array();
+    for (auto zoneSet : appliedZoneSets) {
+      std::wstring uuid{};
+      const auto& type = zoneSet[L"type"].as_integer();
+
+      if (type != static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom)) {
+        const auto& count = zoneSet[L"info"][L"zone-count"].as_integer();
+        if (type == zoneSetType && count == zoneCount) {
+          uuid = zoneSet[L"uuid"].as_string();
+        }
+        break;
+      }
+    }
+      
+    if (uuid.empty()) {
+      // No existing layout found so let's create a new entry.
+      UUID rawID{};
+      UuidCreate(&rawID);
+
+      uuid = UUIDToWString(rawID);
+
+      web::json::value appliedZoneSetJson;
+      if (JSONHelpers::ZoneSetLayoutType(zoneSetType) == JSONHelpers::ZoneSetLayoutType::Custom) {
+        JSONHelpers::AppliedZoneSet zoneSet{ uuid, zoneSetName, JSONHelpers::ZoneSetLayoutType::Custom, std::wstring(customZoneSetUUID) };
+      }
+      else {
+        JSONHelpers::AppliedZoneSet zoneSet{ uuid, zoneSetName, JSONHelpers::ZoneSetLayoutType(zoneSetType), zoneCount };
+      }
+    }
+
+    if (!uuid.empty()) {
+
+      return S_OK;
+    }
+
+  }
+  return E_FAIL;
 }
 
 class FancyZonesModule : public PowertoyModuleIface

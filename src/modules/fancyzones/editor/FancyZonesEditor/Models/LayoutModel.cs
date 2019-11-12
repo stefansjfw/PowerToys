@@ -203,6 +203,7 @@ namespace FancyZonesEditor.Models
 
             var persistZoneSet = Marshal.GetDelegateForFunctionPointer<Native.PersistZoneSet>(pfn);
             persistZoneSet(Settings.UniqueKey, Settings.WorkAreaKey, Settings.Monitor, _id, zoneCount, zoneArray);
+            //persistZoneSet(applied-zoneset-uuid, name, type, zone-count, custom-zoneset-uuid);
         }
 
         private static readonly string c_registryPath = Settings.RegistryPath + "\\Layouts";
