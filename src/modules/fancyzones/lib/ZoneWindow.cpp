@@ -41,7 +41,7 @@ private:
     void LoadSettings() noexcept;
     void InitializeZoneSets() noexcept;
     void LoadZoneSetsFromRegistry() noexcept;
-    winrt::com_ptr<IZoneSet> AddZoneSet(ZoneSetLayout layout, int numZones, int paddingOuter, int paddingInner) noexcept;
+    winrt::com_ptr<IZoneSet> AddZoneSet(ZoneSetLayout layout, int numZones) noexcept;
     void MakeActiveZoneSetCustom() noexcept;
     void UpdateActiveZoneSet(_In_opt_ IZoneSet* zoneSet) noexcept;
     LRESULT WndProc(UINT message, WPARAM wparam, LPARAM lparam) noexcept;
@@ -348,7 +348,7 @@ void ZoneWindow::InitializeZoneSets() noexcept
     if (m_zoneSets.empty())
     {
         // Add a "maximize" zone as the only default layout.
-        AddZoneSet(ZoneSetLayout::Grid, 1, 0, 0);
+        AddZoneSet(ZoneSetLayout::Grid, 1);
     }
 
     if (!m_activeZoneSet)
@@ -382,9 +382,7 @@ void ZoneWindow::LoadZoneSetsFromRegistry() noexcept
                     m_monitor,
                     m_workArea,
                     data.Layout,
-                    0,
-                    static_cast<int>(data.PaddingInner),
-                    static_cast<int>(data.PaddingOuter)));
+                    0));
 
                 if (zoneSet)
                 {
@@ -412,12 +410,12 @@ void ZoneWindow::LoadZoneSetsFromRegistry() noexcept
     }
 }
 
-winrt::com_ptr<IZoneSet> ZoneWindow::AddZoneSet(ZoneSetLayout layout, int numZones, int paddingOuter, int paddingInner) noexcept
+winrt::com_ptr<IZoneSet> ZoneWindow::AddZoneSet(ZoneSetLayout layout, int numZones) noexcept
 {
     GUID zoneSetId;
     if (SUCCEEDED_LOG(CoCreateGuid(&zoneSetId)))
     {
-        if (auto zoneSet = MakeZoneSet(ZoneSetConfig(zoneSetId, 0, m_monitor, m_workArea, layout, numZones, paddingOuter, paddingInner)))
+        if (auto zoneSet = MakeZoneSet(ZoneSetConfig(zoneSetId, 0, m_monitor, m_workArea, layout, numZones)))
         {
             m_zoneSets.emplace_back(zoneSet);
             return zoneSet;
@@ -536,15 +534,14 @@ void ZoneWindow::OnLButtonUp(LPARAM lparam) noexcept
                 {
                     m_activeZoneSet->RemoveZone(zone);
 
-                    int const padding = m_activeZoneSet->GetInnerPadding();
                     RECT const zoneRect = zone->GetZoneRect();
-                    int const zoneRectWidthHalf = ((zoneRect.right - zoneRect.left) / 2) - padding;
+                    int const zoneRectWidthHalf = ((zoneRect.right - zoneRect.left) / 2);
                     RECT rectLeft = zoneRect;
                     rectLeft.right = rectLeft.left + zoneRectWidthHalf;
                     m_activeZoneSet->AddZone(MakeZone(rectLeft), false);
 
                     RECT rectRight = zoneRect;
-                    rectRight.left = rectLeft.right + padding;
+                    rectRight.left = rectLeft.right;
                     m_activeZoneSet->AddZone(MakeZone(rectRight), false);
 
                     m_activeZoneSet->Save();
@@ -594,15 +591,14 @@ void ZoneWindow::OnRButtonUp(LPARAM lparam) noexcept
                 {
                     m_activeZoneSet->RemoveZone(zone);
 
-                    int const padding = m_activeZoneSet->GetInnerPadding();
                     RECT const zoneRect = zone->GetZoneRect();
-                    int const zoneRectHeightHalf = ((zoneRect.bottom - zoneRect.top) / 2) - padding;
+                    int const zoneRectHeightHalf = ((zoneRect.bottom - zoneRect.top) / 2);
                     RECT rectTop = zoneRect;
                     rectTop.bottom = rectTop.top + zoneRectHeightHalf;
                     m_activeZoneSet->AddZone(MakeZone(rectTop), false);
 
                     RECT rectBottom = zoneRect;
-                    rectBottom.top = rectTop.bottom + padding;
+                    rectBottom.top = rectTop.bottom;
                     m_activeZoneSet->AddZone(MakeZone(rectBottom), false);
 
                     m_activeZoneSet->Save();
@@ -1072,7 +1068,7 @@ void ZoneWindow::OnKeyUp(WPARAM wparam) noexcept
             case 'C':
             {
                 // Create a custom zone
-                if (auto zoneSet = AddZoneSet(ZoneSetLayout::Custom, 0, 0, 0))
+                if (auto zoneSet = AddZoneSet(ZoneSetLayout::Custom, 0))
                 {
                     UpdateActiveZoneSet(zoneSet.get());
                 }

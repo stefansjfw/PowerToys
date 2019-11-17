@@ -77,7 +77,7 @@ STDAPI PersistZoneSet(
                 reinterpret_cast<HMONITOR>(monitor),
                 resolutionKey,
                 ZoneSetLayout::Custom,
-                0, 0, 0));
+                0));
 
         for (int i = 0; i < zoneCount; i++)
         {

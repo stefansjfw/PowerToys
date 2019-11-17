@@ -31,7 +31,6 @@ interface __declspec(uuid("{E4839EB7-669D-49CF-84A9-71A2DFD851A3}")) IZoneSet : 
     IFACEMETHOD_(int, GetZoneIndexFromWindow)(HWND window) = 0;
     IFACEMETHOD_(std::vector<winrt::com_ptr<IZone>>, GetZones)() = 0;
     IFACEMETHOD_(ZoneSetLayout, GetLayout)() = 0;
-    IFACEMETHOD_(int, GetInnerPadding)() = 0;
     IFACEMETHOD_(winrt::com_ptr<IZoneSet>, MakeCustomClone)() = 0;
     IFACEMETHOD_(void, Save)() = 0;
     IFACEMETHOD_(void, MoveZoneToFront)(winrt::com_ptr<IZone> zone) = 0;
@@ -50,8 +49,6 @@ struct ZoneSetPersistedData
     WORD LayoutId{};
     DWORD ZoneCount{};
     ZoneSetLayout Layout{};
-    DWORD PaddingInner{};
-    DWORD PaddingOuter{};
     RECT Zones[MAX_ZONES]{};
 };
 
@@ -63,28 +60,22 @@ struct ZoneSetConfig
         HMONITOR monitor,
         PCWSTR resolutionKey,
         ZoneSetLayout layout,
-        int zoneCount,
-        int paddingOuter,
-        int paddingInner) noexcept :
+        int zoneCount) noexcept :
             Id(id),
             LayoutId(layoutId),
             Monitor(monitor),
             ResolutionKey(resolutionKey),
             Layout(layout),
-            ZoneCount(zoneCount),
-            PaddingOuter(paddingOuter),
-            PaddingInner(paddingInner)
+            ZoneCount(zoneCount)
     {
     }
 
     GUID Id{};
-    WORD LayoutId{};
+    WORD LayoutId{}; // NEPOTREBNO
     HMONITOR Monitor{};
-    PCWSTR ResolutionKey{};
+    PCWSTR ResolutionKey{}; // THIS WILL BE UNNEEDED WHEN REGSTRY LOGIC IS DEPRECATED. STILL NEEDED NOW FOR BACKWARD COMPATIBILITY
     ZoneSetLayout Layout{};
     int ZoneCount{};
-    int PaddingOuter{};
-    int PaddingInner{};
     bool IsCustom{};
 };
 

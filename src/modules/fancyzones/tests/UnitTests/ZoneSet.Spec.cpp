@@ -14,22 +14,19 @@ namespace FancyZonesUnitTests
             CoCreateGuid(&zoneSetId);
             constexpr size_t zoneCount = 0;
             constexpr WORD layoutId = 0xFFFF;
-            constexpr int outerPadding = 3;
-            constexpr int innerPadding = 4;
 
-            ZoneSetConfig config(zoneSetId, layoutId, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, zoneCount, outerPadding, innerPadding);
+            ZoneSetConfig config(zoneSetId, layoutId, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, zoneCount);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
             Assert::IsNotNull(&set);
             CustomAssert::AreEqual(set->Id(), zoneSetId);
             CustomAssert::AreEqual(set->LayoutId(), layoutId);
             Assert::IsTrue(set->GetLayout() == ZoneSetLayout::Grid);
             Assert::AreEqual(set->GetZones().size(), zoneCount);
-            Assert::AreEqual(set->GetInnerPadding(), innerPadding);
         }
 
         TEST_METHOD(TestAddZone)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0, 3, 4);
+            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
 
             // Add a zone
@@ -55,7 +52,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(TestAddZoneFront)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0, 3, 4);
+            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
 
             // Add a zone.
@@ -81,7 +78,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(TestRemoveZone)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0, 3, 4);
+            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
 
             // Add a zone.
@@ -95,7 +92,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(TestRemoveInvalidZone)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0, 3, 4);
+            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
 
             winrt::com_ptr<IZone> zone = MakeZone({ 0, 0, 100, 100 });
@@ -104,7 +101,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(TestMoveZoneToFront)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0, 3, 4);
+            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
 
             // Add a couple of zones.
@@ -126,7 +123,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(TestMoveZoneToFrontWithInvalidZone)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0, 3, 4);
+            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
 
             // Add a couple of zones.
@@ -149,7 +146,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(TestMoveZoneToBack)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0, 3, 4);
+            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
 
             // Add a couple of zones.
@@ -171,7 +168,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(TestMoveZoneToBackWithInvalidZone)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0, 3, 4);
+            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
 
             // Add a couple of zones.
@@ -194,7 +191,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(TestMoveWindowIntoZoneByIndex)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0, 3, 4);
+            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
 
             // Add a couple of zones.
@@ -214,7 +211,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(TestMoveWindowIntoZoneByIndexWithNoZones)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0, 3, 4);
+            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
 
             // Add a couple of zones.
@@ -224,7 +221,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(TestMoveWindowIntoZoneByIndexWithInvalidIndex)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0, 3, 4);
+            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
 
             // Add a couple of zones.
@@ -253,7 +250,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD_INITIALIZE(Initialize)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0, 3, 4);
+            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn", ZoneSetLayout::Grid, 0);
             set = MakeZoneSet(config);
 
             // Add a couple of zones.

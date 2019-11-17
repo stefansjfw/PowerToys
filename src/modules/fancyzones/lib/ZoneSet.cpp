@@ -26,7 +26,6 @@ public:
     IFACEMETHODIMP_(int) GetZoneIndexFromWindow(HWND window) noexcept;
     IFACEMETHODIMP_(std::vector<winrt::com_ptr<IZone>>) GetZones() noexcept { return m_zones; }
     IFACEMETHODIMP_(ZoneSetLayout) GetLayout() noexcept { return m_config.Layout; }
-    IFACEMETHODIMP_(int) GetInnerPadding() noexcept { return m_config.PaddingInner; }
     IFACEMETHODIMP_(winrt::com_ptr<IZoneSet>) MakeCustomClone() noexcept;
     IFACEMETHODIMP_(void) Save() noexcept;
     IFACEMETHODIMP_(void) MoveZoneToFront(winrt::com_ptr<IZone> zone) noexcept;
@@ -149,8 +148,6 @@ IFACEMETHODIMP_(void) ZoneSet::Save() noexcept
         data.LayoutId = m_config.LayoutId;
         data.ZoneCount = static_cast<DWORD>(zoneCount);
         data.Layout = m_config.Layout;
-        data.PaddingInner = m_config.PaddingInner;
-        data.PaddingOuter = m_config.PaddingOuter;
 
         int i = 0;
         for (auto iter = m_zones.begin(); iter != m_zones.end(); iter++)
@@ -327,8 +324,8 @@ void ZoneSet::GenerateGridZones(MONITORINFO const& mi) noexcept
     }
 
     SIZE const zoneArea = {
-        workArea.width() - ((m_config.PaddingOuter * 2) + (m_config.PaddingInner * (numCols - 1))),
-        workArea.height() - ((m_config.PaddingOuter * 2) + (m_config.PaddingInner * (numRows - 1)))
+        workArea.width(),
+        workArea.height()
     };
 
     DoGridLayout(zoneArea, numCols, numRows);
@@ -336,8 +333,8 @@ void ZoneSet::GenerateGridZones(MONITORINFO const& mi) noexcept
 
 void ZoneSet::DoGridLayout(SIZE const& zoneArea, int numCols, int numRows) noexcept
 {
-    auto x = m_config.PaddingOuter;
-    auto y = m_config.PaddingOuter;
+    auto x = 0;
+    auto y = 0;
     auto const zoneWidth = (zoneArea.cx / numCols);
     auto const zoneHeight = (zoneArea.cy / numRows);
     for (auto i = 1; i <= m_config.ZoneCount; i++)
@@ -346,11 +343,11 @@ void ZoneSet::DoGridLayout(SIZE const& zoneArea, int numCols, int numRows) noexc
         RECT const zoneRect = { x, y, x + zoneWidth, y + zoneHeight };
         AddZone(MakeZone(zoneRect), false);
 
-        x += zoneWidth + m_config.PaddingInner;
+        x += zoneWidth;
         if (col == numCols)
         {
-            x = m_config.PaddingOuter;
-            y += zoneHeight + m_config.PaddingInner;
+            x = 0;
+            y += zoneHeight;
         }
     }
 }
@@ -361,10 +358,10 @@ void ZoneSet::GenerateFocusZones(MONITORINFO const& mi) noexcept
 
     SIZE const workHalf = { workArea.width() / 2, workArea.height() / 2 };
     RECT const safeZone = {
-        m_config.PaddingOuter,
-        m_config.PaddingOuter,
-        workArea.width() - m_config.PaddingOuter,
-        workArea.height() - m_config.PaddingOuter
+        0,
+        0,
+        workArea.width(),
+        workArea.height()
     };
 
     int const width = min(1920, workArea.width() * 60 / 100);
@@ -381,10 +378,10 @@ void ZoneSet::GenerateFocusZones(MONITORINFO const& mi) noexcept
     {
         switch (i)
         {
-            case 2: x = focusRect.right - halfWidth; y = focusRect.top + m_config.PaddingInner; break; // right
-            case 3: x = focusRect.left - halfWidth; y = focusRect.top + (m_config.PaddingInner * 2); break; // left
-            case 4: x = focusRect.left + m_config.PaddingInner; y = focusRect.top - halfHeight; break; // up
-            case 5: x = focusRect.left - m_config.PaddingInner; y = focusRect.bottom - halfHeight; break; // down
+            case 2: x = focusRect.right - halfWidth; y = focusRect.top; break; // right
+            case 3: x = focusRect.left - halfWidth; y = focusRect.top; break; // left
+            case 4: x = focusRect.left; y = focusRect.top - halfHeight; break; // up
+            case 5: x = focusRect.left; y = focusRect.bottom - halfHeight; break; // down
         }
 
         // Bound into safe zone
