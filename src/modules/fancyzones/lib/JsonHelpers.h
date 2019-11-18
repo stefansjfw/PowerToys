@@ -5,24 +5,11 @@
 #include <winnt.h>
 #include <cpprest/json.h>
 #include <string>
-#include <filesystem>
-#include <fstream>
 #include <strsafe.h>
 #include <variant>
 #include <unordered_map>
 
 namespace {
-  // DUPLIRANO U dllmain.cpp - RESI TO
-  std::wstring UUIDToWString(const UUID& uuid) {
-    std::wstring result{};
-    RPC_WSTR wstrUuid = NULL;
-    if (::UuidToStringW(&uuid, &wstrUuid) == RPC_S_OK)
-    {
-      result = (WCHAR*)wstrUuid;
-      ::RpcStringFreeW(&wstrUuid);
-    }
-    return result;
-  }
 
   struct Monitors {
     HMONITOR* data;
@@ -72,9 +59,9 @@ namespace JSONHelpers
   };
 
   struct AppZoneHistoryData {
-    TZoneUUID zoneSetUuid; //TODO(stefan): is this nessecary?
+    TZoneUUID zoneSetUuid; //TODO(stefan): is this nessecary? It doesn't exist with registry impl.
     int zoneIndex;
-    //TODO(stefan): Also, do we need DeviceID here? Do we support that?
+    //TODO(stefan): Also, do we need DeviceID here? Do we want to support that - app history per monitor?
   };
 
   struct AppZoneHistoryJSON {

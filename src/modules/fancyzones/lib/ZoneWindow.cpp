@@ -41,6 +41,7 @@ private:
     void LoadSettings() noexcept;
     void InitializeZoneSets() noexcept;
     void LoadZoneSetsFromRegistry() noexcept;
+    void LoadZoneSets() noexcept;
     winrt::com_ptr<IZoneSet> AddZoneSet(ZoneSetLayout layout, int numZones) noexcept;
     void MakeActiveZoneSetCustom() noexcept;
     void UpdateActiveZoneSet(_In_opt_ IZoneSet* zoneSet) noexcept;
@@ -345,6 +346,7 @@ void ZoneWindow::LoadSettings() noexcept
 void ZoneWindow::InitializeZoneSets() noexcept
 {
     LoadZoneSetsFromRegistry();
+    LoadZoneSets();
     if (m_zoneSets.empty())
     {
         // Add a "maximize" zone as the only default layout.
@@ -408,6 +410,11 @@ void ZoneWindow::LoadZoneSetsFromRegistry() noexcept
         valueLength = ARRAYSIZE(value);
         dataSize = sizeof(data);
     }
+}
+
+void ZoneWindow::LoadZoneSets() noexcept
+{
+  //const auto& JSONHelpers::GetAppliedZoneSets();
 }
 
 winrt::com_ptr<IZoneSet> ZoneWindow::AddZoneSet(ZoneSetLayout layout, int numZones) noexcept
@@ -1264,7 +1271,7 @@ IFACEMETHODIMP_(void) ZoneWindow::SaveWindowProcessToZoneIndex(HWND window) noex
         DWORD zoneIndex = static_cast<DWORD>(m_activeZoneSet->GetZoneIndexFromWindow(window));
         if (zoneIndex != -1)
         {
-            RegistryHelpers::SaveAppLastZone(window, processPath.data(), zoneIndex);
+            JSONHelpers::FancyZonesDataInstance().SetAppLastZone(window, processPath.data(), zoneIndex);
         }
     }
 }

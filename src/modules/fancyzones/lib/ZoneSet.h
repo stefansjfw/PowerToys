@@ -10,15 +10,6 @@ enum class ZoneSetLayout
     Custom
 };
 
-/*enum class ZoneSetLayout
-{
-  Focus,
-  Column,
-  Row,
-  Grid,
-  Custom
-};
-*/
 
 interface __declspec(uuid("{E4839EB7-669D-49CF-84A9-71A2DFD851A3}")) IZoneSet : public IUnknown
 {
@@ -71,9 +62,9 @@ struct ZoneSetConfig
     }
 
     GUID Id{};
-    WORD LayoutId{}; // NEPOTREBNO
+    WORD LayoutId{}; //TODO(stefan) UNNEEDED?
     HMONITOR Monitor{};
-    PCWSTR ResolutionKey{}; // THIS WILL BE UNNEEDED WHEN REGSTRY LOGIC IS DEPRECATED. STILL NEEDED NOW FOR BACKWARD COMPATIBILITY
+    PCWSTR ResolutionKey{}; //TODO(stefan) THIS WILL BE UNNEEDED WHEN REGSTRY LOGIC IS DEPRECATED. STILL NEEDED NOW FOR BACKWARD COMPATIBILITY
     ZoneSetLayout Layout{};
     int ZoneCount{};
     bool IsCustom{};

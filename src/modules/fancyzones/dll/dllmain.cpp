@@ -259,6 +259,7 @@ public:
     FancyZonesModule()
     {
         m_settings = MakeFancyZonesSettings(reinterpret_cast<HINSTANCE>(&__ImageBase), FancyZonesModule::get_name());
+        JSONHelpers::FancyZonesDataInstance().LoadFancyZonesData();
     }
 
 private:
@@ -272,6 +273,7 @@ private:
     void Disable(bool const traceEvent)
     {
         if (m_app) {
+            JSONHelpers::FancyZonesDataInstance().SaveFancyZonesData();
             if (traceEvent) 
             {
                 Trace::FancyZones::EnableFancyZones(false);

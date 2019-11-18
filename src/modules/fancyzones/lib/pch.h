@@ -25,6 +25,7 @@
 #include "util.h"
 #include "common/common.h"
 #include "RegistryHelpers.h"
+#include "JsonHelpers.h"
 
 #pragma comment(lib, "windowsapp")
 

@@ -181,8 +181,9 @@ IFACEMETHODIMP_(void) FancyZones::WindowCreated(HWND window) noexcept
         if (!processPath.empty()) 
         {
             INT zoneIndex = -1;
-            LRESULT res = RegistryHelpers::GetAppLastZone(window, processPath.data(), &zoneIndex);
-            if ((res == ERROR_SUCCESS) && (zoneIndex != -1))
+            bool hasHistory = JSONHelpers::FancyZonesDataInstance().GetAppLastZone(window, processPath.data(), &zoneIndex);
+
+            if (hasHistory && (zoneIndex != -1))
             {
                 MoveWindowIntoZoneByIndex(window, zoneIndex);
             }
@@ -726,7 +727,7 @@ void FancyZones::MoveSizeEndInternal(HWND window, POINT const& ptScreen, require
         auto processPath = get_process_path(window);
         if (!processPath.empty())
         {
-            RegistryHelpers::SaveAppLastZone(window, processPath.data(), -1);
+            JSONHelpers::FancyZonesDataInstance().SetAppLastZone(window, processPath.data(), -1);
         }
     }
 }
