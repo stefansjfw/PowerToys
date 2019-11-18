@@ -1,6 +1,10 @@
 #include "pch.h"
 #include "JsonHelpers.h"
 
+#include <shlwapi.h>
+#include <filesystem>
+#include <fstream>
+
 namespace JSONHelpers {
   FancyZonesData& FancyZonesDataInstance() {
     static FancyZonesData instance;
@@ -54,11 +58,9 @@ namespace JSONHelpers {
     return false;
   }
 
-  void FancyZonesData::SetActiveZoneSet(const std::wstring& unique_id, const UUID& uuid /*TODO(stefan): OVO TREBA DA SE ZAMENI SA DEVICE ID*/)
-  {
-    std::wstring uuid_str{ UUIDToWString(uuid) };
-    if (!uuid_str.empty()) {
-      activeZoneSetMap[unique_id] = ActiveZoneSetData{ UUIDToWString(uuid), false, 0 }; //TODO(stefan)
+  void FancyZonesData::SetActiveZoneSet(const std::wstring& unique_id, const std::wstring& uuid /*TODO(stefan): OVO TREBA DA SE ZAMENI SA DEVICE ID*/) {
+    if (!uuid.empty()) {
+      activeZoneSetMap[unique_id] = ActiveZoneSetData{ uuid, false, 0 }; //TODO(stefan)
     }
   }
 
@@ -217,14 +219,13 @@ namespace JSONHelpers {
         std::wstring uniqueID{ value };
         if (uniqueID.find(L"0000-0000-0000") != std::wstring::npos) { //TODO(stefan): This is ugly!! Hope Andrey will resolve this with deviceID
           wchar_t activeZoneSetId[256];
-          DWORD bufferSize = ARRAYSIZE(activeZoneSetId);
+          DWORD bufferSize = sizeof(activeZoneSetId);
           DWORD showSpacing;
           DWORD spacing;
           DWORD size = sizeof(DWORD);
 
           wchar_t key[256]{};
           StringCchPrintf(key, ARRAYSIZE(key), L"%s\\%s", RegistryHelpers::REG_SETTINGS, value);
-
           if (SHRegGetUSValueW(key, L"ActiveZoneSetId", nullptr, &activeZoneSetId, &bufferSize, FALSE, nullptr, 0) != ERROR_SUCCESS) {
             activeZoneSetId[0] = '\0';
           }

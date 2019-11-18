@@ -71,7 +71,7 @@ namespace JSONHelpers
 
   struct ActiveZoneSetData {
     TZoneUUID zoneSetUuid;
-    bool showSpacing; //TODO(stefan): Check if we realy preserve these per device?
+    bool showSpacing; //TODO(stefan): Check if we realy preserve these per device? leave it!
     int spacing;
   };
 
@@ -89,10 +89,14 @@ namespace JSONHelpers
     const std::wstring& GetPersistFancyZonesJSONPath();
     web::json::value GetPersistFancyZonesJSON();
 
+    std::unordered_map<TZoneUUID, AppliedZoneSetData> GetAppliedZoneSetMap() {
+      return appliedZoneSetMap;
+    }
+
     bool GetAppLastZone(HWND window, PCWSTR appPath, _Out_ PINT iZoneIndex);
     bool SetAppLastZone(HWND window, PCWSTR appPath, DWORD zoneIndex); //TODO(stefan): Missing zone uuid (pass as arg)
 
-    void SetActiveZoneSet(const std::wstring& unique_id, const UUID& uuid); //TODO(stefan): deviceID missing and what about spacing fields?
+    void SetActiveZoneSet(const std::wstring& unique_id, const std::wstring& uuid); //TODO(stefan): deviceID missing and what about spacing fields?
     UUID GetActiveZoneSet(const std::wstring& unique_id);
 
     void ParseAppliedZoneSets(const web::json::value& fancyZonesDataJSON);

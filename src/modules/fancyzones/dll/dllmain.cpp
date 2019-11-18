@@ -7,6 +7,8 @@
 #include <lib/RegistryHelpers.h>
 #include <lib/JsonHelpers.h>
 #include <filesystem>
+#include <algorithm>
+#include <variant>
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -89,11 +91,13 @@ STDAPI PersistZoneSet(
             zoneSet->AddZone(MakeZone({ left, top, right, bottom }), false);
         }
         zoneSet->Save();
-
         wil::unique_cotaskmem_string zoneSetId;
         if (SUCCEEDED_LOG(StringFromCLSID(id, &zoneSetId)))
         {
             RegistryHelpers::SetString(activeKey, L"ActiveZoneSetId", zoneSetId.get());
+            JSONHelpers::FancyZonesDataInstance().SetActiveZoneSet(L"12345", zoneSetId.get());
+            // "12345" key is to for testing. activeKey should be there.
+            // This is called and executed but there is no entry in map with key "12345"
         }
 
         return S_OK;
@@ -101,67 +105,45 @@ STDAPI PersistZoneSet(
     return E_FAIL;
 }
 
-namespace {
-  std::wstring UUIDToWString(const UUID& uuid) {
-    std::wstring result{};
-    RPC_WSTR wstrUuid = NULL;
-    if (::UuidToStringW(&uuid, &wstrUuid) == RPC_S_OK)
-    {
-      result = (WCHAR*)wstrUuid;
-      ::RpcStringFreeW(&wstrUuid);
-    }
-    return result;
-  }
-}
 // This function is exported and called from FancyZonesEditor.exe to save a layout from the editor.
 //persistZoneSet( name, type, zone-count, custom-zoneset-uuid);
 STDAPI PersistZoneSetNew(
+  HMONITOR monitor,
   PCWSTR zoneSetName,
   int zoneSetType,
   int zoneCount,
   PCWSTR customZoneSetUUID)
 {
-  std::wstring uuid;
-  std::wstring persistFancyZonesFilePath = JSONHelpers::GetPersistFancyZonesJSONPath();
+  auto appliedZoneSets = JSONHelpers::FancyZonesDataInstance().GetAppliedZoneSetMap();
 
-  if (std::filesystem::exists(persistFancyZonesFilePath))
-  {
-    web::json::value root = web::json::value::parse(persistFancyZonesFilePath);
-    auto appliedZoneSets = root[L"applied-zone-sets"].as_array();
-    for (auto zoneSet : appliedZoneSets) {
-      std::wstring uuid{};
-      const auto& type = zoneSet[L"type"].as_integer();
+  auto it = std::find_if(appliedZoneSets.cbegin(), appliedZoneSets.cend(),
+    [&zoneSetType, &zoneCount, &customZoneSetUUID](const std::pair<JSONHelpers::TZoneUUID, JSONHelpers::AppliedZoneSetData>& set) {
+      bool isCustom = zoneSetType == static_cast<int>(set.second.type);
+      return (isCustom && std::get<JSONHelpers::TZoneUUID>(set.second.info).compare(std::wstring(customZoneSetUUID)) ||
+              !isCustom && std::get<JSONHelpers::TZoneCount>(set.second.info) == zoneCount);
+    });
 
-      if (type != static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom)) {
-        const auto& count = zoneSet[L"info"][L"zone-count"].as_integer();
-        if (type == zoneSetType && count == zoneCount) {
-          uuid = zoneSet[L"uuid"].as_string();
-        }
-        break;
-      }
-    }
-      
-    if (uuid.empty()) {
-      // No existing layout found so let's create a new entry.
-      UUID rawID{};
-      UuidCreate(&rawID);
+  if (it == appliedZoneSets.end()) {
 
-      uuid = UUIDToWString(rawID);
+    // No existing layout found so let's create a new entry.
+    UUID rawID{};
+    UuidCreate(&rawID);
 
-      web::json::value appliedZoneSetJson;
+    wil::unique_cotaskmem_string zoneSetId;
+    if (SUCCEEDED_LOG(StringFromCLSID(rawID, &zoneSetId))) {
+
       if (JSONHelpers::ZoneSetLayoutType(zoneSetType) == JSONHelpers::ZoneSetLayoutType::Custom) {
-        JSONHelpers::AppliedZoneSet zoneSet{ uuid, zoneSetName, JSONHelpers::ZoneSetLayoutType::Custom, std::wstring(customZoneSetUUID) };
+        appliedZoneSets[zoneSetId.get()] = JSONHelpers::AppliedZoneSetData { zoneSetName, JSONHelpers::ZoneSetLayoutType::Custom, std::wstring(customZoneSetUUID) };
       }
       else {
-        JSONHelpers::AppliedZoneSet zoneSet{ uuid, zoneSetName, JSONHelpers::ZoneSetLayoutType(zoneSetType), zoneCount };
+        appliedZoneSets[zoneSetId.get()] = JSONHelpers::AppliedZoneSetData{ zoneSetName, JSONHelpers::ZoneSetLayoutType(zoneSetType), zoneCount };
       }
+
+      // TODO(stefan):
+      // 1.Persist appliedZoneSetsArray
+      // 2.Save active zone set per monitor device ID 
     }
-
-    if (!uuid.empty()) {
-
-      return S_OK;
-    }
-
+    return S_OK;
   }
   return E_FAIL;
 }

@@ -339,6 +339,7 @@ void ZoneWindow::LoadSettings() noexcept
     wchar_t activeZoneSetId[256];
     RegistryHelpers::GetString(m_uniqueId, L"ActiveZoneSetId", activeZoneSetId, sizeof(activeZoneSetId));
     CLSIDFromString(activeZoneSetId, &m_activeZoneSetId);
+    m_activeZoneSetId = JSONHelpers::FancyZonesDataInstance().GetActiveZoneSet(m_uniqueId);
 
     RegistryHelpers::GetValue<SIZE>(m_uniqueId, L"GridMargins", &m_gridMargins, sizeof(m_gridMargins));
 }
@@ -454,6 +455,7 @@ void ZoneWindow::UpdateActiveZoneSet(_In_opt_ IZoneSet* zoneSet) noexcept
         {
             RegistryHelpers::SetString(m_uniqueId, L"ActiveZoneSetId", zoneSetId.get());
         }
+        JSONHelpers::FancyZonesDataInstance().SetActiveZoneSet(std::wstring(m_uniqueId), zoneSetId.get());
     }
 }
 
