@@ -166,6 +166,12 @@ namespace FancyZonesEditor
         }
         private static float _dpi;
 
+        public static String ActiveZoneSetTmpFile
+        {
+            get { return _activeZoneSetTmpFile; }
+        }
+        private static String _activeZoneSetTmpFile;
+
         // UpdateLayoutModels
         //  Update the five default layouts based on the new ZoneCount
         private void UpdateLayoutModels()
@@ -274,7 +280,7 @@ namespace FancyZonesEditor
             _dpi = 1;
 
             string[] args = Environment.GetCommandLineArgs();
-            if (args.Length == 7)
+            if (args.Length == 8)
             {
                 // 1 = unique key for per-monitor settings
                 // 2 = layoutid used to generate current layout (used to pick the default layout to show)
@@ -282,6 +288,7 @@ namespace FancyZonesEditor
                 // 4 = X_Y_Width_Height in a dpi-scaled-but-unaware coords (where EditorOverlay shows up)
                 // 5 = resolution key (passed back to engine to persist data)
                 // 6 = monitor DPI (float)
+                // 7 = temp file for active zone set
 
                 _uniqueKey = args[1];
                 _uniqueRegistryPath += "\\" + _uniqueKey;
@@ -306,6 +313,8 @@ namespace FancyZonesEditor
                     {
                     }
                 }
+
+                _activeZoneSetTmpFile = args[7];
 
                 _workArea = new Rect(x, y, width, height);
 

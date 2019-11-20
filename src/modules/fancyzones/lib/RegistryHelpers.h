@@ -44,20 +44,6 @@ namespace RegistryHelpers
         return nullptr;
     }
 
-    inline void GetString(PCWSTR uniqueId, PCWSTR setting, PWSTR value, DWORD cbValue)
-    {
-        wchar_t key[256]{};
-        GetKey(uniqueId, key, ARRAYSIZE(key));
-        SHRegGetUSValueW(key, setting, nullptr, value, &cbValue, FALSE, nullptr, 0);
-    }
-
-    inline void SetString(PCWSTR uniqueId, PCWSTR setting, PCWSTR value)
-    {
-        wchar_t key[256]{};
-        GetKey(uniqueId, key, ARRAYSIZE(key));
-        SHRegSetUSValueW(key, setting, REG_SZ, value, sizeof(value) * static_cast<DWORD>(wcslen(value)), SHREGSET_FORCE_HKCU);
-    }
-
     template<typename t>
     inline void GetValue(PCWSTR monitorId, PCWSTR setting, t* value, DWORD size)
     {

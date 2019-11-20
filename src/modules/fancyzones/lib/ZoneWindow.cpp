@@ -3,6 +3,25 @@
 
 #include <ShellScalingApi.h>
 
+namespace {
+  std::wstring GetActiveZoneSetTmpFileName()
+  {
+    static std::wstring tempFileName;
+
+    if (tempFileName.empty()) {
+      wchar_t path[256];
+      GetTempPathW(256, path);
+
+      wchar_t fileName[260];
+      GetTempFileNameW(path, L"FZ", rand() + 1, fileName);
+
+      tempFileName = std::wstring{ fileName };
+    }
+
+    return tempFileName;
+  }
+}
+
 struct ZoneWindow : public winrt::implements<ZoneWindow, IZoneWindow>
 {
 public:
@@ -23,6 +42,7 @@ public:
     IFACEMETHODIMP_(std::wstring) WorkAreaKey() noexcept { return { m_workArea }; }
     IFACEMETHODIMP_(void) SaveWindowProcessToZoneIndex(HWND window) noexcept;
     IFACEMETHODIMP_(IZoneSet*) ActiveZoneSet() noexcept { return m_activeZoneSet.get(); }
+    IFACEMETHOD_(std::wstring, GetActiveZoneSetTmpPath)() noexcept { return m_activeZoneSetPath; };
 
 protected:
     static LRESULT CALLBACK s_WndProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) noexcept;
@@ -86,6 +106,7 @@ private:
     POINT m_ptDown{};
     POINT m_ptLast{};
     winrt::com_ptr<IZoneSet> m_activeZoneSet;
+    std::wstring m_activeZoneSetPath;
     GUID m_activeZoneSetId{};
     std::vector<winrt::com_ptr<IZoneSet>> m_zoneSets;
     winrt::com_ptr<IZone> m_highlightZone;
@@ -128,6 +149,8 @@ ZoneWindow::ZoneWindow(
     const Rect workAreaRect(mi.rcWork, dpi);
 
     StringCchPrintf(m_workArea, ARRAYSIZE(m_workArea), L"%d_%d", monitorRect.width(), monitorRect.height());
+
+    m_activeZoneSetPath = GetActiveZoneSetTmpFileName();
 
     InitializeId(deviceId, virtualDesktopId);
     LoadSettings();
@@ -336,10 +359,7 @@ void ZoneWindow::InitializeId(PCWSTR deviceId, PCWSTR virtualDesktopId) noexcept
 
 void ZoneWindow::LoadSettings() noexcept
 {
-    wchar_t activeZoneSetId[256];
-    RegistryHelpers::GetString(m_uniqueId, L"ActiveZoneSetId", activeZoneSetId, sizeof(activeZoneSetId));
-    CLSIDFromString(activeZoneSetId, &m_activeZoneSetId);
-    m_activeZoneSetId = JSONHelpers::FancyZonesDataInstance().GetActiveZoneSet(m_uniqueId);
+    m_activeZoneSetId = JSONHelpers::FancyZonesDataInstance().GetActiveZoneSet(m_uniqueId, m_activeZoneSetPath);
 
     RegistryHelpers::GetValue<SIZE>(m_uniqueId, L"GridMargins", &m_gridMargins, sizeof(m_gridMargins));
 }
@@ -453,9 +473,8 @@ void ZoneWindow::UpdateActiveZoneSet(_In_opt_ IZoneSet* zoneSet) noexcept
         wil::unique_cotaskmem_string zoneSetId;
         if (SUCCEEDED_LOG(StringFromCLSID(m_activeZoneSet->Id(), &zoneSetId)))
         {
-            RegistryHelpers::SetString(m_uniqueId, L"ActiveZoneSetId", zoneSetId.get());
+            JSONHelpers::FancyZonesDataInstance().SetActiveZoneSet(std::wstring(m_uniqueId), zoneSetId.get());
         }
-        JSONHelpers::FancyZonesDataInstance().SetActiveZoneSet(std::wstring(m_uniqueId), zoneSetId.get());
     }
 }
 

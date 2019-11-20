@@ -159,7 +159,8 @@ namespace FancyZonesEditor.Models
                 uint monitor,
                 ushort layoutId,
                 int zoneCount,
-                [MarshalAs(UnmanagedType.LPArray)] int[] zoneArray);
+                [MarshalAs(UnmanagedType.LPArray)] int[] zoneArray,
+                [MarshalAs(UnmanagedType.LPWStr)] string activeZoneSetTmpFile);
         }
 
         public void Persist(System.Windows.Int32Rect[] zones)
@@ -202,7 +203,7 @@ namespace FancyZonesEditor.Models
             }
 
             var persistZoneSet = Marshal.GetDelegateForFunctionPointer<Native.PersistZoneSet>(pfn);
-            persistZoneSet(Settings.UniqueKey, Settings.WorkAreaKey, Settings.Monitor, _id, zoneCount, zoneArray);
+            persistZoneSet(Settings.UniqueKey, Settings.WorkAreaKey, Settings.Monitor, _id, zoneCount, zoneArray, Settings.ActiveZoneSetTmpFile);
             //persistZoneSet(applied-zoneset-uuid, name, type, zone-count, custom-zoneset-uuid);
         }
 

@@ -99,6 +99,8 @@ private:
         Exit,
         Terminate
     };
+
+     std::wstring activeZoneSetTmpPath;
 };
 
 UINT FancyZones::WM_PRIV_VDCHANGED = RegisterWindowMessage(L"{128c2cb0-6bdf-493e-abbe-f8705e04aa95}");
@@ -309,13 +311,23 @@ void FancyZones::ToggleEditor() noexcept
         std::to_wstring(width) + L"_" +
         std::to_wstring(height);
 
+    int zoneCount;
+    int showSpacing;
+    int spacing;
+
+    const auto& deviceInfos = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap();
+    zoneCount = deviceInfos.at(iter->second->UniqueId()).zoneCount;
+    showSpacing = deviceInfos.at(iter->second->UniqueId()).showSpacing ? 1 : 0;
+    spacing = deviceInfos.at(iter->second->UniqueId()).spacing;
+
     const std::wstring params =
-        iter->second->UniqueId() + L" " +
-        std::to_wstring(iter->second->ActiveZoneSet()->LayoutId()) + L" " +
-        std::to_wstring(reinterpret_cast<UINT_PTR>(monitor)) + L" " +
-        editorLocation + L" " +
-        iter->second->WorkAreaKey() + L" " +
-        std::to_wstring(static_cast<float>(dpi_x) / DPIAware::DEFAULT_DPI);
+      /*1*/   iter->second->UniqueId() + L" " +
+      /*2*/   std::to_wstring(iter->second->ActiveZoneSet()->LayoutId()) + L" " +
+      /*3*/   std::to_wstring(reinterpret_cast<UINT_PTR>(monitor)) + L" " +
+      /*4*/   editorLocation + L" " +
+      /*5*/   iter->second->WorkAreaKey() + L" " +
+      /*6*/   std::to_wstring(static_cast<float>(dpi_x) / DPIAware::DEFAULT_DPI) + L" " +
+      /*7*/   iter->second->GetActiveZoneSetTmpPath();
 
     SHELLEXECUTEINFO sei{ sizeof(sei) };
     sei.fMask = { SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI };

@@ -17,7 +17,7 @@ namespace JSONHelpers {
   }
 
 
-  const std::wstring& FancyZonesData::GetPersistFancyZonesJSONPath() {
+  const std::wstring& FancyZonesData::GetPersistFancyZonesJSONPath() const {
     return jsonFilePath;
   }
 
@@ -29,14 +29,15 @@ namespace JSONHelpers {
     save_file.close();
     return result;
   }
-  bool FancyZonesData::GetAppLastZone(HWND window, PCWSTR appPath, _Out_ PINT iZoneIndex) {
+
+  bool FancyZonesData::GetAppLastZone(HWND window, PCWSTR appPath, _Out_ PINT iZoneIndex) const {
     *iZoneIndex = -1;
 
     if (auto monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONULL))
     {
       TAppPath path{ appPath };
       if (appZoneHistoryMap.contains(path)) {
-        *iZoneIndex = appZoneHistoryMap[path].zoneIndex;
+        *iZoneIndex = appZoneHistoryMap.at(path).zoneIndex;
         return true;
       }
     }
@@ -60,13 +61,32 @@ namespace JSONHelpers {
 
   void FancyZonesData::SetActiveZoneSet(const std::wstring& unique_id, const std::wstring& uuid /*TODO(stefan): OVO TREBA DA SE ZAMENI SA DEVICE ID*/) {
     if (!uuid.empty()) {
-      activeZoneSetMap[unique_id] = ActiveZoneSetData{ uuid, false, 0 }; //TODO(stefan)
+      deviceInfoMap[unique_id].activeZoneSetUuid = uuid; //TODO(stefan)
     }
   }
 
-  UUID FancyZonesData::GetActiveZoneSet(const std::wstring& unique_id) {
-    if (activeZoneSetMap.contains(unique_id)) {
-      const WCHAR* uuidStr = activeZoneSetMap[unique_id].zoneSetUuid.c_str();
+  void FancyZonesData::SetActiveZoneSetToTmpFile(const std::wstring& unique_id, const std::wstring& uuid, const std::wstring& tmpFilePath) {
+    std::ofstream tmpFile;
+    tmpFile.open(tmpFilePath);
+    web::json::value zoneSetJson = DeviceInfoToJson(DeviceInfoJSON{ unique_id, DeviceInfoData{ uuid } });
+    zoneSetJson.serialize(tmpFile);
+    tmpFile.close();
+  }
+
+
+  UUID FancyZonesData::GetActiveZoneSet(const std::wstring& unique_id, const std::wstring& tmpFilePath) {
+    if (std::filesystem::exists(tmpFilePath)) {
+      std::ifstream tmpFile(tmpFilePath, std::ios::binary);
+      web::json::value zoneSetJson = web::json::value::parse(tmpFile);
+      DeviceInfoJSON deviceInfo = DeviceInfoFromJson(zoneSetJson);
+      deviceInfoMap[unique_id].activeZoneSetUuid = deviceInfo.data.activeZoneSetUuid;
+
+      tmpFile.close();
+      DeleteFileW(tmpFilePath.c_str());
+    }
+
+    if (deviceInfoMap.contains(unique_id)) {
+      const WCHAR* uuidStr = deviceInfoMap[unique_id].activeZoneSetUuid.c_str();
       GUID uuid{};
 
       CLSIDFromString(uuidStr, &uuid);
@@ -87,7 +107,7 @@ namespace JSONHelpers {
     }
   }
 
-  web::json::value FancyZonesData::SerializeAppliedZoneSets() {
+  web::json::value FancyZonesData::SerializeAppliedZoneSets() const {
     web::json::value appliedZoneSets{};
 
     int i = 0;
@@ -109,7 +129,7 @@ namespace JSONHelpers {
     }
   }
 
-  web::json::value FancyZonesData::SerializeAppZoneHistory() {
+  web::json::value FancyZonesData::SerializeAppZoneHistory() const {
     web::json::value appHistoryArray;
 
     int i = 0;
@@ -120,26 +140,26 @@ namespace JSONHelpers {
     return appHistoryArray;
   }
 
-  void FancyZonesData::ParseActiveZoneSets(const web::json::value& fancyZonesDataJSON) {
-    if (fancyZonesDataJSON.has_field(L"active-zone-sets") && !fancyZonesDataJSON.at(U("active-zone-sets")).is_null()) {
-      web::json::array activeZoneSets = fancyZonesDataJSON.at(U("active-zone-sets")).as_array();
+  void FancyZonesData::ParseDeviceInfos(const web::json::value& fancyZonesDataJSON) {
+    if (fancyZonesDataJSON.has_field(L"devices") && !fancyZonesDataJSON.at(U("devices")).is_null()) {
+      web::json::array devices = fancyZonesDataJSON.at(U("devices")).as_array();
 
-      for (const auto& activeZoneSet : activeZoneSets) {
-        const auto& zoneSet = ActiveZoneSetFromJson(activeZoneSet);
-        activeZoneSetMap[zoneSet.deviceId] = zoneSet.data;
+      for (const auto& deviceJson : devices) {
+        const auto& device = DeviceInfoFromJson(deviceJson);
+        deviceInfoMap[device.deviceId] = device.data;
       }
     }
   }
 
-  web::json::value FancyZonesData::SerializeActiveZoneSets() {
-    web::json::value activeZoneSetsJSON{};
+  web::json::value FancyZonesData::SerializeDeviceInfos() const {
+    web::json::value DeviceInfosJSON{};
 
     int i = 0;
-    for (const auto& zoneSet : activeZoneSetMap) {
-      activeZoneSetsJSON[i++] = ActiveZoneSetToJson(ActiveZoneSetJSON{ zoneSet.first, zoneSet.second });
+    for (const auto& device : deviceInfoMap) {
+      DeviceInfosJSON[i++] = DeviceInfoToJson(DeviceInfoJSON{ device.first, device.second });
     }
 
-    return activeZoneSetsJSON;
+    return DeviceInfosJSON;
   }
 
 
@@ -150,7 +170,7 @@ namespace JSONHelpers {
     if (!std::filesystem::exists(jsonFilePath)) {
 
       MigrateAppZoneHistoryFromRegistry();
-      MigrateActiveZoneSetsFromRegistry();
+      MigrateDeviceInfoFromRegistry();
 
       SaveFancyZonesData();
     }
@@ -158,19 +178,19 @@ namespace JSONHelpers {
       web::json::value fancyZonesDataJSON = GetPersistFancyZonesJSON();
 
       ParseAppZoneHistory(fancyZonesDataJSON);
-      ParseActiveZoneSets(fancyZonesDataJSON);
+      ParseDeviceInfos(fancyZonesDataJSON);
       ParseAppliedZoneSets(fancyZonesDataJSON);
 
     }
   }
 
-  void FancyZonesData::SaveFancyZonesData() {
+  void FancyZonesData::SaveFancyZonesData() const {
     std::ofstream jsonFile{ jsonFilePath };
 
     web::json::value root{};
 
     root[L"app-zone-history"] = SerializeAppZoneHistory();
-    root[L"active-zone-sets"] = SerializeActiveZoneSets();
+    root[L"devices"] = SerializeDeviceInfos();
 
     root.serialize(jsonFile);
 
@@ -197,7 +217,7 @@ namespace JSONHelpers {
         DWORD i = 0;
         while (RegEnumValueW(hkey, i++, value, &valueLength, nullptr, nullptr, reinterpret_cast<BYTE*>(&zoneIndex), &dataSize) == ERROR_SUCCESS)
         {
-          appZoneHistoryMap[std::wstring{ value }] = AppZoneHistoryData{ L"NEST_NEST", static_cast<int>(zoneIndex) };
+          appZoneHistoryMap[std::wstring{ value }] = AppZoneHistoryData{ L"NEST_NEST", static_cast<int>(zoneIndex) }; //TODO(stefan)
 
           valueLength = ARRAYSIZE(value);
           dataSize = sizeof(zoneIndex);
@@ -206,7 +226,7 @@ namespace JSONHelpers {
     }
   }
 
-  void FancyZonesData::MigrateActiveZoneSetsFromRegistry() {
+  void FancyZonesData::MigrateDeviceInfoFromRegistry() {
     wchar_t key[256];
     StringCchPrintf(key, ARRAYSIZE(key), L"%s", RegistryHelpers::REG_SETTINGS);
     HKEY hkey;
@@ -219,24 +239,21 @@ namespace JSONHelpers {
         std::wstring uniqueID{ value };
         if (uniqueID.find(L"0000-0000-0000") != std::wstring::npos) { //TODO(stefan): This is ugly!! Hope Andrey will resolve this with deviceID
           wchar_t activeZoneSetId[256];
+          activeZoneSetId[0] = '\0';
           DWORD bufferSize = sizeof(activeZoneSetId);
-          DWORD showSpacing;
-          DWORD spacing;
+          DWORD showSpacing = 1;
+          DWORD spacing = 16;
+          DWORD zoneCount = 3;
           DWORD size = sizeof(DWORD);
 
           wchar_t key[256]{};
           StringCchPrintf(key, ARRAYSIZE(key), L"%s\\%s", RegistryHelpers::REG_SETTINGS, value);
-          if (SHRegGetUSValueW(key, L"ActiveZoneSetId", nullptr, &activeZoneSetId, &bufferSize, FALSE, nullptr, 0) != ERROR_SUCCESS) {
-            activeZoneSetId[0] = '\0';
-          }
-          if (SHRegGetUSValueW(key, L"ShowSpacing", nullptr, &showSpacing, &size, FALSE, nullptr, 0) != ERROR_SUCCESS) {
-            showSpacing = 0;
-          }
-          if (SHRegGetUSValueW(key, L"Spacing", nullptr, &spacing, &size, FALSE, nullptr, 0) != ERROR_SUCCESS) {
-            spacing = 0;
-          }
+          SHRegGetUSValueW(key, L"ActiveZoneSetId", nullptr, &activeZoneSetId, &bufferSize, FALSE, nullptr, 0);
+          SHRegGetUSValueW(key, L"ShowSpacing", nullptr, &showSpacing, &size, FALSE, nullptr, 0);
+          SHRegGetUSValueW(key, L"Spacing", nullptr, &spacing, &size, FALSE, nullptr, 0);
+          SHRegGetUSValueW(key, L"ZoneCount", nullptr, &zoneCount, &size, FALSE, nullptr, 0);
 
-          activeZoneSetMap[uniqueID] = ActiveZoneSetData{ std::wstring { activeZoneSetId }, static_cast<bool>(showSpacing), static_cast<int>(spacing) };
+          deviceInfoMap[uniqueID] = DeviceInfoData{ std::wstring { activeZoneSetId }, static_cast<bool>(showSpacing), static_cast<int>(spacing), static_cast<int>(zoneCount) };
 
           valueLength = ARRAYSIZE(value);
         }
@@ -244,7 +261,7 @@ namespace JSONHelpers {
     }
   }
 
-  web::json::value FancyZonesData::AppliedZoneSetToJson(const AppliedZoneSetJSON& zoneSet) {
+  web::json::value FancyZonesData::AppliedZoneSetToJson(const AppliedZoneSetJSON& zoneSet) const {
     web::json::value result = web::json::value::object();
 
     result[L"uuid"] = web::json::value::string(zoneSet.uuid);
@@ -260,7 +277,7 @@ namespace JSONHelpers {
     return result;
   }
 
-  AppliedZoneSetJSON FancyZonesData::AppliedZoneSetFromJson(web::json::value zoneSet) {
+  AppliedZoneSetJSON FancyZonesData::AppliedZoneSetFromJson(web::json::value zoneSet) const {
     AppliedZoneSetJSON result;
 
     result.uuid = zoneSet[L"uuid"].as_string();
@@ -276,7 +293,7 @@ namespace JSONHelpers {
     return result;
   }
 
-  web::json::value FancyZonesData::AppZoneHistoryToJson(const AppZoneHistoryJSON& appZoneHistory) {
+  web::json::value FancyZonesData::AppZoneHistoryToJson(const AppZoneHistoryJSON& appZoneHistory) const {
     web::json::value result = web::json::value::object();
 
     result[L"app-path"] = web::json::value::string(appZoneHistory.appPath);
@@ -286,7 +303,7 @@ namespace JSONHelpers {
     return result;
   }
 
-  AppZoneHistoryJSON FancyZonesData::AppZoneHistoryFromJson(web::json::value zoneSet) {
+  AppZoneHistoryJSON FancyZonesData::AppZoneHistoryFromJson(web::json::value zoneSet) const {
     AppZoneHistoryJSON result;
 
     result.appPath = zoneSet[L"app-path"].as_string();
@@ -296,24 +313,26 @@ namespace JSONHelpers {
     return result;
   }
 
-  web::json::value FancyZonesData::ActiveZoneSetToJson(const ActiveZoneSetJSON& zoneSet) {
+  web::json::value FancyZonesData::DeviceInfoToJson(const DeviceInfoJSON& device) const {
     web::json::value result = web::json::value::object();
 
-    result[L"device-id"] = web::json::value::string(zoneSet.deviceId);
-    result[L"zoneset-uuid"] = web::json::value::string(zoneSet.data.zoneSetUuid);
-    result[L"show-spacing"] = web::json::value::boolean(zoneSet.data.showSpacing);
-    result[L"spacing"] = web::json::value::number(zoneSet.data.spacing);
+    result[L"device-id"] = web::json::value::string(device.deviceId);
+    result[L"active-zoneset-uuid"] = web::json::value::string(device.data.activeZoneSetUuid);
+    result[L"show-spacing"] = web::json::value::boolean(device.data.showSpacing);
+    result[L"spacing"] = web::json::value::number(device.data.spacing);
+    result[L"zone-count"] = web::json::value::number(device.data.zoneCount);
 
     return result;
   }
 
-  ActiveZoneSetJSON FancyZonesData::ActiveZoneSetFromJson(web::json::value zoneSet) {
-    ActiveZoneSetJSON result;
+  DeviceInfoJSON FancyZonesData::DeviceInfoFromJson(web::json::value device) const {
+    DeviceInfoJSON result;
 
-    result.deviceId = zoneSet[L"device-id"].as_string();
-    result.data.zoneSetUuid = zoneSet[L"zoneset-uuid"].as_string();
-    result.data.showSpacing = zoneSet[L"show-spacing"].as_bool();
-    result.data.spacing = zoneSet[L"spacing"].as_integer();
+    result.deviceId = device[L"device-id"].as_string();
+    result.data.activeZoneSetUuid = device[L"active-zoneset-uuid"].as_string();
+    result.data.showSpacing = device[L"show-spacing"].as_bool();
+    result.data.spacing = device[L"spacing"].as_integer();
+    result.data.zoneCount = device[L"zone-count"].as_integer();
 
     return result;
   }
