@@ -65,45 +65,25 @@ namespace JSONHelpers {
     }
   }
 
-  void FancyZonesData::SetDeviceInfoToTmpFile(const std::wstring& uniqueID, const std::wstring& uuid, const std::wstring& tmpFilePath) {
+  void FancyZonesData::SetDeviceInfoToTmpFile(const DeviceInfoJSON& deviceInfo, const std::wstring& tmpFilePath) {
     std::ofstream tmpFile;
     tmpFile.open(tmpFilePath);
-    web::json::value zoneSetJson = DeviceInfoToJson(DeviceInfoJSON{ uniqueID, DeviceInfoData{ uuid } });
-    zoneSetJson.serialize(tmpFile);
+    web::json::value deviceInfoJson = DeviceInfoToJson(deviceInfo);
+    deviceInfoJson.serialize(tmpFile);
     tmpFile.close();
   }
 
 
-  UUID FancyZonesData::GetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& tmpFilePath) {
-    if (std::filesystem::exists(tmpFilePath)) {
-      std::ifstream tmpFile(tmpFilePath, std::ios::binary);
-      web::json::value zoneSetJson = web::json::value::parse(tmpFile);
-      DeviceInfoJSON deviceInfo = DeviceInfoFromJson(zoneSetJson);
-      deviceInfoMap[uniqueID].activeZoneSetUuid = deviceInfo.data.activeZoneSetUuid;
-
-      tmpFile.close();
-      DeleteFileW(tmpFilePath.c_str());
-    }
-
+  void FancyZonesData::GetDeviceInfoFromTmpFile(const std::wstring& uniqueID, const std::wstring& tmpFilePath) {
     if (!deviceInfoMap.contains(uniqueID)) {
       deviceInfoMap[uniqueID] = DeviceInfoData{ L"{}", true, 16, 3 }; // Creates entry in map when ZoneWindow is created
     }
 
-    const WCHAR* uuidStr = deviceInfoMap[uniqueID].activeZoneSetUuid.c_str();
-    GUID uuid{};
-
-    CLSIDFromString(uuidStr, &uuid);
-    return uuid;
-  }
-
-  void FancyZonesData::GetDeviceInfoFromTmpFile(const std::wstring& uniqueID, const std::wstring& tmpFilePath) {
     if (std::filesystem::exists(tmpFilePath)) {
       std::ifstream tmpFile(tmpFilePath, std::ios::binary);
-      web::json::value root = web::json::value::parse(tmpFile);
-
-      deviceInfoMap[uniqueID].showSpacing = root[L"show-spacing"].as_bool();
-      deviceInfoMap[uniqueID].spacing = root[L"spacing"].as_integer();
-      deviceInfoMap[uniqueID].zoneCount = root[L"zone-count"].as_integer();
+      web::json::value zoneSetJson = web::json::value::parse(tmpFile);
+      DeviceInfoJSON deviceInfo = DeviceInfoFromJson(zoneSetJson);
+      deviceInfoMap[uniqueID] = deviceInfo.data;
 
       tmpFile.close();
       DeleteFileW(tmpFilePath.c_str());

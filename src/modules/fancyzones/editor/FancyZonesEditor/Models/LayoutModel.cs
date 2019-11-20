@@ -160,7 +160,10 @@ namespace FancyZonesEditor.Models
                 ushort layoutId,
                 int zoneCount,
                 [MarshalAs(UnmanagedType.LPArray)] int[] zoneArray,
-                [MarshalAs(UnmanagedType.LPWStr)] string activeZoneSetTmpFile);
+                [MarshalAs(UnmanagedType.LPWStr)] string activeZoneSetTmpFile,
+                int showSpacing,
+                int spacing,
+                int editorZoneCount);
         }
 
         public void Persist(System.Windows.Int32Rect[] zones)
@@ -202,14 +205,9 @@ namespace FancyZonesEditor.Models
                 zoneArray[index+3] = bottom;
             }
 
-            string jsonString = "{";
-            jsonString += "\"show-spacing\": " + (Settings._settingsToPersist.ShowSpacing ? "true" : "false") + ",";
-            jsonString += "\"spacing\": " + Settings._settingsToPersist.Spacing.ToString() + ",";
-            jsonString += "\"zone-count\": " + Settings._settingsToPersist.ZoneCount.ToString() + "}";
-            System.IO.File.WriteAllText(Settings.EditorSettingsFile, jsonString);
-
             var persistZoneSet = Marshal.GetDelegateForFunctionPointer<Native.PersistZoneSet>(pfn);
-            persistZoneSet(Settings.UniqueKey, Settings.WorkAreaKey, Settings.Monitor, _id, zoneCount, zoneArray, Settings.ActiveZoneSetTmpFile);
+            persistZoneSet(Settings.UniqueKey, Settings.WorkAreaKey, Settings.Monitor, _id, zoneCount, zoneArray,Settings.ActiveZoneSetTmpFile,
+                           Settings._settingsToPersist.ShowSpacing ? 1 : 0, Settings._settingsToPersist.Spacing, Settings._settingsToPersist.ZoneCount);
         }
 
         private static readonly string c_registryPath = Settings.RegistryPath + "\\Layouts";

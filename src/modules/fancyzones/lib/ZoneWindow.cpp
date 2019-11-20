@@ -4,16 +4,10 @@
 #include <ShellScalingApi.h>
 
 namespace {
-  enum class TPathType
-  {
-    EActiveZoneSetPath = 0,
-    EEditorSettingsPath
-  };
 
-  std::wstring GenerateTmpFileName(TPathType type)
+  std::wstring GenerateTmpFileName()
   {
     static std::wstring activeZoneSetTmpFileName;
-    static std::wstring editorSettingsTmpFileName;
 
     if (activeZoneSetTmpFileName.empty()) {
       wchar_t path[256];
@@ -24,25 +18,8 @@ namespace {
 
       activeZoneSetTmpFileName = std::wstring{ fileName };
     }
-    if (editorSettingsTmpFileName.empty()) {
-      wchar_t path[256];
-      GetTempPathW(256, path);
 
-      wchar_t fileName[260];
-      GetTempFileNameW(path, L"FZS", rand() + 1, fileName);
-
-      editorSettingsTmpFileName = std::wstring{ fileName };
-    }
-
-    switch (type)
-    {
-    case TPathType::EActiveZoneSetPath:
-      return activeZoneSetTmpFileName;
-    case TPathType::EEditorSettingsPath:
-      return editorSettingsTmpFileName;
-    }
-
-    return L"";
+    return activeZoneSetTmpFileName;
   }
 }
 
@@ -67,7 +44,6 @@ public:
     IFACEMETHODIMP_(void) SaveWindowProcessToZoneIndex(HWND window) noexcept;
     IFACEMETHODIMP_(IZoneSet*) ActiveZoneSet() noexcept { return m_activeZoneSet.get(); }
     IFACEMETHOD_(std::wstring, GetActiveZoneSetTmpPath)() noexcept { return m_activeZoneSetPath; };
-    IFACEMETHOD_(std::wstring, GetEditorSettingsTmpPath)() noexcept { return m_editorSettingsPath; };
 
 protected:
     static LRESULT CALLBACK s_WndProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) noexcept;
@@ -132,7 +108,6 @@ private:
     POINT m_ptLast{};
     winrt::com_ptr<IZoneSet> m_activeZoneSet;
     std::wstring m_activeZoneSetPath;
-    std::wstring m_editorSettingsPath;
     GUID m_activeZoneSetId{};
     std::vector<winrt::com_ptr<IZoneSet>> m_zoneSets;
     winrt::com_ptr<IZone> m_highlightZone;
@@ -176,8 +151,7 @@ ZoneWindow::ZoneWindow(
 
     StringCchPrintf(m_workArea, ARRAYSIZE(m_workArea), L"%d_%d", monitorRect.width(), monitorRect.height());
 
-    m_activeZoneSetPath = GenerateTmpFileName(TPathType::EActiveZoneSetPath);
-    m_editorSettingsPath = GenerateTmpFileName(TPathType::EEditorSettingsPath);
+    m_activeZoneSetPath = GenerateTmpFileName();
 
     InitializeId(deviceId, virtualDesktopId);
     LoadSettings();
@@ -386,8 +360,10 @@ void ZoneWindow::InitializeId(PCWSTR deviceId, PCWSTR virtualDesktopId) noexcept
 
 void ZoneWindow::LoadSettings() noexcept
 {
-    JSONHelpers::FancyZonesDataInstance().GetDeviceInfoFromTmpFile(m_uniqueId, m_editorSettingsPath);
-    m_activeZoneSetId = JSONHelpers::FancyZonesDataInstance().GetActiveZoneSet(m_uniqueId, m_activeZoneSetPath);
+    JSONHelpers::FancyZonesDataInstance().GetDeviceInfoFromTmpFile(m_uniqueId, m_activeZoneSetPath);
+    const WCHAR* activeZoneSetStr = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap()[m_uniqueId].activeZoneSetUuid.c_str();
+
+    CLSIDFromString(activeZoneSetStr, &m_activeZoneSetId);
 
     RegistryHelpers::GetValue<SIZE>(m_uniqueId, L"GridMargins", &m_gridMargins, sizeof(m_gridMargins));
 }

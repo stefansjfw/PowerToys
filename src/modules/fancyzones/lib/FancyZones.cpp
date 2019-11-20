@@ -328,10 +328,9 @@ void FancyZones::ToggleEditor() noexcept
       /*5*/   iter->second->WorkAreaKey() + L" " +
       /*6*/   std::to_wstring(static_cast<float>(dpi_x) / DPIAware::DEFAULT_DPI) + L" " +
       /*7*/   iter->second->GetActiveZoneSetTmpPath() + L" " +
-      /*8*/   iter->second->GetEditorSettingsTmpPath() + L" " +
-      /*9*/   std::to_wstring(showSpacing) + L" " +
-      /*10*/  std::to_wstring(spacing) + L" " +
-      /*11*/  std::to_wstring(zoneCount);
+      /*8*/   std::to_wstring(showSpacing) + L" " +
+      /*9*/   std::to_wstring(spacing) + L" " +
+      /*10*/  std::to_wstring(zoneCount);
 
     SHELLEXECUTEINFO sei{ sizeof(sei) };
     sei.fMask = { SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI };

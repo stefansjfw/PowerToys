@@ -39,7 +39,10 @@ STDAPI PersistZoneSet(
     WORD layoutId, // LayoutModel Id
     int zoneCount, // Number of zones in zones
     int zones[],  // Array of zones serialized in left/top/right/bottom chunks
-    PCWSTR activeZoneSetTmpFile)  // Temp file to store active zone set
+    PCWSTR activeZoneSetTmpFile, // Temp file to store active zone set
+    int showSpacing, // Editor showSpacing value
+    int spacing, // Editor spacing value
+    int editorZoneCount) // Editor zone count value
 {
     // See if we have already persisted this layout we can update.
     UUID id{GUID_NULL};
@@ -95,7 +98,8 @@ STDAPI PersistZoneSet(
         wil::unique_cotaskmem_string zoneSetId;
         if (SUCCEEDED_LOG(StringFromCLSID(id, &zoneSetId)))
         {
-            JSONHelpers::FancyZonesDataInstance().SetDeviceInfoToTmpFile(activeKey, zoneSetId.get(), activeZoneSetTmpFile);
+            JSONHelpers::DeviceInfoJSON deviceInfo{ activeKey, { zoneSetId.get(), showSpacing == 1 ? true : false, spacing, editorZoneCount} };
+            JSONHelpers::FancyZonesDataInstance().SetDeviceInfoToTmpFile(deviceInfo, activeZoneSetTmpFile);
         }
 
         return S_OK;

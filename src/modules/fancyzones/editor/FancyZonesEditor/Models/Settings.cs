@@ -49,7 +49,7 @@ namespace FancyZonesEditor
 
             _blankCustomModel = new CanvasLayoutModel("Create new custom", c_blankCustomModelId, (int)_workArea.Width, (int)_workArea.Height);
 
-            _settingsToPersist = new SettingsToPersist();
+            _settingsToPersist = new SettingsToPersist(_showSpacing, _spacing, _zoneCount);
 
             UpdateLayoutModels();
         }
@@ -105,6 +105,12 @@ namespace FancyZonesEditor
 
         public class SettingsToPersist
         {
+            public SettingsToPersist(bool showSpacing, int spacing, int zoneCount)
+            {
+                _showSpacing = showSpacing;
+                _spacing = spacing;
+                _zoneCount = zoneCount;
+            }
             private bool _showSpacing;
             public bool ShowSpacing
             {
@@ -194,12 +200,6 @@ namespace FancyZonesEditor
             get { return _activeZoneSetTmpFile; }
         }
         private static String _activeZoneSetTmpFile;
-
-        public static String EditorSettingsFile
-        {
-            get { return _editorSettingsFile; }
-        }
-        private static String _editorSettingsFile;
 
         // UpdateLayoutModels
         //  Update the five default layouts based on the new ZoneCount
@@ -309,7 +309,7 @@ namespace FancyZonesEditor
             _dpi = 1;
 
             string[] args = Environment.GetCommandLineArgs();
-            if (args.Length == 12)
+            if (args.Length == 11)
             {
                 // 1 = unique key for per-monitor settings
                 // 2 = layoutid used to generate current layout (used to pick the default layout to show)
@@ -318,10 +318,9 @@ namespace FancyZonesEditor
                 // 5 = resolution key (passed back to engine to persist data)
                 // 6 = monitor DPI (float)
                 // 7 = temp file for active zone set
-                // 8 = temp file for editor settings (spacing, showSpacing and zoneZount)
-                // 9 = showSpacing value
-                // 10 = spacing value
-                // 11 = zoneCount value
+                // 8 = showSpacing value
+                // 9 = spacing value
+                // 10 = zoneCount value
 
                 _uniqueKey = args[1];
                 _uniqueRegistryPath += "\\" + _uniqueKey;
@@ -348,11 +347,10 @@ namespace FancyZonesEditor
                 }
 
                 _activeZoneSetTmpFile = args[7];
-                _editorSettingsFile = args[8];
 
-                _showSpacing = int.Parse(args[9]) == 1;
-                _spacing = int.Parse(args[10]);
-                _zoneCount = int.Parse(args[11]);
+                _showSpacing = int.Parse(args[8]) == 1;
+                _spacing = int.Parse(args[9]);
+                _zoneCount = int.Parse(args[10]);
 
                 _workArea = new Rect(x, y, width, height);
 
