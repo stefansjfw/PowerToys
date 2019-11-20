@@ -172,6 +172,12 @@ namespace FancyZonesEditor
         }
         private static String _activeZoneSetTmpFile;
 
+        public static String EditorSettingsFile
+        {
+            get { return EditorSettingsFile; }
+        }
+        private static String _editorSettingsFile;
+
         // UpdateLayoutModels
         //  Update the five default layouts based on the new ZoneCount
         private void UpdateLayoutModels()
@@ -289,6 +295,7 @@ namespace FancyZonesEditor
                 // 5 = resolution key (passed back to engine to persist data)
                 // 6 = monitor DPI (float)
                 // 7 = temp file for active zone set
+                // 8 = temp file for editor settings (spacing, showSpacing and zoneZount)
 
                 _uniqueKey = args[1];
                 _uniqueRegistryPath += "\\" + _uniqueKey;
@@ -315,6 +322,8 @@ namespace FancyZonesEditor
                 }
 
                 _activeZoneSetTmpFile = args[7];
+                _editorSettingsFile = args[8];
+
 
                 _workArea = new Rect(x, y, width, height);
 

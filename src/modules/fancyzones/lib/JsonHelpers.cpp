@@ -65,7 +65,7 @@ namespace JSONHelpers {
     }
   }
 
-  void FancyZonesData::SetActiveZoneSetToTmpFile(const std::wstring& unique_id, const std::wstring& uuid, const std::wstring& tmpFilePath) {
+  void FancyZonesData::SetDeviceInfoToTmpFile(const std::wstring& unique_id, const std::wstring& uuid, const std::wstring& tmpFilePath) {
     std::ofstream tmpFile;
     tmpFile.open(tmpFilePath);
     web::json::value zoneSetJson = DeviceInfoToJson(DeviceInfoJSON{ unique_id, DeviceInfoData{ uuid } });

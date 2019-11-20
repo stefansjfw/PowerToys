@@ -36,7 +36,7 @@ namespace JSONHelpers
     Custom
   };
 
-  enum class CustomSetType : int
+  enum class CustomLayoutType : int
   {
     Canvas = 0,
     Grid
@@ -46,6 +46,38 @@ namespace JSONHelpers
   using TZoneUUID = std::wstring;
   using TAppPath = std::wstring;
   using TDeviceID = std::wstring;
+
+  struct CanvasLayoutInfo {
+    int referenceWidth;
+    int referenceHeight;
+    struct Rect {
+      int x;
+      int y;
+      int width;
+      int height;
+    };
+    std::vector<CanvasLayoutInfo::Rect> zones;
+  };
+
+  struct GridLayoutInfo {
+    int rows;
+    int columns;
+    std::vector<int> rowPercents;
+    std::vector<int> columnPercents;
+    std::vector<std::vector<int>> cellChildMap;
+  };
+
+  struct CustomZoneSetData {
+    TZoneUUID uuid;
+    std::wstring name;
+    CustomLayoutType type;
+    std::variant<CanvasLayoutInfo, GridLayoutInfo> info;
+  };
+
+  struct CustomZoneSetJSON {
+    TZoneUUID uuid;
+    CustomZoneSetData data;
+  };
 
   // TODO(stefan): This needs to be moved to ZoneSet.h (probably)
   struct AppliedZoneSetData {
@@ -111,7 +143,7 @@ namespace JSONHelpers
     bool SetAppLastZone(HWND window, PCWSTR appPath, DWORD zoneIndex); //TODO(stefan): Missing zone uuid (pass as arg)
 
     void SetActiveZoneSet(const std::wstring& unique_id, const std::wstring& uuid); //TODO(stefan): deviceID missing and what about spacing fields?
-    void SetActiveZoneSetToTmpFile(const std::wstring& unique_id, const std::wstring& uuid, const std::wstring& tmpFilePath);
+    void SetDeviceInfoToTmpFile(const std::wstring& unique_id, const std::wstring& uuid, const std::wstring& tmpFilePath);
     UUID GetActiveZoneSet(const std::wstring& unique_id, const std::wstring& tmpFilePath);
 
     void ParseAppliedZoneSets(const web::json::value& fancyZonesDataJSON);

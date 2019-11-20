@@ -4,21 +4,43 @@
 #include <ShellScalingApi.h>
 
 namespace {
-  std::wstring GetActiveZoneSetTmpFileName()
+  enum class TPathType
   {
-    static std::wstring tempFileName;
+    EActiveZoneSetPath = 0,
+    EEditorSettingsPath
+  };
 
-    if (tempFileName.empty()) {
+  std::wstring GenerateTmpFileName(TPathType type)
+  {
+    static std::wstring activeZoneSetTmpFileName;
+    static std::wstring editorSettingsTmpFileName;
+
+    if (activeZoneSetTmpFileName.empty()) {
       wchar_t path[256];
       GetTempPathW(256, path);
 
       wchar_t fileName[260];
-      GetTempFileNameW(path, L"FZ", rand() + 1, fileName);
+      GetTempFileNameW(path, L"FZ_AZS", rand() + 1, fileName);
 
-      tempFileName = std::wstring{ fileName };
+      activeZoneSetTmpFileName = std::wstring{ fileName };
+    }
+    if (editorSettingsTmpFileName.empty()) {
+      wchar_t path[256];
+      GetTempPathW(256, path);
+
+      wchar_t fileName[260];
+      GetTempFileNameW(path, L"FZ_ES", rand() + 1, fileName);
+
+      editorSettingsTmpFileName = std::wstring{ fileName };
     }
 
-    return tempFileName;
+    switch (type)
+    {
+    case TPathType::EActiveZoneSetPath:
+      return activeZoneSetTmpFileName;
+    case TPathType::EEditorSettingsPath:
+      return editorSettingsTmpFileName;
+    }
   }
 }
 
@@ -43,6 +65,7 @@ public:
     IFACEMETHODIMP_(void) SaveWindowProcessToZoneIndex(HWND window) noexcept;
     IFACEMETHODIMP_(IZoneSet*) ActiveZoneSet() noexcept { return m_activeZoneSet.get(); }
     IFACEMETHOD_(std::wstring, GetActiveZoneSetTmpPath)() noexcept { return m_activeZoneSetPath; };
+    IFACEMETHOD_(std::wstring, GetEditorSettingsTmpPath)() noexcept { return m_editorSettingsPath; };
 
 protected:
     static LRESULT CALLBACK s_WndProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) noexcept;
@@ -107,6 +130,7 @@ private:
     POINT m_ptLast{};
     winrt::com_ptr<IZoneSet> m_activeZoneSet;
     std::wstring m_activeZoneSetPath;
+    std::wstring m_editorSettingsPath;
     GUID m_activeZoneSetId{};
     std::vector<winrt::com_ptr<IZoneSet>> m_zoneSets;
     winrt::com_ptr<IZone> m_highlightZone;
@@ -150,7 +174,8 @@ ZoneWindow::ZoneWindow(
 
     StringCchPrintf(m_workArea, ARRAYSIZE(m_workArea), L"%d_%d", monitorRect.width(), monitorRect.height());
 
-    m_activeZoneSetPath = GetActiveZoneSetTmpFileName();
+    m_activeZoneSetPath = GenerateTmpFileName(TPathType::EActiveZoneSetPath);
+    m_editorSettingsPath = GenerateTmpFileName(TPathType::EEditorSettingsPath);
 
     InitializeId(deviceId, virtualDesktopId);
     LoadSettings();
