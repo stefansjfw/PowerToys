@@ -59,42 +59,56 @@ namespace JSONHelpers {
     return false;
   }
 
-  void FancyZonesData::SetActiveZoneSet(const std::wstring& unique_id, const std::wstring& uuid /*TODO(stefan): OVO TREBA DA SE ZAMENI SA DEVICE ID*/) {
+  void FancyZonesData::SetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& uuid /*TODO(stefan): deviceId instead of uniqueId in the future*/) {
     if (!uuid.empty()) {
-      deviceInfoMap[unique_id].activeZoneSetUuid = uuid; //TODO(stefan)
+      deviceInfoMap[uniqueID].activeZoneSetUuid = uuid;
     }
   }
 
-  void FancyZonesData::SetDeviceInfoToTmpFile(const std::wstring& unique_id, const std::wstring& uuid, const std::wstring& tmpFilePath) {
+  void FancyZonesData::SetDeviceInfoToTmpFile(const std::wstring& uniqueID, const std::wstring& uuid, const std::wstring& tmpFilePath) {
     std::ofstream tmpFile;
     tmpFile.open(tmpFilePath);
-    web::json::value zoneSetJson = DeviceInfoToJson(DeviceInfoJSON{ unique_id, DeviceInfoData{ uuid } });
+    web::json::value zoneSetJson = DeviceInfoToJson(DeviceInfoJSON{ uniqueID, DeviceInfoData{ uuid } });
     zoneSetJson.serialize(tmpFile);
     tmpFile.close();
   }
 
 
-  UUID FancyZonesData::GetActiveZoneSet(const std::wstring& unique_id, const std::wstring& tmpFilePath) {
+  UUID FancyZonesData::GetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& tmpFilePath) {
     if (std::filesystem::exists(tmpFilePath)) {
       std::ifstream tmpFile(tmpFilePath, std::ios::binary);
       web::json::value zoneSetJson = web::json::value::parse(tmpFile);
       DeviceInfoJSON deviceInfo = DeviceInfoFromJson(zoneSetJson);
-      deviceInfoMap[unique_id].activeZoneSetUuid = deviceInfo.data.activeZoneSetUuid;
+      deviceInfoMap[uniqueID].activeZoneSetUuid = deviceInfo.data.activeZoneSetUuid;
 
       tmpFile.close();
       DeleteFileW(tmpFilePath.c_str());
     }
 
-    if (deviceInfoMap.contains(unique_id)) {
-      const WCHAR* uuidStr = deviceInfoMap[unique_id].activeZoneSetUuid.c_str();
-      GUID uuid{};
-
-      CLSIDFromString(uuidStr, &uuid);
-      return uuid;
+    if (!deviceInfoMap.contains(uniqueID)) {
+      deviceInfoMap[uniqueID] = DeviceInfoData{ L"{}", true, 16, 3 }; // Creates entry in map when ZoneWindow is created
     }
-    return GUID_NULL;
+
+    const WCHAR* uuidStr = deviceInfoMap[uniqueID].activeZoneSetUuid.c_str();
+    GUID uuid{};
+
+    CLSIDFromString(uuidStr, &uuid);
+    return uuid;
   }
 
+  void FancyZonesData::GetDeviceInfoFromTmpFile(const std::wstring& uniqueID, const std::wstring& tmpFilePath) {
+    if (std::filesystem::exists(tmpFilePath)) {
+      std::ifstream tmpFile(tmpFilePath, std::ios::binary);
+      web::json::value root = web::json::value::parse(tmpFile);
+
+      deviceInfoMap[uniqueID].showSpacing = root[L"show-spacing"].as_bool();
+      deviceInfoMap[uniqueID].spacing = root[L"spacing"].as_integer();
+      deviceInfoMap[uniqueID].zoneCount = root[L"zone-count"].as_integer();
+
+      tmpFile.close();
+      DeleteFileW(tmpFilePath.c_str());
+    }
+  }
 
   void FancyZonesData::ParseAppliedZoneSets(const web::json::value& fancyZonesDataJSON) {
     if (fancyZonesDataJSON.has_field(L"applied-zone-sets") && !fancyZonesDataJSON.at(U("applied-zone-sets")).is_null()) {

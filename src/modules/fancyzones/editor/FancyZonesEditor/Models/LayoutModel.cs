@@ -202,9 +202,14 @@ namespace FancyZonesEditor.Models
                 zoneArray[index+3] = bottom;
             }
 
+            string jsonString = "{";
+            jsonString += "\"show-spacing\": " + (Settings._settingsToPersist.ShowSpacing ? "true" : "false") + ",";
+            jsonString += "\"spacing\": " + Settings._settingsToPersist.Spacing.ToString() + ",";
+            jsonString += "\"zone-count\": " + Settings._settingsToPersist.ZoneCount.ToString() + "}";
+            System.IO.File.WriteAllText(Settings.EditorSettingsFile, jsonString);
+
             var persistZoneSet = Marshal.GetDelegateForFunctionPointer<Native.PersistZoneSet>(pfn);
             persistZoneSet(Settings.UniqueKey, Settings.WorkAreaKey, Settings.Monitor, _id, zoneCount, zoneArray, Settings.ActiveZoneSetTmpFile);
-            //persistZoneSet(applied-zoneset-uuid, name, type, zone-count, custom-zoneset-uuid);
         }
 
         private static readonly string c_registryPath = Settings.RegistryPath + "\\Layouts";

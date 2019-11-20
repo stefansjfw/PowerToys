@@ -142,9 +142,10 @@ namespace JSONHelpers
     bool GetAppLastZone(HWND window, PCWSTR appPath, _Out_ PINT iZoneIndex) const;
     bool SetAppLastZone(HWND window, PCWSTR appPath, DWORD zoneIndex); //TODO(stefan): Missing zone uuid (pass as arg)
 
-    void SetActiveZoneSet(const std::wstring& unique_id, const std::wstring& uuid); //TODO(stefan): deviceID missing and what about spacing fields?
-    void SetDeviceInfoToTmpFile(const std::wstring& unique_id, const std::wstring& uuid, const std::wstring& tmpFilePath);
-    UUID GetActiveZoneSet(const std::wstring& unique_id, const std::wstring& tmpFilePath);
+    void SetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& uuid); //TODO(stefan): deviceID missing and what about spacing fields?
+    void SetDeviceInfoToTmpFile(const std::wstring& uniqueID, const std::wstring& uuid, const std::wstring& tmpFilePath);
+    UUID GetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& tmpFilePath);
+    void GetDeviceInfoFromTmpFile(const std::wstring& uniqueID, const std::wstring& tmpFilePath);
 
     void ParseAppliedZoneSets(const web::json::value& fancyZonesDataJSON);
     web::json::value SerializeAppliedZoneSets() const; //TODO(stefan): Missing fromJson and toJson funcs

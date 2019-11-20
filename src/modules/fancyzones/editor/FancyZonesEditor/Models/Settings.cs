@@ -49,9 +49,7 @@ namespace FancyZonesEditor
 
             _blankCustomModel = new CanvasLayoutModel("Create new custom", c_blankCustomModelId, (int)_workArea.Width, (int)_workArea.Height);
 
-            _zoneCount = (int)Registry.GetValue(_uniqueRegistryPath, "ZoneCount", 3);
-            _spacing = (int)Registry.GetValue(_uniqueRegistryPath, "Spacing", 16);
-            _showSpacing = (int)Registry.GetValue(_uniqueRegistryPath, "ShowSpacing", 1) == 1;
+            _settingsToPersist = new SettingsToPersist();
 
             UpdateLayoutModels();
         }
@@ -65,7 +63,7 @@ namespace FancyZonesEditor
                 if (_zoneCount != value)
                 {
                     _zoneCount = value;
-                    Registry.SetValue(_uniqueRegistryPath, "ZoneCount", _zoneCount, RegistryValueKind.DWord);
+                    _settingsToPersist.ZoneCount = value;
                     UpdateLayoutModels();
                     FirePropertyChanged("ZoneCount");
                 }
@@ -82,7 +80,7 @@ namespace FancyZonesEditor
                 if (_spacing != value)
                 {
                     _spacing = value;
-                    Registry.SetValue(_uniqueRegistryPath, "Spacing", _spacing, RegistryValueKind.DWord);
+                    _settingsToPersist.Spacing = value;
                     FirePropertyChanged("Spacing");
                 }
             }
@@ -98,12 +96,37 @@ namespace FancyZonesEditor
                 if (_showSpacing != value)
                 {
                     _showSpacing = value;
-                    Registry.SetValue(_uniqueRegistryPath, "ShowSpacing", _showSpacing, RegistryValueKind.DWord);
+                    _settingsToPersist.ShowSpacing = value;
                     FirePropertyChanged("ShowSpacing");
                 }
             }
         }
         private bool _showSpacing;
+
+        public class SettingsToPersist
+        {
+            private bool _showSpacing;
+            public bool ShowSpacing
+            {
+                get { return _showSpacing; }
+                set { _showSpacing = value; }
+            }
+
+            private int _spacing;
+            public int Spacing
+            {
+                get { return _spacing; }
+                set { _spacing = value; }
+            }
+
+            private int _zoneCount;
+            public int ZoneCount
+            {
+                get { return _zoneCount; }
+                set { _zoneCount = value; }
+            }
+        }
+        public static SettingsToPersist _settingsToPersist;
 
         // IsShiftKeyPressed - is the shift key currently being held down
         public bool IsShiftKeyPressed
@@ -174,7 +197,7 @@ namespace FancyZonesEditor
 
         public static String EditorSettingsFile
         {
-            get { return EditorSettingsFile; }
+            get { return _editorSettingsFile; }
         }
         private static String _editorSettingsFile;
 
@@ -286,7 +309,7 @@ namespace FancyZonesEditor
             _dpi = 1;
 
             string[] args = Environment.GetCommandLineArgs();
-            if (args.Length == 8)
+            if (args.Length == 12)
             {
                 // 1 = unique key for per-monitor settings
                 // 2 = layoutid used to generate current layout (used to pick the default layout to show)
@@ -296,6 +319,9 @@ namespace FancyZonesEditor
                 // 6 = monitor DPI (float)
                 // 7 = temp file for active zone set
                 // 8 = temp file for editor settings (spacing, showSpacing and zoneZount)
+                // 9 = showSpacing value
+                // 10 = spacing value
+                // 11 = zoneCount value
 
                 _uniqueKey = args[1];
                 _uniqueRegistryPath += "\\" + _uniqueKey;
@@ -324,6 +350,9 @@ namespace FancyZonesEditor
                 _activeZoneSetTmpFile = args[7];
                 _editorSettingsFile = args[8];
 
+                _showSpacing = int.Parse(args[9]) == 1;
+                _spacing = int.Parse(args[10]);
+                _zoneCount = int.Parse(args[11]);
 
                 _workArea = new Rect(x, y, width, height);
 

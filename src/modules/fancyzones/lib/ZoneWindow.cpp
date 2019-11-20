@@ -20,7 +20,7 @@ namespace {
       GetTempPathW(256, path);
 
       wchar_t fileName[260];
-      GetTempFileNameW(path, L"FZ_AZS", rand() + 1, fileName);
+      GetTempFileNameW(path, L"FZA", rand() + 1, fileName);
 
       activeZoneSetTmpFileName = std::wstring{ fileName };
     }
@@ -29,7 +29,7 @@ namespace {
       GetTempPathW(256, path);
 
       wchar_t fileName[260];
-      GetTempFileNameW(path, L"FZ_ES", rand() + 1, fileName);
+      GetTempFileNameW(path, L"FZS", rand() + 1, fileName);
 
       editorSettingsTmpFileName = std::wstring{ fileName };
     }
@@ -41,6 +41,8 @@ namespace {
     case TPathType::EEditorSettingsPath:
       return editorSettingsTmpFileName;
     }
+
+    return L"";
   }
 }
 
@@ -384,6 +386,7 @@ void ZoneWindow::InitializeId(PCWSTR deviceId, PCWSTR virtualDesktopId) noexcept
 
 void ZoneWindow::LoadSettings() noexcept
 {
+    JSONHelpers::FancyZonesDataInstance().GetDeviceInfoFromTmpFile(m_uniqueId, m_editorSettingsPath);
     m_activeZoneSetId = JSONHelpers::FancyZonesDataInstance().GetActiveZoneSet(m_uniqueId, m_activeZoneSetPath);
 
     RegistryHelpers::GetValue<SIZE>(m_uniqueId, L"GridMargins", &m_gridMargins, sizeof(m_gridMargins));

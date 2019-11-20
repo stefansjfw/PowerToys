@@ -311,14 +311,14 @@ void FancyZones::ToggleEditor() noexcept
         std::to_wstring(width) + L"_" +
         std::to_wstring(height);
 
-    int zoneCount;
     int showSpacing;
     int spacing;
+    int zoneCount;
 
     const auto& deviceInfos = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap();
-    zoneCount = deviceInfos.at(iter->second->UniqueId()).zoneCount;
     showSpacing = deviceInfos.at(iter->second->UniqueId()).showSpacing ? 1 : 0;
     spacing = deviceInfos.at(iter->second->UniqueId()).spacing;
+    zoneCount = deviceInfos.at(iter->second->UniqueId()).zoneCount;
 
     const std::wstring params =
       /*1*/   iter->second->UniqueId() + L" " +
@@ -328,7 +328,10 @@ void FancyZones::ToggleEditor() noexcept
       /*5*/   iter->second->WorkAreaKey() + L" " +
       /*6*/   std::to_wstring(static_cast<float>(dpi_x) / DPIAware::DEFAULT_DPI) + L" " +
       /*7*/   iter->second->GetActiveZoneSetTmpPath() + L" " +
-      /*8*/   iter->second->GetEditorSettingsTmpPath();
+      /*8*/   iter->second->GetEditorSettingsTmpPath() + L" " +
+      /*9*/   std::to_wstring(showSpacing) + L" " +
+      /*10*/  std::to_wstring(spacing) + L" " +
+      /*11*/  std::to_wstring(zoneCount);
 
     SHELLEXECUTEINFO sei{ sizeof(sei) };
     sei.fMask = { SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI };
