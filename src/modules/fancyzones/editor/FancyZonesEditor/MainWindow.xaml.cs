@@ -111,7 +111,7 @@ namespace FancyZonesEditor
 
             bool isPredefinedLayout = Settings.IsPredefinedLayout(model);
 
-            if (!_settings.CustomModels.Contains(model) || isPredefinedLayout)
+            if (!Settings.CustomModels.Contains(model) || isPredefinedLayout)
             {
                 if (isPredefinedLayout)
                 {
@@ -121,7 +121,7 @@ namespace FancyZonesEditor
                 }
 
                 int maxCustomIndex = 0;
-                foreach (LayoutModel customModel in _settings.CustomModels)
+                foreach (LayoutModel customModel in Settings.CustomModels)
                 {
                     string name = customModel.Name;
                     if (name.StartsWith(c_defaultNamePrefix))
@@ -188,7 +188,7 @@ namespace FancyZonesEditor
 
         private void SetSelectedItem()
         {
-            foreach (LayoutModel model in _settings.CustomModels)
+            foreach (LayoutModel model in Settings.CustomModels)
             {
                 if (model.IsSelected)
                 {

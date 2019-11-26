@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows.Documents;
 
@@ -178,6 +181,27 @@ namespace FancyZonesEditor.Models
                         cellChildMap[row, col] = index;
                     }
                 }
+            }
+
+            FileStream outputStream = File.Open(Settings.CustomZoneSetTmpFile, FileMode.Open);
+            using (var writer = new Utf8JsonWriter(outputStream, options: default))
+            {
+                writer.WriteStartObject();
+                writer.WriteString("uuid", Id.ToString());
+                writer.WriteString("name", Name);
+                writer.WriteString("custom-layout-type", "grid");
+                
+                writer.WriteStartObject("info");
+                
+                writer.WriteNumber("rows", rows);
+                writer.WriteNumber("columns", cols);
+                
+                writer.WriteStartArray("rows-percentage");
+
+                writer.WriteEndArray();
+                writer.WriteEndObject();
+
+                writer.WriteEndObject();
             }
 
             byte[] data = new byte[7 + (Rows * 2) + (Columns * 2) + (Rows * Columns)];

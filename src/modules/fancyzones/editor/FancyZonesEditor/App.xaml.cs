@@ -46,7 +46,7 @@ namespace FancyZonesEditor
 
                 if (foundModel == null)
                 {
-                    foreach (LayoutModel model in _settings.CustomModels)
+                    foreach (LayoutModel model in Settings.CustomModels)
                     {
                         if (model.Id == _idInitial)
                         {

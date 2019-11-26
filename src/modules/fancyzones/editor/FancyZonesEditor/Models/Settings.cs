@@ -201,6 +201,18 @@ namespace FancyZonesEditor
         }
         private static String _activeZoneSetTmpFile;
 
+        public static String CustomZoneSetTmpFile
+        {
+            get { return _customZoneSetTmpFile; }
+        }
+        private static String _customZoneSetTmpFile;
+
+        public static String AppliedZoneSetTmpFile
+        {
+            get { return _appliedZoneSetTmpFile; }
+        }
+        private static String _appliedZoneSetTmpFile;
+
         // UpdateLayoutModels
         //  Update the five default layouts based on the new ZoneCount
         private void UpdateLayoutModels()
@@ -309,7 +321,7 @@ namespace FancyZonesEditor
             _dpi = 1;
 
             string[] args = Environment.GetCommandLineArgs();
-            if (args.Length == 11)
+            if (args.Length == 13)
             {
                 // 1 = unique key for per-monitor settings
                 // 2 = layoutid used to generate current layout (used to pick the default layout to show)
@@ -321,6 +333,8 @@ namespace FancyZonesEditor
                 // 8 = showSpacing value
                 // 9 = spacing value
                 // 10 = zoneCount value
+                // 11 = temp file for custom zone set
+                // 12 = temp file for applied zone set
 
                 _uniqueKey = args[1];
                 _uniqueRegistryPath += "\\" + _uniqueKey;
@@ -352,6 +366,9 @@ namespace FancyZonesEditor
                 _spacing = int.Parse(args[9]);
                 _zoneCount = int.Parse(args[10]);
 
+                _customZoneSetTmpFile = args[11];
+                _appliedZoneSetTmpFile = args[12];
+
                 _workArea = new Rect(x, y, width, height);
 
                 uint monitor = 0;
@@ -364,7 +381,7 @@ namespace FancyZonesEditor
 
 
         public IList<LayoutModel> DefaultModels { get { return _defaultModels; } }
-        public ObservableCollection<LayoutModel> CustomModels
+        public static ObservableCollection<LayoutModel> CustomModels
         {
             get
             {
@@ -376,7 +393,7 @@ namespace FancyZonesEditor
                 return _customModels;
             }
         }
-        private ObservableCollection<LayoutModel> _customModels;
+        private static ObservableCollection<LayoutModel> _customModels;
 
         public static readonly string RegistryPath = "SOFTWARE\\SuperFancyZones";
         public static readonly string FullRegistryPath = "HKEY_CURRENT_USER\\" + RegistryPath;
@@ -403,7 +420,7 @@ namespace FancyZonesEditor
         private GridLayoutModel _columnsModel;
         private GridLayoutModel _gridModel;
         private GridLayoutModel _priorityGridModel;
-        private CanvasLayoutModel _blankCustomModel;
+        private static CanvasLayoutModel _blankCustomModel;
 
         private static readonly ushort c_focusModelId = 0xFFFF;
         private static readonly ushort c_rowsModelId = 0xFFFE;

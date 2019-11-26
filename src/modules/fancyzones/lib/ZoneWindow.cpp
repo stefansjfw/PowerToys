@@ -4,10 +4,17 @@
 #include <ShellScalingApi.h>
 
 namespace {
+  enum class TTmpFileType {
+    EActiveZoneSetFile = 0,
+    EAppliedZoneSetFile,
+    ECustomZoneSetFile
+  };
 
-  std::wstring GenerateTmpFileName()
+  std::wstring GenerateTmpFileName(TTmpFileType type)
   {
     static std::wstring activeZoneSetTmpFileName;
+    static std::wstring appliedZoneSetTmpFileName;
+    static std::wstring customZoneSetTmpFileName;
 
     if (activeZoneSetTmpFileName.empty()) {
       wchar_t path[256];
@@ -18,8 +25,36 @@ namespace {
 
       activeZoneSetTmpFileName = std::wstring{ fileName };
     }
+    if (appliedZoneSetTmpFileName.empty()) {
+      wchar_t path[256];
+      GetTempPathW(256, path);
 
-    return activeZoneSetTmpFileName;
+      wchar_t fileName[260];
+      GetTempFileNameW(path, L"FZP", rand() + 1, fileName);
+
+      appliedZoneSetTmpFileName = std::wstring{ fileName };
+    }
+    if (customZoneSetTmpFileName.empty()) {
+      wchar_t path[256];
+      GetTempPathW(256, path);
+
+      wchar_t fileName[260];
+      GetTempFileNameW(path, L"FZC", rand() + 1, fileName);
+
+      customZoneSetTmpFileName = std::wstring{ fileName };
+    }
+
+    switch (type)
+    {
+    case TTmpFileType::EActiveZoneSetFile:
+      return activeZoneSetTmpFileName;
+    case TTmpFileType::EAppliedZoneSetFile:
+      return appliedZoneSetTmpFileName;
+    case TTmpFileType::ECustomZoneSetFile:
+      return customZoneSetTmpFileName;
+    }
+
+    return L"";
   }
 }
 
@@ -44,6 +79,8 @@ public:
     IFACEMETHODIMP_(void) SaveWindowProcessToZoneIndex(HWND window) noexcept;
     IFACEMETHODIMP_(IZoneSet*) ActiveZoneSet() noexcept { return m_activeZoneSet.get(); }
     IFACEMETHOD_(std::wstring, GetActiveZoneSetTmpPath)() noexcept { return m_activeZoneSetPath; };
+    IFACEMETHOD_(std::wstring, GetAppliedZoneSetTmpPath)() noexcept { return m_appliedZoneSetPath; };
+    IFACEMETHOD_(std::wstring, GetCustomZoneSetTmpPath)() noexcept { return m_customZoneSetPath; };
 
 protected:
     static LRESULT CALLBACK s_WndProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) noexcept;
@@ -108,6 +145,8 @@ private:
     POINT m_ptLast{};
     winrt::com_ptr<IZoneSet> m_activeZoneSet;
     std::wstring m_activeZoneSetPath;
+    std::wstring m_appliedZoneSetPath;
+    std::wstring m_customZoneSetPath;
     GUID m_activeZoneSetId{};
     std::vector<winrt::com_ptr<IZoneSet>> m_zoneSets;
     winrt::com_ptr<IZone> m_highlightZone;
@@ -151,7 +190,9 @@ ZoneWindow::ZoneWindow(
 
     StringCchPrintf(m_workArea, ARRAYSIZE(m_workArea), L"%d_%d", monitorRect.width(), monitorRect.height());
 
-    m_activeZoneSetPath = GenerateTmpFileName();
+    m_activeZoneSetPath = GenerateTmpFileName(TTmpFileType::EActiveZoneSetFile);
+    m_appliedZoneSetPath = GenerateTmpFileName(TTmpFileType::EAppliedZoneSetFile);
+    m_customZoneSetPath = GenerateTmpFileName(TTmpFileType::ECustomZoneSetFile);
 
     InitializeId(deviceId, virtualDesktopId);
     LoadSettings();
@@ -361,6 +402,8 @@ void ZoneWindow::InitializeId(PCWSTR deviceId, PCWSTR virtualDesktopId) noexcept
 void ZoneWindow::LoadSettings() noexcept
 {
     JSONHelpers::FancyZonesDataInstance().GetDeviceInfoFromTmpFile(m_uniqueId, m_activeZoneSetPath);
+    JSONHelpers::FancyZonesDataInstance().GetAppliedZoneSetFromTmpFile(m_appliedZoneSetPath);
+    JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetFromTmpFile(m_customZoneSetPath);
     const WCHAR* activeZoneSetStr = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap()[m_uniqueId].activeZoneSetUuid.c_str();
 
     CLSIDFromString(activeZoneSetStr, &m_activeZoneSetId);
@@ -439,7 +482,45 @@ void ZoneWindow::LoadZoneSetsFromRegistry() noexcept
 
 void ZoneWindow::LoadZoneSets() noexcept
 {
-  //const auto& JSONHelpers::GetAppliedZoneSets();
+  const auto& appliedZoneSets = JSONHelpers::FancyZonesDataInstance().GetAppliedZoneSetMap();
+
+  for (const auto& [zoneSetUUID, zoneSetData] : appliedZoneSets) {
+    GUID zoneSetId;
+    if (SUCCEEDED_LOG(CLSIDFromString(zoneSetUUID.c_str(), &zoneSetId))) {
+      ZoneSetLayout layout;
+      if (zoneSetData.type == JSONHelpers::ZoneSetLayoutType::Custom)
+        layout = ZoneSetLayout::Custom;
+      else if (zoneSetData.type == JSONHelpers::ZoneSetLayoutType::Focus)
+        layout = ZoneSetLayout::Focus;
+      else if (zoneSetData.type == JSONHelpers::ZoneSetLayoutType::Grid || zoneSetData.type == JSONHelpers::ZoneSetLayoutType::PriorityGrid)
+        layout = ZoneSetLayout::Grid;
+      else
+        layout = ZoneSetLayout::Row; // TODO(stefan): PROVERI OVO KAKO SE POSTAVLJA!!!!
+      auto zoneSet = MakeZoneSet(ZoneSetConfig(
+        zoneSetId,
+        zoneSetData.TypeToLayoutID(),
+        m_monitor,
+        m_workArea,
+        layout,
+        0));
+
+      if (zoneSet)
+      {
+        /*for (UINT j = 0; j < data.ZoneCount; j++)
+        {
+          zoneSet->AddZone(MakeZone(data.Zones[j]), false);
+        }*/
+        // Calculate Zones On The Fly HERE ! !! ! ! !
+
+        if (zoneSetId == m_activeZoneSetId)
+        {
+          UpdateActiveZoneSet(zoneSet.get());
+        }
+
+        m_zoneSets.emplace_back(std::move(zoneSet));
+      }
+    }
+  }
 }
 
 winrt::com_ptr<IZoneSet> ZoneWindow::AddZoneSet(ZoneSetLayout layout, int numZones) noexcept

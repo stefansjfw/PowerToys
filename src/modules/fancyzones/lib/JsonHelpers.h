@@ -10,20 +10,6 @@
 #include <vector>
 #include <winnt.h>
 
-namespace {
-
-  struct Monitors {
-    HMONITOR* data;
-    int count;
-  };
-
-  BOOL CALLBACK MyInfoEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
-  {
-    Monitors* monitors = reinterpret_cast<Monitors*>(dwData);
-    monitors->data[monitors->count++] = hMonitor;
-    return true;
-  }
-}
 namespace JSONHelpers
 {
   enum class ZoneSetLayoutType : int
@@ -38,8 +24,8 @@ namespace JSONHelpers
 
   enum class CustomLayoutType : int
   {
-    Canvas = 0,
-    Grid
+    Grid = 0,
+    Canvas
   };
 
   using TZoneCount = int;
@@ -68,7 +54,6 @@ namespace JSONHelpers
   };
 
   struct CustomZoneSetData {
-    TZoneUUID uuid;
     std::wstring name;
     CustomLayoutType type;
     std::variant<CanvasLayoutInfo, GridLayoutInfo> info;
@@ -84,6 +69,8 @@ namespace JSONHelpers
     std::wstring name;
     ZoneSetLayoutType type;
     std::variant<TZoneCount, TZoneUUID> info;
+  public:
+    int TypeToLayoutID() const;
   };
 
   struct AppliedZoneSetJSON {
@@ -143,21 +130,30 @@ namespace JSONHelpers
     bool SetAppLastZone(HWND window, PCWSTR appPath, DWORD zoneIndex); //TODO(stefan): Missing zone uuid (pass as arg)
 
     void SetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& uuid); //TODO(stefan): deviceID missing and what about spacing fields?
+    
+    void GetAppliedZoneSetFromTmpFile(const std::wstring& tmpFilePath);
+    
     void SetDeviceInfoToTmpFile(const DeviceInfoJSON& deviceInfo, const std::wstring& tmpFilePath);
     void GetDeviceInfoFromTmpFile(const std::wstring& uniqueID, const std::wstring& tmpFilePath);
 
+    void GetCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath);
+
     void ParseAppliedZoneSets(const web::json::value& fancyZonesDataJSON);
-    web::json::value SerializeAppliedZoneSets() const; //TODO(stefan): Missing fromJson and toJson funcs
+    web::json::value SerializeAppliedZoneSets() const;
     void ParseAppZoneHistory(const web::json::value& fancyZonesDataJSON);
     web::json::value SerializeAppZoneHistory() const;
     void ParseDeviceInfos(const web::json::value& fancyZonesDataJSON);
     web::json::value SerializeDeviceInfos() const;
+    void ParseCustomZoneSets(const web::json::value& fancyZonesDataJSON);
+    web::json::value SerializeCustomZoneSets() const;
 
     void LoadFancyZonesData();
     void SaveFancyZonesData() const;
   private:
+    void MigrateAppliedZoneSetsFromRegistry();
     void MigrateAppZoneHistoryFromRegistry(); //TODO(stefan): If uuid is needed here, it needs to be resolved here some how
     void MigrateDeviceInfoFromRegistry();
+    void MigrateCustomZoneSetsFromRegistry();
 
     web::json::value AppliedZoneSetToJson(const AppliedZoneSetJSON& zoneSet) const;
     AppliedZoneSetJSON AppliedZoneSetFromJson(web::json::value zoneSet) const;
@@ -168,9 +164,13 @@ namespace JSONHelpers
     web::json::value DeviceInfoToJson(const DeviceInfoJSON& device) const;
     DeviceInfoJSON DeviceInfoFromJson(web::json::value device) const;
 
+    web::json::value CustomZoneSetToJson(const CustomZoneSetJSON& device) const;
+    CustomZoneSetJSON CustomZoneSetFromJson(web::json::value customZoneSet) const;
+
     std::unordered_map<TZoneUUID, AppliedZoneSetData> appliedZoneSetMap{};
     std::unordered_map<TAppPath, AppZoneHistoryData> appZoneHistoryMap{};
     std::unordered_map<TDeviceID, DeviceInfoData> deviceInfoMap{};
+    std::unordered_map<TZoneUUID, CustomZoneSetData> customZoneSetsMap{};
 
     std::wstring jsonFilePath;
   };

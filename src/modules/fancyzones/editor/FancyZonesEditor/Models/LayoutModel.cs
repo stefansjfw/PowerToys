@@ -2,7 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -169,6 +170,9 @@ namespace FancyZonesEditor.Models
         public void Persist(System.Windows.Int32Rect[] zones)
         {
             // Persist the editor data
+            
+            // napravi json string i upisi ga u fajl
+            // jsonString = GetPersistData();
             Registry.SetValue(c_fullRegistryPath, Name, GetPersistData(), Microsoft.Win32.RegistryValueKind.Binary);
             Apply(zones);
         }
