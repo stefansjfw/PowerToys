@@ -201,12 +201,6 @@ namespace FancyZonesEditor
         }
         private static String _activeZoneSetTmpFile;
 
-        public static String CustomZoneSetTmpFile
-        {
-            get { return _customZoneSetTmpFile; }
-        }
-        private static String _customZoneSetTmpFile;
-
         public static String AppliedZoneSetTmpFile
         {
             get { return _appliedZoneSetTmpFile; }
@@ -321,7 +315,7 @@ namespace FancyZonesEditor
             _dpi = 1;
 
             string[] args = Environment.GetCommandLineArgs();
-            if (args.Length == 13)
+            if (args.Length == 12)
             {
                 // 1 = unique key for per-monitor settings
                 // 2 = layoutid used to generate current layout (used to pick the default layout to show)
@@ -333,8 +327,7 @@ namespace FancyZonesEditor
                 // 8 = showSpacing value
                 // 9 = spacing value
                 // 10 = zoneCount value
-                // 11 = temp file for custom zone set
-                // 12 = temp file for applied zone set
+                // 11 = temp file for applied zone set
 
                 _uniqueKey = args[1];
                 _uniqueRegistryPath += "\\" + _uniqueKey;
@@ -366,8 +359,7 @@ namespace FancyZonesEditor
                 _spacing = int.Parse(args[9]);
                 _zoneCount = int.Parse(args[10]);
 
-                _customZoneSetTmpFile = args[11];
-                _appliedZoneSetTmpFile = args[12];
+                _appliedZoneSetTmpFile = args[11];
 
                 _workArea = new Rect(x, y, width, height);
 

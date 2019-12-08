@@ -59,6 +59,15 @@ namespace FancyZonesEditor.Models
         }
         private ushort _id = 0;
 
+        public Guid Guid
+        {
+            get
+            {
+                return _guid;
+            }
+        }
+        private Guid _guid = Guid.NewGuid();
+
         // IsSelected (not-persisted) - tracks whether or not this LayoutModel is selected in the picker
         // TODO: once we switch to a picker per monitor, we need to move this state to the view  
         public bool IsSelected
@@ -142,7 +151,7 @@ namespace FancyZonesEditor.Models
         private static ushort s_maxId = 0;
 
         // Callbacks that the base LayoutModel makes to derived types
-        protected abstract byte[] GetPersistData();
+        protected abstract void PersistData();
         public abstract LayoutModel Clone();
         
         // PInvokes to handshake with fancyzones backend
@@ -156,8 +165,6 @@ namespace FancyZonesEditor.Models
 
             internal delegate int PersistZoneSet(
                 [MarshalAs(UnmanagedType.LPWStr)] string activeKey,
-                [MarshalAs(UnmanagedType.LPWStr)] string resolutionKey,
-                uint monitor,
                 ushort layoutId,
                 int zoneCount,
                 [MarshalAs(UnmanagedType.LPArray)] int[] zoneArray,
@@ -170,10 +177,11 @@ namespace FancyZonesEditor.Models
         public void Persist(System.Windows.Int32Rect[] zones)
         {
             // Persist the editor data
-            
+
             // napravi json string i upisi ga u fajl
             // jsonString = GetPersistData();
-            Registry.SetValue(c_fullRegistryPath, Name, GetPersistData(), Microsoft.Win32.RegistryValueKind.Binary);
+            PersistData();
+            //Registry.SetValue(c_fullRegistryPath, Name, GetPersistData(), Microsoft.Win32.RegistryValueKind.Binary);
             Apply(zones);
         }
 
@@ -210,7 +218,7 @@ namespace FancyZonesEditor.Models
             }
 
             var persistZoneSet = Marshal.GetDelegateForFunctionPointer<Native.PersistZoneSet>(pfn);
-            persistZoneSet(Settings.UniqueKey, Settings.WorkAreaKey, Settings.Monitor, _id, zoneCount, zoneArray,Settings.ActiveZoneSetTmpFile,
+            persistZoneSet(Settings.UniqueKey, _id, zoneCount, zoneArray,Settings.ActiveZoneSetTmpFile,
                            Settings._settingsToPersist.ShowSpacing ? 1 : 0, Settings._settingsToPersist.Spacing, Settings._settingsToPersist.ZoneCount);
         }
 

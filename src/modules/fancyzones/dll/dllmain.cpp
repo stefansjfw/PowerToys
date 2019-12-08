@@ -34,8 +34,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 // This function is exported and called from FancyZonesEditor.exe to save a layout from the editor.
 STDAPI PersistZoneSet(
     PCWSTR activeKey, // Registry key holding ActiveZoneSet
-    PCWSTR resolutionKey, // Registry key to persist ZoneSet to
-    HMONITOR monitor,
     WORD layoutId, // LayoutModel Id
     int zoneCount, // Number of zones in zones
     int zones[],  // Array of zones serialized in left/top/right/bottom chunks
@@ -44,110 +42,23 @@ STDAPI PersistZoneSet(
     int spacing, // Editor spacing value
     int editorZoneCount) // Editor zone count value
 {
-    // See if we have already persisted this layout we can update.
     UUID id{GUID_NULL};
-    if (wil::unique_hkey key{ RegistryHelpers::OpenKey(resolutionKey) })
-    {
-        ZoneSetPersistedData data{};
-        DWORD dataSize = sizeof(data);
-        wchar_t value[256]{};
-        DWORD valueLength = ARRAYSIZE(value);
-        DWORD i = 0;
-        while (RegEnumValueW(key.get(), i++, value, &valueLength, nullptr, nullptr, reinterpret_cast<BYTE*>(&data), &dataSize) == ERROR_SUCCESS)
-        {
-            if (data.LayoutId == layoutId)
-            {
-                if (data.ZoneCount == zoneCount)
-                {
-                    CLSIDFromString(value, &id);
-                    break;
-                }
-            }
-            valueLength = ARRAYSIZE(value);
-            dataSize = sizeof(data);
-        }
-    }
-
-    if (id == GUID_NULL)
-    {
-        // No existing layout found so let's create a new one.
-        UuidCreate(&id);
-    }
-
-    if (id != GUID_NULL)
-    {
-        winrt::com_ptr<IZoneSet> zoneSet = MakeZoneSet(
-            ZoneSetConfig(
-                id,
-                layoutId,
-                reinterpret_cast<HMONITOR>(monitor),
-                resolutionKey,
-                ZoneSetLayout::Custom,
-                0));
-
-        for (int i = 0; i < zoneCount; i++)
-        {
-            const int baseIndex = i * 4;
-            const int left = zones[baseIndex];
-            const int top = zones[baseIndex+1];
-            const int right = zones[baseIndex+2];
-            const int bottom = zones[baseIndex+3];
-            zoneSet->AddZone(MakeZone({ left, top, right, bottom }), false);
-        }
-        zoneSet->Save();
-        wil::unique_cotaskmem_string zoneSetId;
-        if (SUCCEEDED_LOG(StringFromCLSID(id, &zoneSetId)))
-        {
-            JSONHelpers::DeviceInfoJSON deviceInfo{ activeKey, { zoneSetId.get(), showSpacing == 1 ? true : false, spacing, editorZoneCount} };
-            JSONHelpers::FancyZonesDataInstance().SetDeviceInfoToTmpFile(deviceInfo, activeZoneSetTmpFile);
-        }
-
-        return S_OK;
-    }
-    return E_FAIL;
-}
-
-// This function is exported and called from FancyZonesEditor.exe to save a layout from the editor.
-//persistZoneSet( name, type, zone-count, custom-zoneset-uuid);
-STDAPI PersistZoneSetNew(
-  HMONITOR monitor,
-  PCWSTR zoneSetName,
-  int zoneSetType,
-  int zoneCount,
-  PCWSTR customZoneSetUUID)
-{
-  auto appliedZoneSets = JSONHelpers::FancyZonesDataInstance().GetAppliedZoneSetMap();
-
-  auto it = std::find_if(appliedZoneSets.cbegin(), appliedZoneSets.cend(),
-    [&zoneSetType, &zoneCount, &customZoneSetUUID](const std::pair<JSONHelpers::TZoneUUID, JSONHelpers::AppliedZoneSetData>& set) {
-      bool isCustom = zoneSetType == static_cast<int>(set.second.type);
-      return (isCustom && std::get<JSONHelpers::TZoneUUID>(set.second.info).compare(std::wstring(customZoneSetUUID)) ||
-              !isCustom && std::get<JSONHelpers::TZoneCount>(set.second.info) == zoneCount);
-    });
-
-  if (it == appliedZoneSets.end()) {
-
-    // No existing layout found so let's create a new entry.
-    UUID rawID{};
-    UuidCreate(&rawID);
+    UuidCreate(&id);
 
     wil::unique_cotaskmem_string zoneSetId;
-    if (SUCCEEDED_LOG(StringFromCLSID(rawID, &zoneSetId))) {
-
-      if (JSONHelpers::ZoneSetLayoutType(zoneSetType) == JSONHelpers::ZoneSetLayoutType::Custom) {
-        appliedZoneSets[zoneSetId.get()] = JSONHelpers::AppliedZoneSetData { zoneSetName, JSONHelpers::ZoneSetLayoutType::Custom, std::wstring(customZoneSetUUID) };
-      }
-      else {
-        appliedZoneSets[zoneSetId.get()] = JSONHelpers::AppliedZoneSetData{ zoneSetName, JSONHelpers::ZoneSetLayoutType(zoneSetType), zoneCount };
-      }
-
-      // TODO(stefan):
-      // 1.Persist appliedZoneSetsArray
-      // 2.Save active zone set per monitor device ID 
+    if (SUCCEEDED_LOG(StringFromCLSID(id, &zoneSetId)))
+    {
+        JSONHelpers::ZoneSetData data;
+        data.uuid = zoneSetId.get();
+        data.type = JSONHelpers::ZoneSetData::LayoutIdToType(layoutId);
+        if (data.type != JSONHelpers::ZoneSetLayoutType::Custom) {
+          data.zoneCount = zoneCount;
+        }
+        JSONHelpers::DeviceInfoJSON deviceInfo{ activeKey, { data, showSpacing == 1 ? true : false, spacing, editorZoneCount} };
+        JSONHelpers::FancyZonesDataInstance().SetDeviceInfoToTmpFile(deviceInfo, activeZoneSetTmpFile);
     }
+
     return S_OK;
-  }
-  return E_FAIL;
 }
 
 class FancyZonesModule : public PowertoyModuleIface

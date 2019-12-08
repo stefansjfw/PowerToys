@@ -6,15 +6,13 @@
 namespace {
   enum class TTmpFileType {
     EActiveZoneSetFile = 0,
-    EAppliedZoneSetFile,
-    ECustomZoneSetFile
+    EAppliedZoneSetFile
   };
 
   std::wstring GenerateTmpFileName(TTmpFileType type)
   {
     static std::wstring activeZoneSetTmpFileName;
     static std::wstring appliedZoneSetTmpFileName;
-    static std::wstring customZoneSetTmpFileName;
 
     if (activeZoneSetTmpFileName.empty()) {
       wchar_t path[256];
@@ -34,15 +32,6 @@ namespace {
 
       appliedZoneSetTmpFileName = std::wstring{ fileName };
     }
-    if (customZoneSetTmpFileName.empty()) {
-      wchar_t path[256];
-      GetTempPathW(256, path);
-
-      wchar_t fileName[260];
-      GetTempFileNameW(path, L"FZC", rand() + 1, fileName);
-
-      customZoneSetTmpFileName = std::wstring{ fileName };
-    }
 
     switch (type)
     {
@@ -50,8 +39,6 @@ namespace {
       return activeZoneSetTmpFileName;
     case TTmpFileType::EAppliedZoneSetFile:
       return appliedZoneSetTmpFileName;
-    case TTmpFileType::ECustomZoneSetFile:
-      return customZoneSetTmpFileName;
     }
 
     return L"";
@@ -80,7 +67,6 @@ public:
     IFACEMETHODIMP_(IZoneSet*) ActiveZoneSet() noexcept { return m_activeZoneSet.get(); }
     IFACEMETHOD_(std::wstring, GetActiveZoneSetTmpPath)() noexcept { return m_activeZoneSetPath; };
     IFACEMETHOD_(std::wstring, GetAppliedZoneSetTmpPath)() noexcept { return m_appliedZoneSetPath; };
-    IFACEMETHOD_(std::wstring, GetCustomZoneSetTmpPath)() noexcept { return m_customZoneSetPath; };
 
 protected:
     static LRESULT CALLBACK s_WndProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) noexcept;
@@ -99,8 +85,8 @@ private:
     void LoadSettings() noexcept;
     void InitializeZoneSets() noexcept;
     void LoadZoneSetsFromRegistry() noexcept;
-    void LoadZoneSets() noexcept;
-    winrt::com_ptr<IZoneSet> AddZoneSet(ZoneSetLayout layout, int numZones) noexcept;
+    void CalculateZoneSet() noexcept;
+    winrt::com_ptr<IZoneSet> AddZoneSet(JSONHelpers::ZoneSetLayoutType layout, int numZones) noexcept;
     void MakeActiveZoneSetCustom() noexcept;
     void UpdateActiveZoneSet(_In_opt_ IZoneSet* zoneSet) noexcept;
     LRESULT WndProc(UINT message, WPARAM wparam, LPARAM lparam) noexcept;
@@ -146,7 +132,6 @@ private:
     winrt::com_ptr<IZoneSet> m_activeZoneSet;
     std::wstring m_activeZoneSetPath;
     std::wstring m_appliedZoneSetPath;
-    std::wstring m_customZoneSetPath;
     GUID m_activeZoneSetId{};
     std::vector<winrt::com_ptr<IZoneSet>> m_zoneSets;
     winrt::com_ptr<IZone> m_highlightZone;
@@ -192,7 +177,6 @@ ZoneWindow::ZoneWindow(
 
     m_activeZoneSetPath = GenerateTmpFileName(TTmpFileType::EActiveZoneSetFile);
     m_appliedZoneSetPath = GenerateTmpFileName(TTmpFileType::EAppliedZoneSetFile);
-    m_customZoneSetPath = GenerateTmpFileName(TTmpFileType::ECustomZoneSetFile);
 
     InitializeId(deviceId, virtualDesktopId);
     LoadSettings();
@@ -402,9 +386,8 @@ void ZoneWindow::InitializeId(PCWSTR deviceId, PCWSTR virtualDesktopId) noexcept
 void ZoneWindow::LoadSettings() noexcept
 {
     JSONHelpers::FancyZonesDataInstance().GetDeviceInfoFromTmpFile(m_uniqueId, m_activeZoneSetPath);
-    JSONHelpers::FancyZonesDataInstance().GetAppliedZoneSetFromTmpFile(m_appliedZoneSetPath);
-    JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetFromTmpFile(m_customZoneSetPath);
-    const WCHAR* activeZoneSetStr = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap()[m_uniqueId].activeZoneSetUuid.c_str();
+    //JSONHelpers::FancyZonesDataInstance().GetAppliedZoneSetFromTmpFile(m_appliedZoneSetPath);
+    const WCHAR* activeZoneSetStr = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap()[m_uniqueId].activeZoneSet.uuid.c_str();
 
     CLSIDFromString(activeZoneSetStr, &m_activeZoneSetId);
 
@@ -413,12 +396,12 @@ void ZoneWindow::LoadSettings() noexcept
 
 void ZoneWindow::InitializeZoneSets() noexcept
 {
-    LoadZoneSetsFromRegistry();
-    LoadZoneSets();
+    //LoadZoneSetsFromRegistry();
+    CalculateZoneSet();
     if (m_zoneSets.empty())
     {
         // Add a "maximize" zone as the only default layout.
-        AddZoneSet(ZoneSetLayout::Grid, 1);
+        AddZoneSet(JSONHelpers::ZoneSetLayoutType::Grid, 1);
     }
 
     if (!m_activeZoneSet)
@@ -480,50 +463,74 @@ void ZoneWindow::LoadZoneSetsFromRegistry() noexcept
     }
 }
 
-void ZoneWindow::LoadZoneSets() noexcept
+void ZoneWindow::CalculateZoneSet() noexcept
 {
-  const auto& appliedZoneSets = JSONHelpers::FancyZonesDataInstance().GetAppliedZoneSetMap();
+  const auto& deviceInfoMap = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap();
 
-  for (const auto& [zoneSetUUID, zoneSetData] : appliedZoneSets) {
+  const auto& activeZoneSet = deviceInfoMap.at(std::wstring{ m_uniqueId }).activeZoneSet;
+  if (!activeZoneSet.uuid.empty()) {
     GUID zoneSetId;
-    if (SUCCEEDED_LOG(CLSIDFromString(zoneSetUUID.c_str(), &zoneSetId))) {
-      ZoneSetLayout layout;
-      if (zoneSetData.type == JSONHelpers::ZoneSetLayoutType::Custom)
-        layout = ZoneSetLayout::Custom;
-      else if (zoneSetData.type == JSONHelpers::ZoneSetLayoutType::Focus)
-        layout = ZoneSetLayout::Focus;
-      else if (zoneSetData.type == JSONHelpers::ZoneSetLayoutType::Grid || zoneSetData.type == JSONHelpers::ZoneSetLayoutType::PriorityGrid)
-        layout = ZoneSetLayout::Grid;
-      else
-        layout = ZoneSetLayout::Row; // TODO(stefan): PROVERI OVO KAKO SE POSTAVLJA!!!!
+    if (SUCCEEDED_LOG(CLSIDFromString(activeZoneSet.uuid.c_str(), &zoneSetId))) {
       auto zoneSet = MakeZoneSet(ZoneSetConfig(
         zoneSetId,
-        zoneSetData.TypeToLayoutID(),
+        JSONHelpers::ZoneSetData::TypeToLayoutId(activeZoneSet.type),
         m_monitor,
         m_workArea,
-        layout,
-        0));
-
-      if (zoneSet)
+        activeZoneSet.type,
+        activeZoneSet.type == JSONHelpers::ZoneSetLayoutType::Custom ? 0 : *activeZoneSet.zoneCount));
+      MONITORINFO monitorInfo{};
+      monitorInfo.cbSize = sizeof(monitorInfo);
+      if (GetMonitorInfoW(m_monitor, &monitorInfo))
       {
-        /*for (UINT j = 0; j < data.ZoneCount; j++)
-        {
-          zoneSet->AddZone(MakeZone(data.Zones[j]), false);
-        }*/
-        // Calculate Zones On The Fly HERE ! !! ! ! !
-
-        if (zoneSetId == m_activeZoneSetId)
-        {
-          UpdateActiveZoneSet(zoneSet.get());
-        }
-
+        int spacing = deviceInfoMap.at(std::wstring{ m_uniqueId }).spacing;
+        zoneSet->CalculateZones(monitorInfo, *activeZoneSet.zoneCount, spacing);
+        UpdateActiveZoneSet(zoneSet.get());
         m_zoneSets.emplace_back(std::move(zoneSet));
       }
     }
   }
+  //const auto& appliedZoneSets = JSONHelpers::FancyZonesDataInstance().GetAppliedZoneSetMap();
+
+  //for (const auto& [zoneSetUUID, zoneSetData] : appliedZoneSets) {
+  //  GUID zoneSetId;
+  //  if (SUCCEEDED_LOG(CLSIDFromString(zoneSetUUID.c_str(), &zoneSetId))) {
+  //    ZoneSetLayout layout;
+  //    if (zoneSetData.type == JSONHelpers::ZoneSetLayoutType::Custom)
+  //      layout = JSONHelpers::ZoneSetLayoutType::Custom;
+  //    else if (zoneSetData.type == JSONHelpers::ZoneSetLayoutType::Focus)
+  //      layout = JSONHelpers::ZoneSetLayoutType::Focus;
+  //    else if (zoneSetData.type == JSONHelpers::ZoneSetLayoutType::Grid || zoneSetData.type == JSONHelpers::ZoneSetLayoutType::PriorityGrid)
+  //      layout = JSONHelpers::ZoneSetLayoutType::Grid;
+  //    else
+  //      layout = JSONHelpers::ZoneSetLayoutType::Row; // TODO(stefan): PROVERI OVO KAKO SE POSTAVLJA!!!!
+  //    auto zoneSet = MakeZoneSet(ZoneSetConfig(
+  //      zoneSetId,
+  //      zoneSetData.TypeToLayoutID(),
+  //      m_monitor,
+  //      m_workArea,
+  //      layout,
+  //      0));
+
+  //    if (zoneSet)
+  //    {
+  //      /*for (UINT j = 0; j < data.ZoneCount; j++)
+  //      {
+  //        zoneSet->AddZone(MakeZone(data.Zones[j]), false);
+  //      }*/
+  //      // Calculate Zones On The Fly HERE ! !! ! ! !
+
+  //      if (zoneSetId == m_activeZoneSetId)
+  //      {
+  //        UpdateActiveZoneSet(zoneSet.get());
+  //      }
+
+  //      m_zoneSets.emplace_back(std::move(zoneSet));
+  //    }
+  //  }
+  //}
 }
 
-winrt::com_ptr<IZoneSet> ZoneWindow::AddZoneSet(ZoneSetLayout layout, int numZones) noexcept
+winrt::com_ptr<IZoneSet> ZoneWindow::AddZoneSet(JSONHelpers::ZoneSetLayoutType layout, int numZones) noexcept
 {
     GUID zoneSetId;
     if (SUCCEEDED_LOG(CoCreateGuid(&zoneSetId)))
@@ -1181,7 +1188,7 @@ void ZoneWindow::OnKeyUp(WPARAM wparam) noexcept
             case 'C':
             {
                 // Create a custom zone
-                if (auto zoneSet = AddZoneSet(ZoneSetLayout::Custom, 0))
+                if (auto zoneSet = AddZoneSet(JSONHelpers::ZoneSetLayoutType::Custom, 0))
                 {
                     UpdateActiveZoneSet(zoneSet.get());
                 }
@@ -1233,7 +1240,7 @@ void ZoneWindow::ChooseDefaultActiveZoneSet() noexcept
                     {
                         zoneSetBest = zoneSet;
                     }
-                    else if (zoneSet->GetLayout() == ZoneSetLayout::Focus)
+                    else if (zoneSet->GetLayout() == JSONHelpers::ZoneSetLayoutType::Focus)
                     {
                         zoneSetBest = zoneSet;
                         break;
@@ -1259,7 +1266,7 @@ void ZoneWindow::ChooseDefaultActiveZoneSet() noexcept
                     {
                         zoneSetBest = zoneSet;
                     }
-                    else if (zoneSet->GetLayout() == ZoneSetLayout::Row)
+                    else if (zoneSet->GetLayout() == JSONHelpers::ZoneSetLayoutType::Rows)
                     {
                         zoneSetBest = zoneSet;
                         break;

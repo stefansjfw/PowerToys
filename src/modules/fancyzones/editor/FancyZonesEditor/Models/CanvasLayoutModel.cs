@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Converters;
@@ -123,40 +125,39 @@ namespace FancyZonesEditor.Models
         // GetPersistData
         //  Implements the LayoutModel.GetPersistData abstract method
         //  Returns the state of this GridLayoutModel in persisted format
-        protected override byte[] GetPersistData()
+        protected override void PersistData()
         {
-            byte[] data = new byte[10 + (_zones.Count * 8)];
-            int i = 0;
-
-            // Common persisted values between all layout types
-            data[i++] = (byte)(c_latestVersion / 256);
-            data[i++] = (byte)(c_latestVersion % 256);
-            data[i++] = 1; // LayoutModelType: 1 == CanvasLayoutModel
-            data[i++] = (byte)(Id / 256);
-            data[i++] = (byte)(Id % 256);
-            // End common
-
-            data[i++] = (byte)(_referenceWidth / 256);
-            data[i++] = (byte)(_referenceWidth % 256);
-            data[i++] = (byte)(_referenceHeight / 256);
-            data[i++] = (byte)(_referenceHeight % 256);
-            data[i++] = (byte)_zones.Count;
-
-            foreach (Int32Rect rect in _zones)
+            FileStream outputStream = File.Open(Settings.AppliedZoneSetTmpFile, FileMode.Open);
+            using (var writer = new Utf8JsonWriter(outputStream, options: default))
             {
-                data[i++] = (byte)(rect.X / 256);
-                data[i++] = (byte)(rect.X % 256);
+                writer.WriteStartObject();
+                writer.WriteString("uuid", Id.ToString());
+                writer.WriteString("name", Name);
 
-                data[i++] = (byte)(rect.Y / 256);
-                data[i++] = (byte)(rect.Y % 256);
+                writer.WriteString("type", "canvas");
 
-                data[i++] = (byte)(rect.Width / 256);
-                data[i++] = (byte)(rect.Width % 256);
+                writer.WriteStartObject("info");
 
-                data[i++] = (byte)(rect.Height / 256);
-                data[i++] = (byte)(rect.Height % 256);
+                writer.WriteNumber("ref-width", _referenceWidth);
+                writer.WriteNumber("ref-height", _referenceHeight);
+
+                writer.WriteStartObject("zones");
+                foreach (Int32Rect rect in _zones)
+                {
+                    writer.WriteStartObject();
+                    writer.WriteNumber("X", rect.X);
+                    writer.WriteNumber("Y", rect.Y);
+                    writer.WriteNumber("width", rect.Width);
+                    writer.WriteNumber("height", rect.Height);
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndArray();
+                // end info object
+                writer.WriteEndObject();
+                // end root object
+                writer.WriteEndObject();
             }
-            return data;
+            outputStream.Close();
         }
 
         private static ushort c_latestVersion = 0;

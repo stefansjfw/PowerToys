@@ -5,10 +5,10 @@ struct ZoneSet : winrt::implements<ZoneSet, IZoneSet>
 public:
     ZoneSet(ZoneSetConfig const& config) : m_config(config)
     {
-        if (config.ZoneCount > 0)
+        /*if (config.ZoneCount > 0)
         {
             InitialPopulateZones();
-        }
+        }*/
     }
 
     ZoneSet(ZoneSetConfig const& config, std::vector<winrt::com_ptr<IZone>> zones) :
@@ -25,7 +25,7 @@ public:
     IFACEMETHODIMP_(winrt::com_ptr<IZone>) ZoneFromWindow(HWND window) noexcept;
     IFACEMETHODIMP_(int) GetZoneIndexFromWindow(HWND window) noexcept;
     IFACEMETHODIMP_(std::vector<winrt::com_ptr<IZone>>) GetZones() noexcept { return m_zones; }
-    IFACEMETHODIMP_(ZoneSetLayout) GetLayout() noexcept { return m_config.Layout; }
+    IFACEMETHODIMP_(JSONHelpers::ZoneSetLayoutType) GetLayout() noexcept { return m_config.Layout; }
     IFACEMETHODIMP_(winrt::com_ptr<IZoneSet>) MakeCustomClone() noexcept;
     IFACEMETHODIMP_(void) Save() noexcept;
     IFACEMETHODIMP_(void) MoveZoneToFront(winrt::com_ptr<IZone> zone) noexcept;
@@ -33,13 +33,15 @@ public:
     IFACEMETHODIMP_(void) MoveWindowIntoZoneByIndex(HWND window, HWND zoneWindow, int index) noexcept;
     IFACEMETHODIMP_(void) MoveWindowIntoZoneByDirection(HWND window, HWND zoneWindow, DWORD vkCode) noexcept;
     IFACEMETHODIMP_(void) MoveSizeEnd(HWND window, HWND zoneWindow, POINT ptClient) noexcept;
+    IFACEMETHODIMP_(void) CalculateZones(MONITORINFO monitorInfo, int zoneCount, int spacing) noexcept;
 
 private:
     void InitialPopulateZones() noexcept;
     void GenerateGridZones(MONITORINFO const& mi) noexcept;
     void DoGridLayout(SIZE const& zoneArea, int numCols, int numRows) noexcept;
-    void GenerateFocusZones(MONITORINFO const& mi) noexcept;
-    void StampZone(HWND window, _In_opt_ winrt::com_ptr<IZone> zone) noexcept;
+
+    void CalculateFocusLayout(Rect workArea);
+    void CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing);
 
     std::vector<winrt::com_ptr<IZone>> m_zones;
     ZoneSetConfig m_config;
@@ -270,6 +272,90 @@ IFACEMETHODIMP_(void) ZoneSet::MoveSizeEnd(HWND window, HWND zoneWindow, POINT p
     }
 }
 
+IFACEMETHODIMP_(void) ZoneSet::CalculateZones(MONITORINFO monitorInfo, int zoneCount, int spacing) noexcept
+{
+  Rect const workArea(monitorInfo.rcWork);
+
+  switch (m_config.Layout)
+  {
+  case JSONHelpers::ZoneSetLayoutType::Focus:
+    CalculateFocusLayout(workArea);
+    break;
+  case JSONHelpers::ZoneSetLayoutType::Columns:
+  case JSONHelpers::ZoneSetLayoutType::Rows:
+    CalculateColumnsAndRowsLayout(workArea, m_config.Layout, zoneCount, spacing);
+    break;
+  }
+}
+
+void ZoneSet::CalculateFocusLayout(Rect workArea)
+{
+  int ZoneCount = m_config.ZoneCount;
+  LONG left{ static_cast<LONG>(workArea.width() * 0.1) };
+  LONG top{ static_cast<LONG>(workArea.height() * 0.1) };
+  LONG right{ static_cast<LONG>(workArea.width() * 0.6) };
+  LONG bottom{ static_cast<LONG>(workArea.height() * 0.6) };
+  RECT focusZoneRect{ left, top, right, bottom };
+  int focusRectXIncrement = (ZoneCount <= 1) ? 0 : (int)(workArea.width() * 0.2) / (ZoneCount - 1);
+  int focusRectYIncrement = (ZoneCount <= 1) ? 0 : (int)(workArea.height() * 0.2) / (ZoneCount - 1);
+
+  for (int i = 0; i < ZoneCount; i++)
+  {
+    AddZone(MakeZone(focusZoneRect), false);
+    focusZoneRect.left += focusRectXIncrement;
+    focusZoneRect.right += focusRectXIncrement;
+    focusZoneRect.bottom += focusRectYIncrement;
+    focusZoneRect.top += focusRectYIncrement;
+  }
+}
+
+void ZoneSet::CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing)
+{
+  int gutter = spacing;
+  int c_multiplier = 10000;
+
+  int zonePercent = c_multiplier / zoneCount;
+
+  LONG totalWidth;// = workArea.width() - (gutter * 2) - (spacing * (zoneCount - 1));
+  LONG totalHeight;// = workArea.height() - (gutter * 2);
+
+  LONG cellWidth; // = totalWidth * colsPercent / c_multiplier;
+  LONG cellHeight;// = totalHeight * rowPercent / c_multiplier;
+
+  if (type == JSONHelpers::ZoneSetLayoutType::Columns) {
+    totalWidth = workArea.width() - (gutter * 2) - (spacing * (zoneCount - 1));
+    totalHeight = workArea.height() - (gutter * 2);
+    cellWidth = totalWidth * zonePercent / c_multiplier;
+    cellHeight = totalHeight;
+  }
+  else { //Rows
+    totalWidth = workArea.width() - (gutter * 2);
+    totalHeight = workArea.height() - (gutter * 2) - (spacing * (zoneCount - 1));
+    cellWidth = totalWidth;
+    cellHeight = totalHeight * zonePercent / c_multiplier;
+  }
+
+  LONG top = spacing;
+  LONG left = spacing;
+  LONG bottom = top + cellHeight;
+  LONG right = left + cellWidth;
+
+  for (int zone = 0; zone < zoneCount; zone++)
+  {
+    RECT focusZoneRect{ left, top, right, bottom };
+    AddZone(MakeZone(focusZoneRect), false);
+
+    if (type == JSONHelpers::ZoneSetLayoutType::Columns) {
+      left += cellWidth + spacing;
+      right = left + cellWidth;
+    }
+    else { //Rows
+      top += cellHeight + spacing;
+      bottom = top + cellHeight;
+    }
+  }
+}
+
 void ZoneSet::InitialPopulateZones() noexcept
 {
     // TODO: reconcile the pregenerated FZ layouts with the editor
@@ -278,13 +364,9 @@ void ZoneSet::InitialPopulateZones() noexcept
     mi.cbSize = sizeof(mi);
     if (GetMonitorInfoW(m_config.Monitor, &mi))
     {
-        if ((m_config.Layout == ZoneSetLayout::Grid) || (m_config.Layout == ZoneSetLayout::Row))
+        if ((m_config.Layout == JSONHelpers::ZoneSetLayoutType::Grid) || (m_config.Layout == JSONHelpers::ZoneSetLayoutType::Rows))
         {
             GenerateGridZones(mi);
-        }
-        else if (m_config.Layout == ZoneSetLayout::Focus)
-        {
-            GenerateFocusZones(mi);
         }
 
         Save();
@@ -296,7 +378,7 @@ void ZoneSet::GenerateGridZones(MONITORINFO const& mi) noexcept
     Rect workArea(mi.rcWork);
 
     int numCols, numRows;
-    if (m_config.Layout == ZoneSetLayout::Grid)
+    if (m_config.Layout == JSONHelpers::ZoneSetLayoutType::Grid)
     {
         switch (m_config.ZoneCount)
         {
@@ -317,7 +399,7 @@ void ZoneSet::GenerateGridZones(MONITORINFO const& mi) noexcept
             numRows = 2;
         }
     }
-    else if (m_config.Layout == ZoneSetLayout::Row)
+    else if (m_config.Layout == JSONHelpers::ZoneSetLayoutType::Rows)
     {
         numCols = m_config.ZoneCount;
         numRows = 1;
@@ -349,47 +431,6 @@ void ZoneSet::DoGridLayout(SIZE const& zoneArea, int numCols, int numRows) noexc
             x = 0;
             y += zoneHeight;
         }
-    }
-}
-
-void ZoneSet::GenerateFocusZones(MONITORINFO const& mi) noexcept
-{
-    Rect const workArea(mi.rcWork);
-
-    SIZE const workHalf = { workArea.width() / 2, workArea.height() / 2 };
-    RECT const safeZone = {
-        0,
-        0,
-        workArea.width(),
-        workArea.height()
-    };
-
-    int const width = min(1920, workArea.width() * 60 / 100);
-    int const height = min(1200, workArea.height() * 75 / 100);
-    int const halfWidth = width / 2;
-    int const halfHeight = height / 2;
-    int x = workHalf.cx - halfWidth;
-    int y = workHalf.cy - halfHeight;
-
-    RECT const focusRect = { x, y, x + width, y + height };
-    AddZone(MakeZone(focusRect), false);
-
-    for (auto i = 2; i <= m_config.ZoneCount; i++)
-    {
-        switch (i)
-        {
-            case 2: x = focusRect.right - halfWidth; y = focusRect.top; break; // right
-            case 3: x = focusRect.left - halfWidth; y = focusRect.top; break; // left
-            case 4: x = focusRect.left; y = focusRect.top - halfHeight; break; // up
-            case 5: x = focusRect.left; y = focusRect.bottom - halfHeight; break; // down
-        }
-
-        // Bound into safe zone
-        x = min(safeZone.right - width, max(safeZone.left, x));
-        y = min(safeZone.bottom - height, max(safeZone.top, y));
-
-        RECT const zoneRect = { x, y, x + width, y + height };
-        AddZone(MakeZone(zoneRect), false);
     }
 }
 

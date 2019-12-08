@@ -331,8 +331,7 @@ void FancyZones::ToggleEditor() noexcept
       /*8*/   std::to_wstring(showSpacing) + L" " +
       /*9*/   std::to_wstring(spacing) + L" " +
       /*10*/  std::to_wstring(zoneCount) + L" " +
-      /*11*/  iter->second->GetCustomZoneSetTmpPath() + L" " +
-      /*12*/  iter->second->GetAppliedZoneSetTmpPath();
+      /*11*/  iter->second->GetAppliedZoneSetTmpPath();
 
     SHELLEXECUTEINFO sei{ sizeof(sei) };
     sei.fMask = { SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI };

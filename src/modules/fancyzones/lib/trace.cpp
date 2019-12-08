@@ -12,7 +12,7 @@ struct ZoneSetInfo
 {
     size_t NumberOfZones = 0;
     size_t NumberOfWindows = 0;
-    ZoneSetLayout Layout = ZoneSetLayout::Custom;
+    JSONHelpers::ZoneSetLayoutType Layout = JSONHelpers::ZoneSetLayoutType::Custom;
 };
 
 ZoneSetInfo GetZoneSetInfo(_In_opt_ winrt::com_ptr<IZoneSet> set) noexcept

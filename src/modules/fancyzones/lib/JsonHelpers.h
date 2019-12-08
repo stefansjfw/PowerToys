@@ -7,6 +7,7 @@
 #include <strsafe.h>
 #include <unordered_map>
 #include <variant>
+#include <optional>
 #include <vector>
 #include <winnt.h>
 
@@ -65,18 +66,17 @@ namespace JSONHelpers
   };
 
   // TODO(stefan): This needs to be moved to ZoneSet.h (probably)
-  struct AppliedZoneSetData {
-    std::wstring name;
-    ZoneSetLayoutType type;
-    std::variant<TZoneCount, TZoneUUID> info;
-  public:
-    int TypeToLayoutID() const;
-  };
-
-  struct AppliedZoneSetJSON {
+  struct ZoneSetData {
     TZoneUUID uuid;
-    AppliedZoneSetData data;
-  };
+    ZoneSetLayoutType type; // TODO(stefan): Change this to string in JSON so user can understand it
+    std::optional<int> zoneCount;
+  public:
+    static std::wstring TypeToString(ZoneSetLayoutType type);
+    static ZoneSetLayoutType TypeFromString(std::wstring typeStr);
+
+    static ZoneSetLayoutType LayoutIdToType(int layoutID);
+    static int TypeToLayoutId(JSONHelpers::ZoneSetLayoutType layoutType);
+    };
 
   struct AppZoneHistoryData {
     TZoneUUID zoneSetUuid; //TODO(stefan): is this nessecary? It doesn't exist with registry impl.
@@ -90,7 +90,7 @@ namespace JSONHelpers
   };
 
   struct DeviceInfoData {
-    TZoneUUID activeZoneSetUuid;
+    ZoneSetData activeZoneSet;
     bool showSpacing;
     int spacing;
     int zoneCount;
@@ -110,14 +110,6 @@ namespace JSONHelpers
     const std::wstring& GetPersistFancyZonesJSONPath() const;
     web::json::value GetPersistFancyZonesJSON();
 
-    std::unordered_map<TZoneUUID, AppliedZoneSetData>& GetAppliedZoneSetMap() {
-      return appliedZoneSetMap;
-    }
-
-    const std::unordered_map<TZoneUUID, AppliedZoneSetData>& GetAppliedZoneSetMap() const {
-      return appliedZoneSetMap;
-    }
-
     std::unordered_map<TZoneUUID, DeviceInfoData>& GetDeviceInfoMap() {
       return deviceInfoMap;
     }
@@ -130,16 +122,12 @@ namespace JSONHelpers
     bool SetAppLastZone(HWND window, PCWSTR appPath, DWORD zoneIndex); //TODO(stefan): Missing zone uuid (pass as arg)
 
     void SetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& uuid); //TODO(stefan): deviceID missing and what about spacing fields?
-    
-    void GetAppliedZoneSetFromTmpFile(const std::wstring& tmpFilePath);
-    
+        
     void SetDeviceInfoToTmpFile(const DeviceInfoJSON& deviceInfo, const std::wstring& tmpFilePath);
     void GetDeviceInfoFromTmpFile(const std::wstring& uniqueID, const std::wstring& tmpFilePath);
 
     void GetCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath);
 
-    void ParseAppliedZoneSets(const web::json::value& fancyZonesDataJSON);
-    web::json::value SerializeAppliedZoneSets() const;
     void ParseAppZoneHistory(const web::json::value& fancyZonesDataJSON);
     web::json::value SerializeAppZoneHistory() const;
     void ParseDeviceInfos(const web::json::value& fancyZonesDataJSON);
@@ -150,13 +138,13 @@ namespace JSONHelpers
     void LoadFancyZonesData();
     void SaveFancyZonesData() const;
   private:
-    void MigrateAppliedZoneSetsFromRegistry();
+    void TmpMigrateAppliedZoneSetsFromRegistry(std::unordered_map<TZoneUUID, ZoneSetData>& appliedZoneSetMap);
     void MigrateAppZoneHistoryFromRegistry(); //TODO(stefan): If uuid is needed here, it needs to be resolved here some how
     void MigrateDeviceInfoFromRegistry();
     void MigrateCustomZoneSetsFromRegistry();
 
-    web::json::value AppliedZoneSetToJson(const AppliedZoneSetJSON& zoneSet) const;
-    AppliedZoneSetJSON AppliedZoneSetFromJson(web::json::value zoneSet) const;
+    web::json::value ZoneSetDataToJson(const ZoneSetData& zoneSet) const;
+    ZoneSetData ZoneSetDataFromJson(web::json::value zoneSet) const;
 
     web::json::value AppZoneHistoryToJson(const AppZoneHistoryJSON& appZoneHistory) const;
     AppZoneHistoryJSON AppZoneHistoryFromJson(web::json::value zoneSet) const;
@@ -167,7 +155,6 @@ namespace JSONHelpers
     web::json::value CustomZoneSetToJson(const CustomZoneSetJSON& device) const;
     CustomZoneSetJSON CustomZoneSetFromJson(web::json::value customZoneSet) const;
 
-    std::unordered_map<TZoneUUID, AppliedZoneSetData> appliedZoneSetMap{};
     std::unordered_map<TAppPath, AppZoneHistoryData> appZoneHistoryMap{};
     std::unordered_map<TDeviceID, DeviceInfoData> deviceInfoMap{};
     std::unordered_map<TZoneUUID, CustomZoneSetData> customZoneSetsMap{};

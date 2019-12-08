@@ -26,9 +26,28 @@ namespace {
   constexpr int c_priorityGridModelId = 0xFFFB;
   constexpr int c_blankCustomModelId = 0xFFFA;
 
-  JSONHelpers::ZoneSetLayoutType FromLayoutIdToZoneSetLayoutType(int layoutID) {
-    using JSONHelpers::ZoneSetLayoutType;
+}
 
+namespace JSONHelpers {
+  int ZoneSetData::TypeToLayoutId(JSONHelpers::ZoneSetLayoutType layoutType) {
+    switch (layoutType) {
+    case ZoneSetLayoutType::Focus:
+      return c_focusModelId;
+    case ZoneSetLayoutType::Columns:
+      return c_columnsModelId;
+    case ZoneSetLayoutType::Rows:
+      return c_rowsModelId;
+    case ZoneSetLayoutType::Grid:
+      return c_gridModelId;
+    case ZoneSetLayoutType::PriorityGrid:
+      return c_priorityGridModelId;
+    case ZoneSetLayoutType::Custom:
+      return 0;
+    }
+    return -1; // Error
+  }
+
+  ZoneSetLayoutType ZoneSetData::LayoutIdToType(int layoutID) {
     switch (layoutID) {
     case c_focusModelId:
       return ZoneSetLayoutType::Focus;
@@ -45,30 +64,44 @@ namespace {
     }
   }
 
-  int FromZoneSetLayoutTypeToLayoutId(JSONHelpers::ZoneSetLayoutType layoutType, JSONHelpers::AppliedZoneSetData zoneSet) {
-    using JSONHelpers::ZoneSetLayoutType;
-
-    switch (layoutType) {
+  std::wstring ZoneSetData::TypeToString(ZoneSetLayoutType type) {
+    switch (type) {
     case ZoneSetLayoutType::Focus:
-      return c_focusModelId;
+      return L"focus";
     case ZoneSetLayoutType::Columns:
-      return c_columnsModelId;
+      return L"columns";
     case ZoneSetLayoutType::Rows:
-      return c_rowsModelId;
+      return L"rows";
     case ZoneSetLayoutType::Grid:
-      return c_gridModelId;
+      return L"grid";
     case ZoneSetLayoutType::PriorityGrid:
-      return c_priorityGridModelId;
+      return L"priority-grid";
     case ZoneSetLayoutType::Custom:
-      return std::stoi(std::get<JSONHelpers::TZoneUUID>(zoneSet.info));
+      return L"custom";
+    default:
+      return L"TypeToString_ERROR";
     }
-    return -1; // Error
   }
-}
 
-namespace JSONHelpers {
-  int AppliedZoneSetData::TypeToLayoutID() const {
-    return FromZoneSetLayoutTypeToLayoutId(type, *this);
+  ZoneSetLayoutType ZoneSetData::TypeFromString(std::wstring typeStr) {
+    if (typeStr.compare(L"focus") == 0) {
+      return JSONHelpers::ZoneSetLayoutType::Focus;
+    }
+    else if (typeStr.compare(L"columns") == 0) {
+      return JSONHelpers::ZoneSetLayoutType::Columns;
+    }
+    else if (typeStr.compare(L"rows") == 0) {
+      return JSONHelpers::ZoneSetLayoutType::Rows;
+    }
+    else if (typeStr.compare(L"grid") == 0) {
+      return JSONHelpers::ZoneSetLayoutType::Grid;
+    }
+    else if (typeStr.compare(L"priority-grid") == 0) {
+      return JSONHelpers::ZoneSetLayoutType::PriorityGrid;
+    }
+    else { //Custom
+      return JSONHelpers::ZoneSetLayoutType::Custom;
+    }
   }
 
   FancyZonesData& FancyZonesDataInstance() {
@@ -126,19 +159,7 @@ namespace JSONHelpers {
 
   void FancyZonesData::SetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& uuid /*TODO(stefan): deviceId instead of uniqueId in the future*/) {
     if (!uuid.empty()) {
-      deviceInfoMap[uniqueID].activeZoneSetUuid = uuid;
-    }
-  }
-
-  void FancyZonesData::GetAppliedZoneSetFromTmpFile(const std::wstring& tmpFilePath) {
-    if (std::filesystem::exists(tmpFilePath)) {
-      std::ifstream tmpFile(tmpFilePath, std::ios::binary);
-      web::json::value appliedZoneSetJson = web::json::value::parse(tmpFile);
-      AppliedZoneSetJSON appliedZoneSet = AppliedZoneSetFromJson(appliedZoneSetJson);
-      appliedZoneSetMap[appliedZoneSet.uuid] = appliedZoneSet.data;
-
-      tmpFile.close();
-      DeleteFileW(tmpFilePath.c_str());
+      deviceInfoMap[uniqueID].activeZoneSet.uuid = uuid;
     }
   }
 
@@ -153,7 +174,7 @@ namespace JSONHelpers {
 
   void FancyZonesData::GetDeviceInfoFromTmpFile(const std::wstring& uniqueID, const std::wstring& tmpFilePath) {
     if (!deviceInfoMap.contains(uniqueID)) {
-      deviceInfoMap[uniqueID] = DeviceInfoData{ L"{}", true, 16, 3 }; // Creates entry in map when ZoneWindow is created
+      deviceInfoMap[uniqueID] = DeviceInfoData{ ZoneSetData{L"", ZoneSetLayoutType::Grid, 0}, true, 16, 3 }; // Creates entry in map when ZoneWindow is created
     }
 
     if (std::filesystem::exists(tmpFilePath)) {
@@ -167,6 +188,7 @@ namespace JSONHelpers {
     }
   }
 
+  // TODO(stefan): Is this needed anymore
   void FancyZonesData::GetCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath) {
     if (std::filesystem::exists(tmpFilePath)) {
       std::ifstream tmpFile(tmpFilePath, std::ios::binary);
@@ -177,28 +199,6 @@ namespace JSONHelpers {
       tmpFile.close();
       DeleteFileW(tmpFilePath.c_str());
     }
-  }
-
-  void FancyZonesData::ParseAppliedZoneSets(const web::json::value& fancyZonesDataJSON) {
-    if (fancyZonesDataJSON.has_field(L"applied-zone-sets") && !fancyZonesDataJSON.at(U("applied-zone-sets")).is_null()) {
-      web::json::array appliedZoneSets = fancyZonesDataJSON.at(U("applied-zone-sets")).as_array();
-
-      for (const auto& appliedZoneSet : appliedZoneSets) {
-        const auto& zoneSet = AppliedZoneSetFromJson(appliedZoneSet);
-        appliedZoneSetMap[zoneSet.uuid] = zoneSet.data;
-      }
-    }
-  }
-
-  web::json::value FancyZonesData::SerializeAppliedZoneSets() const {
-    web::json::value appliedZoneSets{};
-
-    int i = 0;
-    for (const auto& [zoneSetID, zoneSetData] : appliedZoneSetMap) {
-      appliedZoneSets[i++] = AppliedZoneSetToJson(AppliedZoneSetJSON{ zoneSetID, zoneSetData });
-    }
-
-    return appliedZoneSets;
   }
 
   void FancyZonesData::ParseAppZoneHistory(const web::json::value& fancyZonesDataJSON) {
@@ -274,7 +274,6 @@ namespace JSONHelpers {
     if (!std::filesystem::exists(jsonFilePath)) {
 
       MigrateCustomZoneSetsFromRegistry(); // Custom zone sets have to be migrated before applied zone sets!
-      MigrateAppliedZoneSetsFromRegistry();
       MigrateAppZoneHistoryFromRegistry();
       MigrateDeviceInfoFromRegistry();
 
@@ -283,7 +282,6 @@ namespace JSONHelpers {
     else {
       web::json::value fancyZonesDataJSON = GetPersistFancyZonesJSON();
 
-      ParseAppliedZoneSets(fancyZonesDataJSON);
       ParseAppZoneHistory(fancyZonesDataJSON);
       ParseDeviceInfos(fancyZonesDataJSON);
       ParseCustomZoneSets(fancyZonesDataJSON);
@@ -296,7 +294,6 @@ namespace JSONHelpers {
 
     web::json::value root{};
 
-    root[L"applied-zone-sets"] = SerializeAppliedZoneSets();
     root[L"app-zone-history"] = SerializeAppZoneHistory();
     root[L"devices"] = SerializeDeviceInfos();
     root[L"custom-zone-sets"] = SerializeCustomZoneSets();
@@ -306,7 +303,7 @@ namespace JSONHelpers {
     jsonFile.close();
   }
 
-  void FancyZonesData::MigrateAppliedZoneSetsFromRegistry() {
+  void FancyZonesData::TmpMigrateAppliedZoneSetsFromRegistry(std::unordered_map<TZoneUUID, ZoneSetData>& appliedZoneSetMap) {
     std::wregex ex(L"^[0-9]{3,4}_[0-9]{3,4}$");
 
     wchar_t key[256];
@@ -329,14 +326,10 @@ namespace JSONHelpers {
           DWORD valueLength = ARRAYSIZE(value);
           DWORD i = 0;
           while (RegEnumValueW(appliedZoneSetsHkey, i++, value, &valueLength, nullptr, nullptr, reinterpret_cast<BYTE*>(&data), &dataSize) == ERROR_SUCCESS) {
-            AppliedZoneSetData appliedZoneSetData;
-            appliedZoneSetData.name = L"NAME_TBD"; // TODO(stefan): Fill this if even necessary
-            appliedZoneSetData.type = FromLayoutIdToZoneSetLayoutType(data.LayoutId);
-            if (appliedZoneSetData.type == ZoneSetLayoutType::Custom) {
-              appliedZoneSetData.info = std::to_wstring(data.LayoutId);
-            }
-            else {
-              appliedZoneSetData.info = data.ZoneCount;
+            ZoneSetData appliedZoneSetData;
+            appliedZoneSetData.type = ZoneSetData::LayoutIdToType(data.LayoutId);
+            if (appliedZoneSetData.type != ZoneSetLayoutType::Custom) {
+              appliedZoneSetData.zoneCount = data.ZoneCount;
             }
             appliedZoneSetMap[value] = appliedZoneSetData;
             dataSize = sizeof(data);
@@ -378,6 +371,9 @@ namespace JSONHelpers {
   }
 
   void FancyZonesData::MigrateDeviceInfoFromRegistry() {
+    std::unordered_map<TZoneUUID, ZoneSetData> appliedZoneSets;
+    TmpMigrateAppliedZoneSetsFromRegistry(appliedZoneSets);
+
     wchar_t key[256];
     StringCchPrintf(key, ARRAYSIZE(key), L"%s", RegistryHelpers::REG_SETTINGS);
     HKEY hkey;
@@ -404,7 +400,7 @@ namespace JSONHelpers {
           SHRegGetUSValueW(key, L"Spacing", nullptr, &spacing, &size, FALSE, nullptr, 0);
           SHRegGetUSValueW(key, L"ZoneCount", nullptr, &zoneCount, &size, FALSE, nullptr, 0);
 
-          deviceInfoMap[uniqueID] = DeviceInfoData{ std::wstring { activeZoneSetId }, static_cast<bool>(showSpacing), static_cast<int>(spacing), static_cast<int>(zoneCount) };
+          deviceInfoMap[uniqueID] = DeviceInfoData{ appliedZoneSets[std::wstring {activeZoneSetId}], static_cast<bool>(showSpacing), static_cast<int>(spacing), static_cast<int>(zoneCount) };
 
           valueLength = ARRAYSIZE(value);
         }
@@ -493,36 +489,28 @@ namespace JSONHelpers {
     }
   }
 
-  web::json::value FancyZonesData::AppliedZoneSetToJson(const AppliedZoneSetJSON& zoneSet) const {
+  web::json::value FancyZonesData::ZoneSetDataToJson(const ZoneSetData& zoneSet) const {
     web::json::value result = web::json::value::object();
 
     result[L"uuid"] = web::json::value::string(zoneSet.uuid);
-    result[L"name"] = web::json::value::string(zoneSet.data.name);
-    result[L"type"] = web::json::value::number(static_cast<int>(zoneSet.data.type));
-    if (zoneSet.data.type == ZoneSetLayoutType::Custom) {
-      result[L"info"] = web::json::value::string(std::get<TZoneUUID>(zoneSet.data.info));
-    }
-    else {
-      result[L"info"] = web::json::value::number(std::get<TZoneCount>(zoneSet.data.info));
+    result[L"type"] = web::json::value::string(ZoneSetData::TypeToString(zoneSet.type));
+    if (zoneSet.type != ZoneSetLayoutType::Custom) {
+      result[L"zone-count"] = web::json::value::number(*zoneSet.zoneCount);
     }
 
     return result;
   }
 
-  AppliedZoneSetJSON FancyZonesData::AppliedZoneSetFromJson(web::json::value zoneSet) const {
-    AppliedZoneSetJSON result;
+  ZoneSetData FancyZonesData::ZoneSetDataFromJson(web::json::value zoneSet) const {
+    ZoneSetData zoneSetData;
 
-    result.uuid = zoneSet[L"uuid"].as_string();
-    result.data.name = zoneSet[L"name"].as_string();
-    result.data.type = static_cast<ZoneSetLayoutType>(zoneSet[L"type"].as_integer());
-    if (result.data.type == ZoneSetLayoutType::Custom) {
-      result.data.info = zoneSet[L"info"].as_string();
-    }
-    else {
-      result.data.info = zoneSet[L"info"].as_integer();
+    zoneSetData.uuid = zoneSet[L"uuid"].as_string();
+    zoneSetData.type = ZoneSetData::TypeFromString(zoneSet[L"type"].as_string());
+    if (zoneSetData.type != ZoneSetLayoutType::Custom) {
+      zoneSetData.zoneCount = zoneSet[L"zone-count"].as_integer();
     }
 
-    return result;
+    return zoneSetData;
   }
 
   web::json::value FancyZonesData::AppZoneHistoryToJson(const AppZoneHistoryJSON& appZoneHistory) const {
@@ -549,10 +537,10 @@ namespace JSONHelpers {
     web::json::value result = web::json::value::object();
 
     result[L"device-id"] = web::json::value::string(device.deviceId);
-    result[L"active-zoneset-uuid"] = web::json::value::string(device.data.activeZoneSetUuid);
-    result[L"show-spacing"] = web::json::value::boolean(device.data.showSpacing);
-    result[L"spacing"] = web::json::value::number(device.data.spacing);
-    result[L"zone-count"] = web::json::value::number(device.data.zoneCount);
+    result[L"active-zoneset"] = ZoneSetDataToJson(device.data.activeZoneSet);
+    result[L"editor-show-spacing"] = web::json::value::boolean(device.data.showSpacing);
+    result[L"editor-spacing"] = web::json::value::number(device.data.spacing);
+    result[L"editor-zone-count"] = web::json::value::number(device.data.zoneCount);
 
     return result;
   }
@@ -561,10 +549,10 @@ namespace JSONHelpers {
     DeviceInfoJSON result;
 
     result.deviceId = device[L"device-id"].as_string();
-    result.data.activeZoneSetUuid = device[L"active-zoneset-uuid"].as_string();
-    result.data.showSpacing = device[L"show-spacing"].as_bool();
-    result.data.spacing = device[L"spacing"].as_integer();
-    result.data.zoneCount = device[L"zone-count"].as_integer();
+    result.data.activeZoneSet = ZoneSetDataFromJson(device[L"active-zoneset"]);
+    result.data.showSpacing = device[L"editor-show-spacing"].as_bool();
+    result.data.spacing = device[L"editor-spacing"].as_integer();
+    result.data.zoneCount = device[L"editor-zone-count"].as_integer();
 
     return result;
   }
