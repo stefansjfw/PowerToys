@@ -40,8 +40,9 @@ private:
     void GenerateGridZones(MONITORINFO const& mi) noexcept;
     void DoGridLayout(SIZE const& zoneArea, int numCols, int numRows) noexcept;
 
-    void CalculateFocusLayout(Rect workArea);
-    void CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing);
+    void CalculateFocusLayout(Rect workArea) noexcept;
+    void CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept;
+    void CalculateGridLayout(Rect workArea, int zoneCount, int spacing) noexcept;
 
     std::vector<winrt::com_ptr<IZone>> m_zones;
     ZoneSetConfig m_config;
@@ -285,10 +286,13 @@ IFACEMETHODIMP_(void) ZoneSet::CalculateZones(MONITORINFO monitorInfo, int zoneC
   case JSONHelpers::ZoneSetLayoutType::Rows:
     CalculateColumnsAndRowsLayout(workArea, m_config.Layout, zoneCount, spacing);
     break;
+  case JSONHelpers::ZoneSetLayoutType::Grid:
+    CalculateGridLayout(workArea, zoneCount, spacing);
+    break;
   }
 }
 
-void ZoneSet::CalculateFocusLayout(Rect workArea)
+void ZoneSet::CalculateFocusLayout(Rect workArea) noexcept
 {
   int ZoneCount = m_config.ZoneCount;
   LONG left{ static_cast<LONG>(workArea.width() * 0.1) };
@@ -309,18 +313,18 @@ void ZoneSet::CalculateFocusLayout(Rect workArea)
   }
 }
 
-void ZoneSet::CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing)
+void ZoneSet::CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept
 {
   int gutter = spacing;
   int c_multiplier = 10000;
 
   int zonePercent = c_multiplier / zoneCount;
 
-  LONG totalWidth;// = workArea.width() - (gutter * 2) - (spacing * (zoneCount - 1));
-  LONG totalHeight;// = workArea.height() - (gutter * 2);
+  LONG totalWidth;
+  LONG totalHeight;
 
-  LONG cellWidth; // = totalWidth * colsPercent / c_multiplier;
-  LONG cellHeight;// = totalHeight * rowPercent / c_multiplier;
+  LONG cellWidth;
+  LONG cellHeight;
 
   if (type == JSONHelpers::ZoneSetLayoutType::Columns) {
     totalWidth = workArea.width() - (gutter * 2) - (spacing * (zoneCount - 1));
@@ -352,6 +356,104 @@ void ZoneSet::CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetL
     else { //Rows
       top += cellHeight + spacing;
       bottom = top + cellHeight;
+    }
+  }
+}
+
+void ZoneSet::CalculateGridLayout(Rect workArea, int zoneCount, int spacing) noexcept
+{
+  int c_multiplier = 10000;
+  int rows = 1;
+  int cols = 1;
+  while (zoneCount / rows >= rows)
+  {
+    rows++;
+  }
+  rows--;
+  cols = zoneCount / rows;
+  if (zoneCount % rows == 0)
+  {
+    // even grid
+  }
+  else
+  {
+    cols++;
+  }
+  int rowPercent = c_multiplier / rows;
+  int columnPercent = c_multiplier / cols;
+  int cellChildMap[50][50];
+
+  int index = 0;
+  for (int col = cols - 1; col >= 0; col--)
+  {
+    for (int row = rows - 1; row >= 0; row--)
+    {
+      cellChildMap[row][col] = index++;
+      if (index == zoneCount)
+      {
+        index--;
+      }
+
+    }
+  }
+
+  int gutter = spacing;
+
+  LONG totalWidth = static_cast<LONG>(workArea.width()) - (gutter * 2) - (spacing * (cols - 1));
+  LONG totalHeight = static_cast<LONG>(workArea.height()) - (gutter * 2) - (spacing * (rows - 1));
+  struct Info {
+    LONG Extent;
+    LONG Start;
+    LONG End;
+  };
+  Info rowInfo[50];
+  Info columnInfo[50];
+  
+  LONG top = gutter;
+  for (int row = 0; row < rows; row++)
+  {
+    rowInfo[row].Start = top;
+    rowInfo[row].Extent = totalHeight * rowPercent / c_multiplier;
+    rowInfo[row].End = rowInfo[row].Start + rowInfo[row].Extent;
+    top += rowInfo[row].Extent + spacing;
+  }
+
+  LONG left = gutter;
+  for (int col = 0; col < cols; col++)
+  {
+    columnInfo[col].Start = left;
+    columnInfo[col].Extent = totalWidth * columnPercent / c_multiplier;
+    columnInfo[col].End = columnInfo[col].Start + columnInfo[col].Extent;
+    left += columnInfo[col].Extent + spacing;
+  }
+
+  for (int row = 0; row < rows; row++)
+  {
+    for (int col = 0; col < cols; col++)
+    {
+      int i = cellChildMap[row][col];
+      if (((row == 0) || (cellChildMap[row - 1][col] != i)) &&
+        ((col == 0) || (cellChildMap[row][col - 1] != i)))
+      {
+        left = columnInfo[col].Start;
+        top = rowInfo[row].Start;
+
+        int maxRow = row;
+        while (((maxRow + 1) < rows) && (cellChildMap[maxRow + 1][col] == i))
+        {
+          maxRow++;
+        }
+        int maxCol = col;
+        while (((maxCol + 1) < cols) && (cellChildMap[row][maxCol + 1] == i))
+        {
+          maxCol++;
+        }
+
+        LONG right = columnInfo[maxCol].End;
+        LONG bottom = rowInfo[maxRow].End;
+        RECT focusZoneRect{ left, top, right, bottom };
+        AddZone(MakeZone(focusZoneRect), false);
+      }
     }
   }
 }
