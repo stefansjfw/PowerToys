@@ -129,7 +129,6 @@ public:
     IFACEMETHODIMP_(std::vector<winrt::com_ptr<IZone>>) GetZones() noexcept { return m_zones; }
     IFACEMETHODIMP_(JSONHelpers::ZoneSetLayoutType) GetLayout() noexcept { return m_config.Layout; }
     IFACEMETHODIMP_(winrt::com_ptr<IZoneSet>) MakeCustomClone() noexcept;
-    IFACEMETHODIMP_(void) Save() noexcept;
     IFACEMETHODIMP_(void) MoveZoneToFront(winrt::com_ptr<IZone> zone) noexcept;
     IFACEMETHODIMP_(void) MoveZoneToBack(winrt::com_ptr<IZone> zone) noexcept;
     IFACEMETHODIMP_(void) MoveWindowIntoZoneByIndex(HWND window, HWND zoneWindow, int index) noexcept;
@@ -237,38 +236,6 @@ IFACEMETHODIMP_(winrt::com_ptr<IZoneSet>) ZoneSet::MakeCustomClone() noexcept
         return winrt::make_self<ZoneSet>(m_config, m_zones);
     }
     return nullptr;
-}
-
-IFACEMETHODIMP_(void) ZoneSet::Save() noexcept
-{
-    size_t const zoneCount = m_zones.size();
-    if (zoneCount == 0)
-    {
-        RegistryHelpers::DeleteZoneSet(m_config.ResolutionKey, m_config.Id);
-    }
-    else
-    {
-        ZoneSetPersistedData data{};
-        data.LayoutId = m_config.LayoutId;
-        data.ZoneCount = static_cast<DWORD>(zoneCount);
-        data.Layout = m_config.Layout;
-
-        int i = 0;
-        for (auto iter = m_zones.begin(); iter != m_zones.end(); iter++)
-        {
-            winrt::com_ptr<IZone> zone = iter->as<IZone>();
-            CopyRect(&data.Zones[i++], &zone->GetZoneRect());
-        }
-
-        wil::unique_cotaskmem_string guid;
-        if (SUCCEEDED_LOG(StringFromCLSID(m_config.Id, &guid)))
-        {
-            if (wil::unique_hkey hkey{ RegistryHelpers::CreateKey(m_config.ResolutionKey) })
-            {
-                RegSetValueExW(hkey.get(), guid.get(), 0, REG_BINARY, reinterpret_cast<BYTE*>(&data), sizeof(data));
-            }
-        }
-    }
 }
 
 IFACEMETHODIMP_(void) ZoneSet::MoveZoneToFront(winrt::com_ptr<IZone> zone) noexcept

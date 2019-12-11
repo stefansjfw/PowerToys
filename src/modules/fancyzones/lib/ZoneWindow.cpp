@@ -663,8 +663,6 @@ void ZoneWindow::OnLButtonUp(LPARAM lparam) noexcept
                     RECT rectRight = zoneRect;
                     rectRight.left = rectLeft.right;
                     m_activeZoneSet->AddZone(MakeZone(rectRight), false);
-
-                    m_activeZoneSet->Save();
                 }
             }
             else if (m_activeZoneSet && !IsRectEmpty(&m_zoneBuilder))
@@ -687,7 +685,6 @@ void ZoneWindow::OnLButtonUp(LPARAM lparam) noexcept
                 if (auto zone = ZoneFromPoint(ptClient))
                 {
                     m_activeZoneSet->MoveZoneToFront(zone);
-                    m_activeZoneSet->Save();
                 }
             }
         }
@@ -721,19 +718,16 @@ void ZoneWindow::OnRButtonUp(LPARAM lparam) noexcept
                     rectBottom.top = rectTop.bottom;
                     m_activeZoneSet->AddZone(MakeZone(rectBottom), false);
 
-                    m_activeZoneSet->Save();
                 }
             }
             else if (auto zone = ZoneFromPoint(ptClient))
             {
                 m_activeZoneSet->RemoveZone(zone);
-                m_activeZoneSet->Save();
             }
         }
         else if (auto zone = ZoneFromPoint(ptClient))
         {
             m_activeZoneSet->MoveZoneToBack(zone);
-            m_activeZoneSet->Save();
         }
     }
     InvalidateRect(m_window.get(), nullptr, true);
@@ -1127,10 +1121,6 @@ void ZoneWindow::EnterEditorMode() noexcept
 void ZoneWindow::ExitEditorMode() noexcept
 {
     m_editorMode = false;
-    if (m_activeZoneSet)
-    {
-        m_activeZoneSet->Save();
-    }
     m_editorModeActivity.Stop(m_activeZoneSet);
 }
 

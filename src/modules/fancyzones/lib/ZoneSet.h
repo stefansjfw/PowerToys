@@ -16,7 +16,6 @@ interface __declspec(uuid("{E4839EB7-669D-49CF-84A9-71A2DFD851A3}")) IZoneSet : 
     IFACEMETHOD_(std::vector<winrt::com_ptr<IZone>>, GetZones)() = 0;
     IFACEMETHOD_(JSONHelpers::ZoneSetLayoutType, GetLayout)() = 0;
     IFACEMETHOD_(winrt::com_ptr<IZoneSet>, MakeCustomClone)() = 0;
-    IFACEMETHOD_(void, Save)() = 0;
     IFACEMETHOD_(void, MoveZoneToFront)(winrt::com_ptr<IZone> zone) = 0;
     IFACEMETHOD_(void, MoveZoneToBack)(winrt::com_ptr<IZone> zone) = 0;
     IFACEMETHOD_(void, MoveWindowIntoZoneByIndex)(HWND window, HWND zoneWindow, int index) = 0;
