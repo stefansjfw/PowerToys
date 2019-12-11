@@ -1,14 +1,116 @@
 #include "pch.h"
 
+namespace {
+  constexpr int MAX_ZONE_COUNT = 50;
+  constexpr int C_MULTIPLIER = 10000;
+
+  struct GridLayoutInfo {
+    int rows;
+    int columns;
+    int rowsPercents[MAX_ZONE_COUNT];
+    int columnsPercents[MAX_ZONE_COUNT];
+    int cellChildMap[MAX_ZONE_COUNT][MAX_ZONE_COUNT];
+  };
+
+  // PriorityGrid layout is unique for zoneCount <= 11. For zoneCount > 11 PriorityGrid is same as Grid
+  GridLayoutInfo predefinedPriorityGridLayouts[11] =
+  {
+    /* 1 */
+    {
+      .rows = 1,
+      .columns = 1,
+      .rowsPercents = { 10000 },
+      .columnsPercents = { 10000 },
+      .cellChildMap = { 0 }
+    },
+    /* 2 */
+    {
+      .rows = 1,
+      .columns = 2,
+      .rowsPercents = { 10000 },
+      .columnsPercents = { 6667, 3333 },
+      .cellChildMap = { 0, 1 }
+    },
+    /* 3 */
+    {
+      .rows = 1,
+      .columns = 3,
+      .rowsPercents = { 10000 },
+      .columnsPercents = { 2500, 5000, 2500 },
+      .cellChildMap = { 0, 1, 2 }
+    },
+    /* 4 */
+    {
+      .rows = 2,
+      .columns = 3,
+      .rowsPercents = { 5000, 5000 },
+      .columnsPercents = { 2500, 5000, 2500 },
+      .cellChildMap = { {0, 1, 2}, {0, 1, 3} }
+    },
+    /* 5 */
+    {
+      .rows = 2,
+      .columns = 3,
+      .rowsPercents = { 5000, 5000 },
+      .columnsPercents = { 2500, 5000, 2500 },
+      .cellChildMap = { {0, 1, 2}, {3, 1, 4} }
+    },
+    /* 6 */
+    {
+      .rows = 3,
+      .columns = 3,
+      .rowsPercents = { 3333, 3334, 3333 },
+      .columnsPercents = { 2500, 5000, 2500 },
+      .cellChildMap = { {0, 1, 2}, {0, 1, 3}, {4, 1, 5} }
+    },
+    /* 7 */
+    {
+      .rows = 3,
+      .columns = 3,
+      .rowsPercents = { 3333, 3334, 3333 },
+      .columnsPercents = { 2500, 5000, 2500 },
+      .cellChildMap = { {0, 1, 2}, {3, 1, 4}, {5, 1, 6} }
+    },
+    /* 8 */
+    {
+      .rows = 3,
+      .columns = 4,
+      .rowsPercents = { 3333, 3334, 3333 },
+      .columnsPercents = { 2500, 2500, 2500, 2500 },
+      .cellChildMap = { {0, 1, 2, 3}, {4, 1, 2, 5}, {6, 1, 2, 7} }
+    },
+    /* 9 */
+    {
+      .rows = 3,
+      .columns = 4,
+      .rowsPercents = { 3333, 3334, 3333 },
+      .columnsPercents = { 2500, 2500, 2500, 2500 },
+      .cellChildMap = { {0, 1, 2, 3}, {4, 1, 2, 5}, {6, 1, 7, 8} }
+    },
+    /* 10 */
+    {
+      .rows = 3,
+      .columns = 4,
+      .rowsPercents = { 3333, 3334, 3333 },
+      .columnsPercents = { 2500, 2500, 2500, 2500 },
+      .cellChildMap = { {0, 1, 2, 3}, {4, 1, 5, 6}, {7, 1, 8, 9} }
+    },
+    /* 11 */
+    {
+      .rows = 3,
+      .columns = 4,
+      .rowsPercents = { 3333, 3334, 3333 },
+      .columnsPercents = { 2500, 2500, 2500, 2500 },
+      .cellChildMap = { {0, 1, 2, 3}, {4, 1, 5, 6}, {7, 8, 9, 10} }
+    }
+  };
+}
+
 struct ZoneSet : winrt::implements<ZoneSet, IZoneSet>
 {
 public:
     ZoneSet(ZoneSetConfig const& config) : m_config(config)
     {
-        /*if (config.ZoneCount > 0)
-        {
-            InitialPopulateZones();
-        }*/
     }
 
     ZoneSet(ZoneSetConfig const& config, std::vector<winrt::com_ptr<IZone>> zones) :
@@ -36,13 +138,12 @@ public:
     IFACEMETHODIMP_(void) CalculateZones(MONITORINFO monitorInfo, int zoneCount, int spacing) noexcept;
 
 private:
-    void InitialPopulateZones() noexcept;
-    void GenerateGridZones(MONITORINFO const& mi) noexcept;
-    void DoGridLayout(SIZE const& zoneArea, int numCols, int numRows) noexcept;
-
     void CalculateFocusLayout(Rect workArea) noexcept;
     void CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept;
-    void CalculateGridLayout(Rect workArea, int zoneCount, int spacing) noexcept;
+    void CalculateGridLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept;
+    void CalculateUniquePriorityGridLayout(Rect workArea, int zoneCount, int spacing) noexcept;
+
+    void CalculateGridZones(Rect workArea, GridLayoutInfo gridLayoutInfo, int spacing);
 
     std::vector<winrt::com_ptr<IZone>> m_zones;
     ZoneSetConfig m_config;
@@ -287,8 +388,8 @@ IFACEMETHODIMP_(void) ZoneSet::CalculateZones(MONITORINFO monitorInfo, int zoneC
     CalculateColumnsAndRowsLayout(workArea, m_config.Layout, zoneCount, spacing);
     break;
   case JSONHelpers::ZoneSetLayoutType::Grid:
-    CalculateGridLayout(workArea, zoneCount, spacing);
-    break;
+  case JSONHelpers::ZoneSetLayoutType::PriorityGrid:
+    CalculateGridLayout(workArea, m_config.Layout, zoneCount, spacing);
   }
 }
 
@@ -360,35 +461,44 @@ void ZoneSet::CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetL
   }
 }
 
-void ZoneSet::CalculateGridLayout(Rect workArea, int zoneCount, int spacing) noexcept
+void ZoneSet::CalculateGridLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept
 {
-  int c_multiplier = 10000;
-  int rows = 1;
-  int cols = 1;
-  while (zoneCount / rows >= rows)
-  {
-    rows++;
+  if (type == JSONHelpers::ZoneSetLayoutType::PriorityGrid && zoneCount <= 11) {
+    CalculateUniquePriorityGridLayout(workArea, zoneCount, spacing);
+    return;
   }
-  rows--;
-  cols = zoneCount / rows;
-  if (zoneCount % rows == 0)
+
+  GridLayoutInfo gridLayoutInfo;
+  gridLayoutInfo.rows = 1;
+  gridLayoutInfo.columns = 1;
+  while (zoneCount / gridLayoutInfo.rows >= gridLayoutInfo.rows)
+  {
+    gridLayoutInfo.rows++;
+  }
+  gridLayoutInfo.rows--;
+  gridLayoutInfo.columns = zoneCount / gridLayoutInfo.rows;
+  if (zoneCount % gridLayoutInfo.rows == 0)
   {
     // even grid
   }
   else
   {
-    cols++;
+    gridLayoutInfo.columns++;
   }
-  int rowPercent = c_multiplier / rows;
-  int columnPercent = c_multiplier / cols;
-  int cellChildMap[50][50];
 
+  for (int row = 0; row < gridLayoutInfo.rows; row++) {
+    gridLayoutInfo.rowsPercents[row] = C_MULTIPLIER / gridLayoutInfo.rows;
+  }
+  for (int col = 0; col < gridLayoutInfo.columns; col++) {
+    gridLayoutInfo.columnsPercents[col] = C_MULTIPLIER / gridLayoutInfo.columns;
+  }
+  
   int index = 0;
-  for (int col = cols - 1; col >= 0; col--)
+  for (int col = gridLayoutInfo.columns - 1; col >= 0; col--)
   {
-    for (int row = rows - 1; row >= 0; row--)
+    for (int row = gridLayoutInfo.rows - 1; row >= 0; row--)
     {
-      cellChildMap[row][col] = index++;
+      gridLayoutInfo.cellChildMap[row][col] = index++;
       if (index == zoneCount)
       {
         index--;
@@ -396,55 +506,65 @@ void ZoneSet::CalculateGridLayout(Rect workArea, int zoneCount, int spacing) noe
 
     }
   }
+  CalculateGridZones(workArea, gridLayoutInfo, spacing);
+}
+
+void ZoneSet::CalculateUniquePriorityGridLayout(Rect workArea, int zoneCount, int spacing) noexcept
+{
+  CalculateGridZones(workArea, predefinedPriorityGridLayouts[zoneCount - 1], spacing);
+}
+
+void ZoneSet::CalculateGridZones(Rect workArea, GridLayoutInfo gridLayoutInfo, int spacing)
+{
 
   int gutter = spacing;
 
-  LONG totalWidth = static_cast<LONG>(workArea.width()) - (gutter * 2) - (spacing * (cols - 1));
-  LONG totalHeight = static_cast<LONG>(workArea.height()) - (gutter * 2) - (spacing * (rows - 1));
+  LONG totalWidth = static_cast<LONG>(workArea.width()) - (gutter * 2) - (spacing * (gridLayoutInfo.columns - 1));
+  LONG totalHeight = static_cast<LONG>(workArea.height()) - (gutter * 2) - (spacing * (gridLayoutInfo.rows - 1));
   struct Info {
     LONG Extent;
     LONG Start;
     LONG End;
   };
-  Info rowInfo[50];
-  Info columnInfo[50];
+  Info rowInfo[MAX_ZONE_COUNT];
+  Info columnInfo[MAX_ZONE_COUNT];
   
   LONG top = gutter;
-  for (int row = 0; row < rows; row++)
+  for (int row = 0; row < gridLayoutInfo.rows; row++)
   {
     rowInfo[row].Start = top;
-    rowInfo[row].Extent = totalHeight * rowPercent / c_multiplier;
+    rowInfo[row].Extent = totalHeight * gridLayoutInfo.rowsPercents[row] / C_MULTIPLIER;
     rowInfo[row].End = rowInfo[row].Start + rowInfo[row].Extent;
     top += rowInfo[row].Extent + spacing;
   }
 
   LONG left = gutter;
-  for (int col = 0; col < cols; col++)
+  for (int col = 0; col < gridLayoutInfo.columns; col++)
   {
     columnInfo[col].Start = left;
-    columnInfo[col].Extent = totalWidth * columnPercent / c_multiplier;
+    columnInfo[col].Extent = totalWidth * gridLayoutInfo.columnsPercents[col] / C_MULTIPLIER;
     columnInfo[col].End = columnInfo[col].Start + columnInfo[col].Extent;
     left += columnInfo[col].Extent + spacing;
   }
 
-  for (int row = 0; row < rows; row++)
+  for (int row = 0; row < gridLayoutInfo.rows; row++)
   {
-    for (int col = 0; col < cols; col++)
+    for (int col = 0; col < gridLayoutInfo.columns; col++)
     {
-      int i = cellChildMap[row][col];
-      if (((row == 0) || (cellChildMap[row - 1][col] != i)) &&
-        ((col == 0) || (cellChildMap[row][col - 1] != i)))
+      int i = gridLayoutInfo.cellChildMap[row][col];
+      if (((row == 0) || (gridLayoutInfo.cellChildMap[row - 1][col] != i)) &&
+        ((col == 0) || (gridLayoutInfo.cellChildMap[row][col - 1] != i)))
       {
         left = columnInfo[col].Start;
         top = rowInfo[row].Start;
 
         int maxRow = row;
-        while (((maxRow + 1) < rows) && (cellChildMap[maxRow + 1][col] == i))
+        while (((maxRow + 1) < gridLayoutInfo.rows) && (gridLayoutInfo.cellChildMap[maxRow + 1][col] == i))
         {
           maxRow++;
         }
         int maxCol = col;
-        while (((maxCol + 1) < cols) && (cellChildMap[row][maxCol + 1] == i))
+        while (((maxCol + 1) < gridLayoutInfo.columns) && (gridLayoutInfo.cellChildMap[row][maxCol + 1] == i))
         {
           maxCol++;
         }
@@ -456,84 +576,6 @@ void ZoneSet::CalculateGridLayout(Rect workArea, int zoneCount, int spacing) noe
       }
     }
   }
-}
-
-void ZoneSet::InitialPopulateZones() noexcept
-{
-    // TODO: reconcile the pregenerated FZ layouts with the editor
-
-    MONITORINFO mi{};
-    mi.cbSize = sizeof(mi);
-    if (GetMonitorInfoW(m_config.Monitor, &mi))
-    {
-        if ((m_config.Layout == JSONHelpers::ZoneSetLayoutType::Grid) || (m_config.Layout == JSONHelpers::ZoneSetLayoutType::Rows))
-        {
-            GenerateGridZones(mi);
-        }
-
-        Save();
-    }
-}
-
-void ZoneSet::GenerateGridZones(MONITORINFO const& mi) noexcept
-{
-    Rect workArea(mi.rcWork);
-
-    int numCols, numRows;
-    if (m_config.Layout == JSONHelpers::ZoneSetLayoutType::Grid)
-    {
-        switch (m_config.ZoneCount)
-        {
-            case 1: numCols = 1; numRows = 1; break;
-            case 2: numCols = 2; numRows = 1; break;
-            case 3: numCols = 2; numRows = 2; break;
-            case 4: numCols = 2; numRows = 2; break;
-            case 5: numCols = 3; numRows = 3; break;
-            case 6: numCols = 3; numRows = 3; break;
-            case 7: numCols = 3; numRows = 3; break;
-            case 8: numCols = 3; numRows = 3; break;
-            case 9: numCols = 3; numRows = 3; break;
-        }
-
-        if ((m_config.ZoneCount == 2) && (workArea.height() > workArea.width()))
-        {
-            numCols = 1;
-            numRows = 2;
-        }
-    }
-    else if (m_config.Layout == JSONHelpers::ZoneSetLayoutType::Rows)
-    {
-        numCols = m_config.ZoneCount;
-        numRows = 1;
-    }
-
-    SIZE const zoneArea = {
-        workArea.width(),
-        workArea.height()
-    };
-
-    DoGridLayout(zoneArea, numCols, numRows);
-}
-
-void ZoneSet::DoGridLayout(SIZE const& zoneArea, int numCols, int numRows) noexcept
-{
-    auto x = 0;
-    auto y = 0;
-    auto const zoneWidth = (zoneArea.cx / numCols);
-    auto const zoneHeight = (zoneArea.cy / numRows);
-    for (auto i = 1; i <= m_config.ZoneCount; i++)
-    {
-        auto col = numCols - (i % numCols);
-        RECT const zoneRect = { x, y, x + zoneWidth, y + zoneHeight };
-        AddZone(MakeZone(zoneRect), false);
-
-        x += zoneWidth;
-        if (col == numCols)
-        {
-            x = 0;
-            y += zoneHeight;
-        }
-    }
 }
 
 winrt::com_ptr<IZoneSet> MakeZoneSet(ZoneSetConfig const& config) noexcept
