@@ -1,6 +1,7 @@
 #pragma once
 #include <optional>
 #include <Windows.h>
+#include <string>
 
 // Returns RECT with positions of the minmize/maximize buttons of the given window.
 // Does not always work, since some apps draw custom toolbars.
@@ -11,6 +12,12 @@ std::optional<RECT> get_window_pos(HWND hwnd);
 std::optional<POINT> get_mouse_pos();
 // Gets active window, filtering out all "non standard" windows like the taskbar, etc.
 HWND get_filtered_active_window();
+// Gets window ancestor (usualy the window we want to do stuff with), filtering out all "non standard" windows like the taskbar, etc. and provide the app process path
+struct WindowAndProcPath {
+  HWND hwnd = nullptr;
+  std::wstring process_path;
+};
+WindowAndProcPath get_filtered_base_window_and_path(HWND window);
 
 // Calculate sizes
 int width(const RECT& rect);

@@ -121,60 +121,37 @@ public:
 
     IFACEMETHODIMP_(GUID) Id() noexcept { return m_config.Id; }
     IFACEMETHODIMP_(WORD) LayoutId() noexcept { return m_config.LayoutId; }
-    IFACEMETHODIMP AddZone(winrt::com_ptr<IZone> zone, bool front) noexcept;
-    IFACEMETHODIMP RemoveZone(winrt::com_ptr<IZone> zone) noexcept;
+    IFACEMETHODIMP AddZone(winrt::com_ptr<IZone> zone) noexcept;
     IFACEMETHODIMP_(winrt::com_ptr<IZone>) ZoneFromPoint(POINT pt) noexcept;
-    IFACEMETHODIMP_(winrt::com_ptr<IZone>) ZoneFromWindow(HWND window) noexcept;
     IFACEMETHODIMP_(int) GetZoneIndexFromWindow(HWND window) noexcept;
     IFACEMETHODIMP_(std::vector<winrt::com_ptr<IZone>>) GetZones() noexcept { return m_zones; }
-    IFACEMETHODIMP_(JSONHelpers::ZoneSetLayoutType) GetLayout() noexcept { return m_config.Layout; }
-    IFACEMETHODIMP_(winrt::com_ptr<IZoneSet>) MakeCustomClone() noexcept;
-    IFACEMETHODIMP_(void) MoveZoneToFront(winrt::com_ptr<IZone> zone) noexcept;
-    IFACEMETHODIMP_(void) MoveZoneToBack(winrt::com_ptr<IZone> zone) noexcept;
     IFACEMETHODIMP_(void) MoveWindowIntoZoneByIndex(HWND window, HWND zoneWindow, int index) noexcept;
     IFACEMETHODIMP_(void) MoveWindowIntoZoneByDirection(HWND window, HWND zoneWindow, DWORD vkCode) noexcept;
     IFACEMETHODIMP_(void) MoveSizeEnd(HWND window, HWND zoneWindow, POINT ptClient) noexcept;
-    IFACEMETHODIMP_(void) CalculateZones(MONITORINFO monitorInfo, int zoneCount, int spacing) noexcept;
+    IFACEMETHODIMP_(void) CalculateZones(MONITORINFO monitorInfo, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept;
 
 private:
-    void CalculateFocusLayout(Rect workArea) noexcept;
+    void CalculateFocusLayout(Rect workArea, int zoneCount) noexcept;
     void CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept;
     void CalculateGridLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept;
     void CalculateUniquePriorityGridLayout(Rect workArea, int zoneCount, int spacing) noexcept;
 
     void CalculateGridZones(Rect workArea, GridLayoutInfo gridLayoutInfo, int spacing);
 
+    winrt::com_ptr<IZone> ZoneFromWindow(HWND window) noexcept;
+
     std::vector<winrt::com_ptr<IZone>> m_zones;
     ZoneSetConfig m_config;
 };
 
-IFACEMETHODIMP ZoneSet::AddZone(winrt::com_ptr<IZone> zone, bool front) noexcept
+IFACEMETHODIMP ZoneSet::AddZone(winrt::com_ptr<IZone> zone) noexcept
 {
-    // XXXX: need to reorder ids when inserting...
-    if (front)
-    {
-        m_zones.insert(m_zones.begin(), zone);
-    }
-    else
-    {
-        m_zones.emplace_back(zone);
-    }
+    m_zones.emplace_back(zone);
 
     // Important not to set Id 0 since we store it in the HWND using SetProp.
     // SetProp(0) doesn't really work.
     zone->SetId(m_zones.size());
     return S_OK;
-}
-
-IFACEMETHODIMP ZoneSet::RemoveZone(winrt::com_ptr<IZone> zone) noexcept
-{
-    auto iter = std::find(m_zones.begin(), m_zones.end(), zone);
-    if (iter != m_zones.end())
-    {
-        m_zones.erase(iter);
-        return S_OK;
-    }
-    return E_INVALIDARG;
 }
 
 IFACEMETHODIMP_(winrt::com_ptr<IZone>) ZoneSet::ZoneFromPoint(POINT pt) noexcept
@@ -211,49 +188,6 @@ IFACEMETHODIMP_(winrt::com_ptr<IZone>) ZoneSet::ZoneFromPoint(POINT pt) noexcept
     }
 
     return smallestKnownZone;
-}
-
-IFACEMETHODIMP_(winrt::com_ptr<IZone>) ZoneSet::ZoneFromWindow(HWND window) noexcept
-{
-    for (auto iter = m_zones.begin(); iter != m_zones.end(); iter++)
-    {
-        if (winrt::com_ptr<IZone> zone = iter->try_as<IZone>())
-        {
-            if (zone->ContainsWindow(window))
-            {
-                return zone;
-            }
-        }
-    }
-    return nullptr;
-}
-
-IFACEMETHODIMP_(winrt::com_ptr<IZoneSet>) ZoneSet::MakeCustomClone() noexcept
-{
-    if (SUCCEEDED_LOG(CoCreateGuid(&m_config.Id)))
-    {
-        m_config.IsCustom = true;
-        return winrt::make_self<ZoneSet>(m_config, m_zones);
-    }
-    return nullptr;
-}
-
-IFACEMETHODIMP_(void) ZoneSet::MoveZoneToFront(winrt::com_ptr<IZone> zone) noexcept
-{
-    auto iter = std::find(m_zones.begin(), m_zones.end(), zone);
-    if (iter != m_zones.end())
-    {
-        std::rotate(m_zones.begin(), iter, iter + 1);
-    }
-}
-
-IFACEMETHODIMP_(void) ZoneSet::MoveZoneToBack(winrt::com_ptr<IZone> zone) noexcept
-{
-    auto iter = std::find(m_zones.begin(), m_zones.end(), zone);
-    if (iter != m_zones.end())
-    {
-        std::rotate(iter, iter + 1, m_zones.end());
-    }
 }
 
 IFACEMETHODIMP_(int) ZoneSet::GetZoneIndexFromWindow(HWND window) noexcept
@@ -341,39 +275,38 @@ IFACEMETHODIMP_(void) ZoneSet::MoveSizeEnd(HWND window, HWND zoneWindow, POINT p
     }
 }
 
-IFACEMETHODIMP_(void) ZoneSet::CalculateZones(MONITORINFO monitorInfo, int zoneCount, int spacing) noexcept
+IFACEMETHODIMP_(void) ZoneSet::CalculateZones(MONITORINFO monitorInfo, JSONHelpers::ZoneSetLayoutType layoutType, int zoneCount, int spacing) noexcept
 {
   Rect const workArea(monitorInfo.rcWork);
 
-  switch (m_config.Layout)
+  switch (layoutType)
   {
   case JSONHelpers::ZoneSetLayoutType::Focus:
-    CalculateFocusLayout(workArea);
+    CalculateFocusLayout(workArea, zoneCount);
     break;
   case JSONHelpers::ZoneSetLayoutType::Columns:
   case JSONHelpers::ZoneSetLayoutType::Rows:
-    CalculateColumnsAndRowsLayout(workArea, m_config.Layout, zoneCount, spacing);
+      CalculateColumnsAndRowsLayout(workArea, layoutType, zoneCount, spacing);
     break;
   case JSONHelpers::ZoneSetLayoutType::Grid:
   case JSONHelpers::ZoneSetLayoutType::PriorityGrid:
-    CalculateGridLayout(workArea, m_config.Layout, zoneCount, spacing);
+      CalculateGridLayout(workArea, layoutType, zoneCount, spacing);
   }
 }
 
-void ZoneSet::CalculateFocusLayout(Rect workArea) noexcept
+void ZoneSet::CalculateFocusLayout(Rect workArea, int zoneCount) noexcept
 {
-  int ZoneCount = m_config.ZoneCount;
   LONG left{ static_cast<LONG>(workArea.width() * 0.1) };
   LONG top{ static_cast<LONG>(workArea.height() * 0.1) };
   LONG right{ static_cast<LONG>(workArea.width() * 0.6) };
   LONG bottom{ static_cast<LONG>(workArea.height() * 0.6) };
   RECT focusZoneRect{ left, top, right, bottom };
-  int focusRectXIncrement = (ZoneCount <= 1) ? 0 : (int)(workArea.width() * 0.2) / (ZoneCount - 1);
-  int focusRectYIncrement = (ZoneCount <= 1) ? 0 : (int)(workArea.height() * 0.2) / (ZoneCount - 1);
+  int focusRectXIncrement = (zoneCount <= 1) ? 0 : (int)(workArea.width() * 0.2) / (zoneCount - 1);
+  int focusRectYIncrement = (zoneCount <= 1) ? 0 : (int)(workArea.height() * 0.2) / (zoneCount - 1);
 
-  for (int i = 0; i < ZoneCount; i++)
+  for (int i = 0; i < zoneCount; i++)
   {
-    AddZone(MakeZone(focusZoneRect), false);
+    AddZone(MakeZone(focusZoneRect));
     focusZoneRect.left += focusRectXIncrement;
     focusZoneRect.right += focusRectXIncrement;
     focusZoneRect.bottom += focusRectYIncrement;
@@ -415,7 +348,7 @@ void ZoneSet::CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetL
   for (int zone = 0; zone < zoneCount; zone++)
   {
     RECT focusZoneRect{ left, top, right, bottom };
-    AddZone(MakeZone(focusZoneRect), false);
+    AddZone(MakeZone(focusZoneRect));
 
     if (type == JSONHelpers::ZoneSetLayoutType::Columns) {
       left += cellWidth + spacing;
@@ -483,66 +416,81 @@ void ZoneSet::CalculateUniquePriorityGridLayout(Rect workArea, int zoneCount, in
 
 void ZoneSet::CalculateGridZones(Rect workArea, GridLayoutInfo gridLayoutInfo, int spacing)
 {
+    int gutter = spacing;
 
-  int gutter = spacing;
+    LONG totalWidth = static_cast<LONG>(workArea.width()) - (gutter * 2) - (spacing * (gridLayoutInfo.columns - 1));
+    LONG totalHeight = static_cast<LONG>(workArea.height()) - (gutter * 2) - (spacing * (gridLayoutInfo.rows - 1));
+    struct Info
+    {
+        LONG Extent;
+        LONG Start;
+        LONG End;
+    };
+    Info rowInfo[MAX_ZONE_COUNT];
+    Info columnInfo[MAX_ZONE_COUNT];
 
-  LONG totalWidth = static_cast<LONG>(workArea.width()) - (gutter * 2) - (spacing * (gridLayoutInfo.columns - 1));
-  LONG totalHeight = static_cast<LONG>(workArea.height()) - (gutter * 2) - (spacing * (gridLayoutInfo.rows - 1));
-  struct Info {
-    LONG Extent;
-    LONG Start;
-    LONG End;
-  };
-  Info rowInfo[MAX_ZONE_COUNT];
-  Info columnInfo[MAX_ZONE_COUNT];
-  
-  LONG top = gutter;
-  for (int row = 0; row < gridLayoutInfo.rows; row++)
-  {
-    rowInfo[row].Start = top;
-    rowInfo[row].Extent = totalHeight * gridLayoutInfo.rowsPercents[row] / C_MULTIPLIER;
-    rowInfo[row].End = rowInfo[row].Start + rowInfo[row].Extent;
-    top += rowInfo[row].Extent + spacing;
-  }
+    LONG top = gutter;
+    for (int row = 0; row < gridLayoutInfo.rows; row++)
+    {
+        rowInfo[row].Start = top;
+        rowInfo[row].Extent = totalHeight * gridLayoutInfo.rowsPercents[row] / C_MULTIPLIER;
+        rowInfo[row].End = rowInfo[row].Start + rowInfo[row].Extent;
+        top += rowInfo[row].Extent + spacing;
+    }
 
-  LONG left = gutter;
-  for (int col = 0; col < gridLayoutInfo.columns; col++)
-  {
-    columnInfo[col].Start = left;
-    columnInfo[col].Extent = totalWidth * gridLayoutInfo.columnsPercents[col] / C_MULTIPLIER;
-    columnInfo[col].End = columnInfo[col].Start + columnInfo[col].Extent;
-    left += columnInfo[col].Extent + spacing;
-  }
-
-  for (int row = 0; row < gridLayoutInfo.rows; row++)
-  {
+    LONG left = gutter;
     for (int col = 0; col < gridLayoutInfo.columns; col++)
     {
-      int i = gridLayoutInfo.cellChildMap[row][col];
-      if (((row == 0) || (gridLayoutInfo.cellChildMap[row - 1][col] != i)) &&
-        ((col == 0) || (gridLayoutInfo.cellChildMap[row][col - 1] != i)))
-      {
-        left = columnInfo[col].Start;
-        top = rowInfo[row].Start;
-
-        int maxRow = row;
-        while (((maxRow + 1) < gridLayoutInfo.rows) && (gridLayoutInfo.cellChildMap[maxRow + 1][col] == i))
-        {
-          maxRow++;
-        }
-        int maxCol = col;
-        while (((maxCol + 1) < gridLayoutInfo.columns) && (gridLayoutInfo.cellChildMap[row][maxCol + 1] == i))
-        {
-          maxCol++;
-        }
-
-        LONG right = columnInfo[maxCol].End;
-        LONG bottom = rowInfo[maxRow].End;
-        RECT focusZoneRect{ left, top, right, bottom };
-        AddZone(MakeZone(focusZoneRect), false);
-      }
+        columnInfo[col].Start = left;
+        columnInfo[col].Extent = totalWidth * gridLayoutInfo.columnsPercents[col] / C_MULTIPLIER;
+        columnInfo[col].End = columnInfo[col].Start + columnInfo[col].Extent;
+        left += columnInfo[col].Extent + spacing;
     }
-  }
+
+    for (int row = 0; row < gridLayoutInfo.rows; row++)
+    {
+        for (int col = 0; col < gridLayoutInfo.columns; col++)
+        {
+            int i = gridLayoutInfo.cellChildMap[row][col];
+            if (((row == 0) || (gridLayoutInfo.cellChildMap[row - 1][col] != i)) &&
+                ((col == 0) || (gridLayoutInfo.cellChildMap[row][col - 1] != i)))
+            {
+                left = columnInfo[col].Start;
+                top = rowInfo[row].Start;
+
+                int maxRow = row;
+                while (((maxRow + 1) < gridLayoutInfo.rows) && (gridLayoutInfo.cellChildMap[maxRow + 1][col] == i))
+                {
+                    maxRow++;
+                }
+                int maxCol = col;
+                while (((maxCol + 1) < gridLayoutInfo.columns) && (gridLayoutInfo.cellChildMap[row][maxCol + 1] == i))
+                {
+                    maxCol++;
+                }
+
+                LONG right = columnInfo[maxCol].End;
+                LONG bottom = rowInfo[maxRow].End;
+                RECT focusZoneRect{ left, top, right, bottom };
+                AddZone(MakeZone(focusZoneRect));
+            }
+        }
+    }
+}
+
+winrt::com_ptr<IZone> ZoneSet::ZoneFromWindow(HWND window) noexcept
+{
+    for (auto iter = m_zones.begin(); iter != m_zones.end(); iter++)
+    {
+        if (winrt::com_ptr<IZone> zone = iter->try_as<IZone>())
+        {
+            if (zone->ContainsWindow(window))
+            {
+                return zone;
+            }
+        }
+    }
+    return nullptr;
 }
 
 winrt::com_ptr<IZoneSet> MakeZoneSet(ZoneSetConfig const& config) noexcept

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include <common/settings_objects.h>
+#include <common/common.h>
 #include <interface/powertoy_module_interface.h>
 #include <interface/lowlevel_keyboard_event_data.h>
 #include <interface/win_hook_event_data.h>
@@ -54,6 +55,8 @@ STDAPI PersistZoneSet(
         if (data.type != JSONHelpers::ZoneSetLayoutType::Custom) {
           data.zoneCount = zoneCount;
         }
+        //                 MonitorFromPoint({}, MONITOR_DEFAULTTOPRIMARY), WHATS THIS???
+
         JSONHelpers::DeviceInfoJSON deviceInfo{ activeKey, { data, showSpacing == 1 ? true : false, spacing, editorZoneCount} };
         JSONHelpers::FancyZonesDataInstance().SetDeviceInfoToTmpFile(deviceInfo, activeZoneSetTmpFile);
     }
@@ -161,11 +164,39 @@ public:
     }
 
 private:
-    static bool IsInterestingWindow(HWND window)
+    bool IsInterestingWindow(HWND window)
     {
         auto style = GetWindowLongPtr(window, GWL_STYLE);
         auto exStyle = GetWindowLongPtr(window, GWL_EXSTYLE);
-        return IsWindowVisible(window) && WI_IsFlagSet(style, WS_MAXIMIZEBOX) && WI_IsFlagClear(style, WS_CHILD) && WI_IsFlagClear(exStyle, WS_EX_TOOLWINDOW);
+        // Ignore:
+        if (GetAncestor(window, GA_ROOT) != window || // windows that are not top-level
+            GetWindow(window, GW_OWNER) != nullptr || // windows that have an owner - like Save As dialogs
+            (style & WS_CHILD) != 0 || // windows that are child elements of other windows - like buttons
+            (style & WS_DISABLED) != 0 || // windows that are disabled
+            (exStyle & WS_EX_TOOLWINDOW) != 0 || // toolbar windows
+            !IsWindowVisible(window)) // invisible windows
+        {
+            return false;
+        }
+        // Filter some windows like the Start menu or Cortana
+        auto windowAndPath = get_filtered_base_window_and_path(window);
+        if (windowAndPath.hwnd == nullptr)
+        {
+            return false;
+        }
+        // Filter out user specified apps
+        CharUpperBuffW(windowAndPath.process_path.data(), (DWORD)windowAndPath.process_path.length());
+        if (m_settings)
+        {
+            for (const auto& excluded : m_settings->GetSettings().excludedAppsArray)
+            {
+                if (windowAndPath.process_path.find(excluded) != std::wstring::npos)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     void Disable(bool const traceEvent)

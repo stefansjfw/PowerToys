@@ -1,8 +1,8 @@
 #pragma once
 
 #include <common/settings_helpers.h>
+#include <common/json.h>
 
-#include <cpprest/json.h>
 #include <string>
 #include <strsafe.h>
 #include <unordered_map>
@@ -108,7 +108,7 @@ namespace JSONHelpers
     FancyZonesData();
 
     const std::wstring& GetPersistFancyZonesJSONPath() const;
-    web::json::value GetPersistFancyZonesJSON();
+    json::JsonObject GetPersistFancyZonesJSON();
 
     std::unordered_map<TZoneUUID, DeviceInfoData>& GetDeviceInfoMap() {
       return deviceInfoMap;
@@ -128,12 +128,12 @@ namespace JSONHelpers
 
     void GetCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath);
 
-    void ParseAppZoneHistory(const web::json::value& fancyZonesDataJSON);
-    web::json::value SerializeAppZoneHistory() const;
-    void ParseDeviceInfos(const web::json::value& fancyZonesDataJSON);
-    web::json::value SerializeDeviceInfos() const;
-    void ParseCustomZoneSets(const web::json::value& fancyZonesDataJSON);
-    web::json::value SerializeCustomZoneSets() const;
+    void ParseAppZoneHistory(const json::JsonObject& fancyZonesDataJSON);
+    json::JsonArray SerializeAppZoneHistory() const;
+    void ParseDeviceInfos(const json::JsonObject& fancyZonesDataJSON);
+    json::JsonArray SerializeDeviceInfos() const;
+    void ParseCustomZoneSets(const json::JsonObject& fancyZonesDataJSON);
+    json::JsonArray SerializeCustomZoneSets() const;
 
     void LoadFancyZonesData();
     void SaveFancyZonesData() const;
@@ -143,17 +143,17 @@ namespace JSONHelpers
     void MigrateDeviceInfoFromRegistry();
     void MigrateCustomZoneSetsFromRegistry();
 
-    web::json::value ZoneSetDataToJson(const ZoneSetData& zoneSet) const;
-    ZoneSetData ZoneSetDataFromJson(web::json::value zoneSet) const;
+    json::JsonObject ZoneSetDataToJson(const ZoneSetData& zoneSet) const;
+    ZoneSetData ZoneSetDataFromJson(const json::JsonObject& zoneSet) const;
 
-    web::json::value AppZoneHistoryToJson(const AppZoneHistoryJSON& appZoneHistory) const;
-    AppZoneHistoryJSON AppZoneHistoryFromJson(web::json::value zoneSet) const;
+    json::JsonObject AppZoneHistoryToJson(const AppZoneHistoryJSON& appZoneHistory) const;
+    AppZoneHistoryJSON AppZoneHistoryFromJson(const json::JsonObject& zoneSet) const;
 
-    web::json::value DeviceInfoToJson(const DeviceInfoJSON& device) const;
-    DeviceInfoJSON DeviceInfoFromJson(web::json::value device) const;
+    json::JsonObject DeviceInfoToJson(const DeviceInfoJSON& device) const;
+    DeviceInfoJSON DeviceInfoFromJson(const json::JsonObject& device) const;
 
-    web::json::value CustomZoneSetToJson(const CustomZoneSetJSON& device) const;
-    CustomZoneSetJSON CustomZoneSetFromJson(web::json::value customZoneSet) const;
+    json::JsonObject CustomZoneSetToJson(const CustomZoneSetJSON& device) const;
+    CustomZoneSetJSON CustomZoneSetFromJson(const json::JsonObject& customZoneSet) const;
 
     std::unordered_map<TAppPath, AppZoneHistoryData> appZoneHistoryMap{};
     std::unordered_map<TDeviceID, DeviceInfoData> deviceInfoMap{};

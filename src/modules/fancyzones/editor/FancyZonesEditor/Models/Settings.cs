@@ -22,6 +22,21 @@ namespace FancyZonesEditor
     //
     public class Settings : INotifyPropertyChanged
     {
+        public bool IsCustomLayoutActive
+        {
+            get
+            {
+                foreach (LayoutModel model in CustomModels)
+                {
+                    if (model.IsSelected)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
         public Settings()
         {
             ParseCommandLineArgs();
@@ -194,7 +209,6 @@ namespace FancyZonesEditor
             get { return _dpi; }
         }
         private static float _dpi;
-
         public static String ActiveZoneSetTmpFile
         {
             get { return _activeZoneSetTmpFile; }
