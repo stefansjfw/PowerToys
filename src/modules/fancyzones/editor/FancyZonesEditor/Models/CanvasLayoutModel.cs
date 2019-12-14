@@ -127,8 +127,10 @@ namespace FancyZonesEditor.Models
         //  Returns the state of this GridLayoutModel in persisted format
         protected override void PersistData()
         {
-            FileStream outputStream = File.Open(Settings.AppliedZoneSetTmpFile, FileMode.Open);
-            using (var writer = new Utf8JsonWriter(outputStream, options: default))
+            FileStream outputStream = File.Open(Settings.AppliedZoneSetTmpFile, FileMode.Create);
+            JsonWriterOptions writerOptions = new JsonWriterOptions();
+            writerOptions.SkipValidation = true;
+            using (var writer = new Utf8JsonWriter(outputStream, writerOptions))
             {
                 writer.WriteStartObject();
                 writer.WriteString("uuid", Id.ToString());
@@ -141,14 +143,14 @@ namespace FancyZonesEditor.Models
                 writer.WriteNumber("ref-width", _referenceWidth);
                 writer.WriteNumber("ref-height", _referenceHeight);
 
-                writer.WriteStartObject("zones");
+                writer.WriteStartArray("zones");
                 foreach (Int32Rect rect in _zones)
                 {
                     writer.WriteStartObject();
-                    writer.WriteNumber("X", rect.X);
-                    writer.WriteNumber("Y", rect.Y);
-                    writer.WriteNumber("width", rect.Width);
-                    writer.WriteNumber("height", rect.Height);
+                    writer.WriteNumber("X", rect.X * Settings.Dpi);
+                    writer.WriteNumber("Y", rect.Y * Settings.Dpi);
+                    writer.WriteNumber("width", rect.Width * Settings.Dpi);
+                    writer.WriteNumber("height", rect.Height * Settings.Dpi);
                     writer.WriteEndObject();
                 }
                 writer.WriteEndArray();
@@ -156,6 +158,7 @@ namespace FancyZonesEditor.Models
                 writer.WriteEndObject();
                 // end root object
                 writer.WriteEndObject();
+                writer.Flush();
             }
             outputStream.Close();
         }

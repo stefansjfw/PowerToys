@@ -384,16 +384,15 @@ void ZoneWindow::CalculateZoneSet() noexcept
             JSONHelpers::ZoneSetData::TypeToLayoutId(activeZoneSet.type),
             m_monitor,
             m_workArea));
-        //activeZoneSet.type));
-        //activeZoneSet.type == JSONHelpers::ZoneSetLayoutType::Custom ? 0 : *activeZoneSet.zoneCount));
       MONITORINFO monitorInfo{};
       monitorInfo.cbSize = sizeof(monitorInfo);
       if (GetMonitorInfoW(m_monitor, &monitorInfo))
       {
         int spacing = deviceInfoMap.at(std::wstring{ m_uniqueId }).spacing;
-        zoneSet->CalculateZones(monitorInfo, activeZoneSet.type, * activeZoneSet.zoneCount, spacing);
+        int zoneCount = activeZoneSet.zoneCount.has_value() ? activeZoneSet.zoneCount.value() : 0;
+        zoneSet->CalculateZones(monitorInfo, activeZoneSet.type, zoneCount, spacing, m_appliedZoneSetPath);
         UpdateActiveZoneSet(zoneSet.get());
-        m_zoneSets.emplace_back(std::move(zoneSet));
+        // m_zoneSets.emplace_back(std::move(zoneSet));
       }
     }
   }

@@ -214,14 +214,13 @@ namespace JSONHelpers
         }
     }
 
-    // TODO(stefan): Is this needed anymore
-    void FancyZonesData::GetCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath)
+    void FancyZonesData::GetCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath, const std::wstring& uuid)
     {
         if (std::filesystem::exists(tmpFilePath))
         {
             auto customZoneSetJson = json::from_file(tmpFilePath);
             CustomZoneSetJSON customZoneSet = CustomZoneSetFromJson(*customZoneSetJson);
-            customZoneSetsMap[customZoneSet.uuid] = customZoneSet.data;
+            customZoneSetsMap[uuid] = customZoneSet.data;
 
             DeleteFileW(tmpFilePath.c_str());
         }
@@ -342,7 +341,7 @@ namespace JSONHelpers
         json::to_file(jsonFilePath, root);
     }
 
-    void FancyZonesData::TmpMigrateAppliedZoneSetsFromRegistry(std::unordered_map<TZoneUUID, ZoneSetData>& appliedZoneSetMap)
+    void FancyZonesData::TmpMigrateAppliedZoneSetsFromRegistry(TAppliedZoneSetsMap& appliedZoneSetMap)
     {
         std::wregex ex(L"^[0-9]{3,4}_[0-9]{3,4}$");
 
@@ -419,7 +418,7 @@ namespace JSONHelpers
 
     void FancyZonesData::MigrateDeviceInfoFromRegistry()
     {
-        std::unordered_map<TZoneUUID, ZoneSetData> appliedZoneSets;
+        TAppliedZoneSetsMap appliedZoneSets;
         TmpMigrateAppliedZoneSetsFromRegistry(appliedZoneSets);
 
         wchar_t key[256];
@@ -490,16 +489,14 @@ namespace JSONHelpers
                     zoneSetInfo.rows = data[j++];
                     zoneSetInfo.columns = data[j++];
 
-                    zoneSetInfo.rowPercents.reserve(zoneSetInfo.rows);
                     for (int row = 0; row < zoneSetInfo.rows; row++)
                     {
-                        zoneSetInfo.rowPercents.push_back(data[j++] * 256 + data[j++]);
+                        zoneSetInfo.rowsPercents[row] = data[j++] * 256 + data[j++];
                     }
 
-                    zoneSetInfo.columnPercents.reserve(zoneSetInfo.columns);
                     for (int col = 0; col < zoneSetInfo.columns; col++)
                     {
-                        zoneSetInfo.columnPercents.push_back(data[j++] * 256 + data[j++]);
+                        zoneSetInfo.columnsPercents[col] = data[j++] * 256 + data[j++];
                     }
 
                     for (int row = 0; row < zoneSetInfo.rows; row++)
@@ -661,7 +658,7 @@ namespace JSONHelpers
             infoJson.SetNamedValue(L"columns", json::value(gridInfo.columns));
             json::JsonArray rowsPercentageJson;
             int i = 0;
-            for (const auto& rowsPercentsElem : gridInfo.rowPercents)
+            for (const auto& rowsPercentsElem : gridInfo.rowsPercents)
             {
                 rowsPercentageJson.Append(json::value(rowsPercentsElem));
             }
@@ -669,7 +666,7 @@ namespace JSONHelpers
 
             json::JsonArray columnPercentageJson;
             i = 0;
-            for (const auto& columnsPercentsElem : gridInfo.columnPercents)
+            for (const auto& columnsPercentsElem : gridInfo.columnsPercents)
             {
                 columnPercentageJson.Append(json::value(columnsPercentsElem));
             }
@@ -728,27 +725,34 @@ namespace JSONHelpers
             result.data.type = CustomLayoutType::Grid;
 
             GridLayoutInfo info;
+            int i = 0, j = 0;
+
             info.rows = infoJson.GetNamedNumber(L"rows");
             info.columns = infoJson.GetNamedNumber(L"columns");
             json::JsonArray rowsPercentage = infoJson.GetNamedArray(L"rows-percentage");
             for (auto percentage : rowsPercentage)
             {
-                info.rowPercents.push_back(percentage.GetNumber());
+                info.rowsPercents[i++] = percentage.GetNumber();
             }
+            i = 0;
+
             json::JsonArray columnsPercentage = infoJson.GetNamedArray(L"columns-percentage");
             for (auto percentage : columnsPercentage)
             {
-                info.columnPercents.push_back(percentage.GetNumber());
+                info.columnsPercents[j++] = percentage.GetNumber();
             }
+            j = 0;
+
             json::JsonArray cellChildMap = infoJson.GetNamedArray(L"cell-child-map");
             for (auto mapRow : cellChildMap)
             {
                 std::vector<int> cellChildMapRow;
                 for (auto rowElem : mapRow.GetArray())
                 {
-                    cellChildMapRow.push_back(rowElem.GetNumber());
+                    info.cellChildMap[i][j++] = rowElem.GetNumber();
                 }
-                info.cellChildMap.push_back(cellChildMapRow);
+                i++;
+                j = 0;
             }
             result.data.info = info;
         }

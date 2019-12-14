@@ -182,7 +182,7 @@ namespace FancyZonesEditor.Models
                 }
             }
 
-            FileStream outputStream = File.Open(Settings.AppliedZoneSetTmpFile, FileMode.Open);
+            FileStream outputStream = File.Open(Settings.AppliedZoneSetTmpFile, FileMode.Create);
             using (var writer = new Utf8JsonWriter(outputStream, options: default))
             {
                 writer.WriteStartObject();
@@ -216,7 +216,7 @@ namespace FancyZonesEditor.Models
                     writer.WriteStartArray();
                     for (int col = 0; col < Columns; col++)
                     {
-                        writer.WriteNumberValue(cellChildMap[row, col]);
+                        writer.WriteNumberValue(_cellChildMap[row, col]);
                     }
                     writer.WriteEndArray();
                 }
@@ -226,6 +226,7 @@ namespace FancyZonesEditor.Models
                 writer.WriteEndObject();
                 // end root object
                 writer.WriteEndObject();
+                writer.Flush();
             }
             outputStream.Close();
         }
