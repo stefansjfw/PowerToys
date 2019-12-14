@@ -133,7 +133,7 @@ namespace FancyZonesEditor.Models
             using (var writer = new Utf8JsonWriter(outputStream, writerOptions))
             {
                 writer.WriteStartObject();
-                writer.WriteString("uuid", Id.ToString());
+                writer.WriteString("uuid", Guid.ToString());
                 writer.WriteString("name", Name);
 
                 writer.WriteString("type", "canvas");
