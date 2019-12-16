@@ -33,7 +33,7 @@ namespace
 
 namespace JSONHelpers
 {
-    int ZoneSetData::TypeToLayoutId(JSONHelpers::ZoneSetLayoutType layoutType)
+    int TypeToLayoutId(JSONHelpers::ZoneSetLayoutType layoutType)
     {
         switch (layoutType)
         {
@@ -53,7 +53,7 @@ namespace JSONHelpers
         return -1; // Error
     }
 
-    ZoneSetLayoutType ZoneSetData::LayoutIdToType(int layoutID)
+    ZoneSetLayoutType TypeFromLayoutId(int layoutID)
     {
         switch (layoutID)
         {
@@ -72,7 +72,7 @@ namespace JSONHelpers
         }
     }
 
-    std::wstring ZoneSetData::TypeToString(ZoneSetLayoutType type)
+    std::wstring TypeToString(ZoneSetLayoutType type)
     {
         switch (type)
         {
@@ -93,7 +93,7 @@ namespace JSONHelpers
         }
     }
 
-    ZoneSetLayoutType ZoneSetData::TypeFromString(std::wstring typeStr)
+    ZoneSetLayoutType TypeFromString(const std::wstring& typeStr)
     {
         if (typeStr.compare(L"focus") == 0)
         {
@@ -369,7 +369,7 @@ namespace JSONHelpers
                     while (RegEnumValueW(appliedZoneSetsHkey, i++, value, &valueLength, nullptr, nullptr, reinterpret_cast<BYTE*>(&data), &dataSize) == ERROR_SUCCESS)
                     {
                         ZoneSetData appliedZoneSetData;
-                        appliedZoneSetData.type = ZoneSetData::LayoutIdToType(data.LayoutId);
+                        appliedZoneSetData.type = TypeFromLayoutId(data.LayoutId);
                         if (appliedZoneSetData.type != ZoneSetLayoutType::Custom)
                         {
                             appliedZoneSetData.zoneCount = data.ZoneCount;
@@ -545,7 +545,7 @@ namespace JSONHelpers
         json::JsonObject result{};
 
         result.SetNamedValue(L"uuid", json::value(zoneSet.uuid));
-        result.SetNamedValue(L"type", json::value(ZoneSetData::TypeToString(zoneSet.type)));
+        result.SetNamedValue(L"type", json::value(TypeToString(zoneSet.type)));
         if (zoneSet.type != ZoneSetLayoutType::Custom)
         {
             result.SetNamedValue(L"zone-count", json::value(*zoneSet.zoneCount));
@@ -559,7 +559,7 @@ namespace JSONHelpers
         ZoneSetData zoneSetData;
 
         zoneSetData.uuid = zoneSet.GetNamedString(L"uuid");
-        zoneSetData.type = ZoneSetData::TypeFromString(std::wstring{ zoneSet.GetNamedString(L"type") });
+        zoneSetData.type = TypeFromString(std::wstring{ zoneSet.GetNamedString(L"type") });
         if (zoneSetData.type != ZoneSetLayoutType::Custom)
         {
             zoneSetData.zoneCount = zoneSet.GetNamedNumber(L"zone-count");

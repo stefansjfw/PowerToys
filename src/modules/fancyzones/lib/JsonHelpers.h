@@ -31,6 +31,12 @@ namespace JSONHelpers
         Canvas
     };
 
+    std::wstring TypeToString(ZoneSetLayoutType type);
+    ZoneSetLayoutType TypeFromString(const std::wstring& typeStr);
+
+    ZoneSetLayoutType TypeFromLayoutId(int layoutID);
+    int TypeToLayoutId(JSONHelpers::ZoneSetLayoutType layoutType);
+
     using TZoneCount = int;
     using TZoneUUID = std::wstring;
     using TAppPath = std::wstring;
@@ -78,13 +84,6 @@ namespace JSONHelpers
         TZoneUUID uuid;
         ZoneSetLayoutType type; // TODO(stefan): Change this to string in JSON so user can understand it
         std::optional<int> zoneCount;
-
-    public:
-        static std::wstring TypeToString(ZoneSetLayoutType type);
-        static ZoneSetLayoutType TypeFromString(std::wstring typeStr);
-
-        static ZoneSetLayoutType LayoutIdToType(int layoutID);
-        static int TypeToLayoutId(JSONHelpers::ZoneSetLayoutType layoutType);
     };
 
     struct AppZoneHistoryData
