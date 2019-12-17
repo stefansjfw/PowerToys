@@ -57,7 +57,7 @@ namespace FancyZonesUnitTests
                 std::make_pair(2, 0xFFFE),
                 std::make_pair(3, 0xFFFC),
                 std::make_pair(4, 0xFFFB),
-                std::make_pair(5, 0xFFFA),
+                std::make_pair(5, 0),
                 std::make_pair(6, -1),
             };
 
@@ -77,6 +77,8 @@ namespace FancyZonesUnitTests
                 std::make_pair(ZoneSetLayoutType::Grid, 0xFFFC),
                 std::make_pair(ZoneSetLayoutType::PriorityGrid, 0xFFFB),
                 std::make_pair(ZoneSetLayoutType::Custom, 0xFFFA),
+                std::make_pair(ZoneSetLayoutType::Custom, 0),
+                std::make_pair(ZoneSetLayoutType::Custom, -1),
             };
 
             for (const auto& expected : expectedMap)
