@@ -1,4 +1,6 @@
 #include "pch.h"
+#include <filesystem>
+
 #include <lib/JsonHelpers.h>
 
 #include <CppUnitTestLogger.h>
@@ -8,7 +10,8 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace FancyZonesUnitTests
 {
-    TEST_CLASS(ZoneSetDataUnitTest){
+    TEST_CLASS(ZoneSetDataUnitTest)
+    {
 
         TEST_METHOD(ZoneSetLayoutTypeToString)
         {
@@ -85,6 +88,65 @@ namespace FancyZonesUnitTests
             {
                 auto actual = JSONHelpers::TypeFromLayoutId(expected.second);
                 Assert::AreEqual(static_cast<int>(expected.first), static_cast<int>(actual));
+            }
+        }
+    };
+
+    TEST_CLASS(FancyZonesDataUnitTests)
+    {
+    public:
+        TEST_METHOD(FancyZonesDataPath)
+        {
+            FancyZonesData data;
+            Assert::IsFalse(data.GetPersistFancyZonesJSONPath().empty());
+        }
+
+        TEST_METHOD(FancyZonesDataJsonEmpty)
+        {
+            FancyZonesData data;
+            const auto jsonPath = data.GetPersistFancyZonesJSONPath();
+            auto savedJson = json::from_file(jsonPath);
+
+            if (std::filesystem::exists(jsonPath))
+            {
+                std::filesystem::remove(jsonPath);
+            }
+
+            json::JsonObject expected;
+            auto actual = data.GetPersistFancyZonesJSON();
+
+            Assert::AreEqual(expected.Stringify().c_str(), actual.Stringify().c_str());
+
+            if (savedJson)
+            {
+                json::to_file(jsonPath, *savedJson);
+            }
+        }
+
+        TEST_METHOD(FancyZonesDataJson)
+        {
+            FancyZonesData data;
+            const auto jsonPath = data.GetPersistFancyZonesJSONPath();
+            auto savedJson = json::from_file(jsonPath);
+
+            if (std::filesystem::exists(jsonPath))
+            {
+                std::filesystem::remove(jsonPath);
+            }
+
+            json::JsonObject expected = json::JsonObject::Parse(L"{\"fancy-zones\":{\"custom-zonesets \":[{\"uuid\":\"uuid1\",\"name\":\"Custom1\",\"type\":\"custom\" }] } }");
+            json::to_file(jsonPath, expected);
+
+            auto actual = data.GetPersistFancyZonesJSON();
+            Assert::AreEqual(expected.Stringify().c_str(), actual.Stringify().c_str());
+
+            if (savedJson)
+            {
+                json::to_file(jsonPath, *savedJson);
+            }
+            else
+            {
+                std::filesystem::remove(jsonPath);
             }
         }
     };
