@@ -143,7 +143,14 @@ namespace JSONHelpers
         std::wstring save_file_path = GetPersistFancyZonesJSONPath();
 
         auto result = json::from_file(save_file_path);
-        return *result;
+        if (result)
+        {
+            return *result;
+        }
+        else
+        {
+            return json::JsonObject();
+        }
     }
 
     bool FancyZonesData::GetAppLastZone(HWND window, PCWSTR appPath, _Out_ PINT iZoneIndex) const
