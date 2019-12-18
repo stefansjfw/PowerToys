@@ -41,25 +41,22 @@ STDAPI PersistZoneSet(
     PCWSTR activeZoneSetTmpFile, // Temp file to store active zone set
     int showSpacing, // Editor showSpacing value
     int spacing, // Editor spacing value
-    int editorZoneCount) // Editor zone count value
+    int editorZoneCount,
+    PCWSTR id) // Editor zone count value
 {
-    UUID id{GUID_NULL};
-    UuidCreate(&id);
+    /*UUID id{GUID_NULL};
+    UuidCreate(&id);*/
 
-    wil::unique_cotaskmem_string zoneSetId;
-    if (SUCCEEDED_LOG(StringFromCLSID(id, &zoneSetId)))
-    {
-        JSONHelpers::ZoneSetData data;
-        data.uuid = zoneSetId.get();
-        data.type = JSONHelpers::ZoneSetData::LayoutIdToType(layoutId);
-        if (data.type != JSONHelpers::ZoneSetLayoutType::Custom) {
-          data.zoneCount = zoneCount;
-        }
-        //                 MonitorFromPoint({}, MONITOR_DEFAULTTOPRIMARY), WHATS THIS???
-
-        JSONHelpers::DeviceInfoJSON deviceInfo{ activeKey, { data, showSpacing == 1 ? true : false, spacing, editorZoneCount} };
-        JSONHelpers::FancyZonesDataInstance().SetDeviceInfoToTmpFile(deviceInfo, activeZoneSetTmpFile);
+    JSONHelpers::ZoneSetData data;
+    data.uuid = L"{" + std::wstring{ id } + L"}";
+    data.type = JSONHelpers::ZoneSetData::LayoutIdToType(layoutId);
+    if (data.type != JSONHelpers::ZoneSetLayoutType::Custom) {
+      data.zoneCount = zoneCount;
     }
+    //                 MonitorFromPoint({}, MONITOR_DEFAULTTOPRIMARY), WHATS THIS???
+
+    JSONHelpers::DeviceInfoJSON deviceInfo{ activeKey, { data, showSpacing == 1 ? true : false, spacing, editorZoneCount} };
+    JSONHelpers::FancyZonesDataInstance().SetDeviceInfoToTmpFile(deviceInfo, activeZoneSetTmpFile);
 
     return S_OK;
 }

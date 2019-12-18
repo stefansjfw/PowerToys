@@ -6,13 +6,15 @@
 namespace {
   enum class TTmpFileType {
     EActiveZoneSetFile = 0,
-    EAppliedZoneSetFile
+    EAppliedZoneSetFile,
+    ECustomZoneSetsFile
   };
 
   std::wstring GenerateTmpFileName(TTmpFileType type)
   {
     static std::wstring activeZoneSetTmpFileName;
     static std::wstring appliedZoneSetTmpFileName;
+    static std::wstring customZoneSetsTmpFileName;
 
     if (activeZoneSetTmpFileName.empty()) {
       wchar_t path[256];
@@ -32,6 +34,17 @@ namespace {
 
       appliedZoneSetTmpFileName = std::wstring{ fileName };
     }
+    if (customZoneSetsTmpFileName.empty())
+    {
+        wchar_t path[256];
+        GetTempPathW(256, path);
+
+        wchar_t fileName[260];
+        GetTempFileNameW(path, L"FZC", rand() + 1, fileName);
+
+        customZoneSetsTmpFileName = std::wstring{ fileName };
+    }
+
 
     switch (type)
     {
@@ -39,6 +52,8 @@ namespace {
       return activeZoneSetTmpFileName;
     case TTmpFileType::EAppliedZoneSetFile:
       return appliedZoneSetTmpFileName;
+    case TTmpFileType::ECustomZoneSetsFile:
+      return customZoneSetsTmpFileName;
     }
 
     return L"";
@@ -65,6 +80,7 @@ public:
     IFACEMETHODIMP_(IZoneSet*) ActiveZoneSet() noexcept { return m_activeZoneSet.get(); }
     IFACEMETHOD_(std::wstring, GetActiveZoneSetTmpPath)() noexcept { return m_activeZoneSetPath; };
     IFACEMETHOD_(std::wstring, GetAppliedZoneSetTmpPath)() noexcept { return m_appliedZoneSetPath; };
+    IFACEMETHOD_(std::wstring, GetCustomZoneSetsTmpPath)() noexcept { return m_customZoneSetsPath; };
 
 protected:
     static LRESULT CALLBACK s_WndProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) noexcept;
@@ -113,6 +129,7 @@ private:
     winrt::com_ptr<IZoneSet> m_activeZoneSet;
     std::wstring m_activeZoneSetPath;
     std::wstring m_appliedZoneSetPath;
+    std::wstring m_customZoneSetsPath;
     GUID m_activeZoneSetId{};
     std::vector<winrt::com_ptr<IZoneSet>> m_zoneSets;
     winrt::com_ptr<IZone> m_highlightZone;
@@ -147,6 +164,7 @@ ZoneWindow::ZoneWindow(
 
     m_activeZoneSetPath = GenerateTmpFileName(TTmpFileType::EActiveZoneSetFile);
     m_appliedZoneSetPath = GenerateTmpFileName(TTmpFileType::EAppliedZoneSetFile);
+    m_customZoneSetsPath = GenerateTmpFileName(TTmpFileType::ECustomZoneSetsFile);
 
     InitializeId(deviceId, virtualDesktopId);
     LoadSettings();
@@ -392,7 +410,6 @@ void ZoneWindow::CalculateZoneSet() noexcept
         int zoneCount = activeZoneSet.zoneCount.has_value() ? activeZoneSet.zoneCount.value() : 0;
         zoneSet->CalculateZones(monitorInfo, activeZoneSet.type, zoneCount, spacing, m_appliedZoneSetPath);
         UpdateActiveZoneSet(zoneSet.get());
-        // m_zoneSets.emplace_back(std::move(zoneSet));
       }
     }
   }

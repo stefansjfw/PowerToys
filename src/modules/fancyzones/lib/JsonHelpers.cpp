@@ -297,15 +297,23 @@ namespace JSONHelpers
 
     json::JsonArray FancyZonesData::SerializeCustomZoneSets() const
     {
-        json::JsonArray CustomZoneSetsJSON{};
+        json::JsonArray customZoneSetsJSON{};
 
         int i = 0;
         for (const auto& [zoneSetId, zoneSetData] : customZoneSetsMap)
         {
-            CustomZoneSetsJSON.Append(CustomZoneSetToJson(CustomZoneSetJSON{ zoneSetId, zoneSetData }));
+            customZoneSetsJSON.Append(CustomZoneSetToJson(CustomZoneSetJSON{ zoneSetId, zoneSetData }));
         }
 
-        return CustomZoneSetsJSON;
+        return customZoneSetsJSON;
+    }
+
+    void FancyZonesData::CustomZoneSetsToJsonFile(const std::wstring& filePath) const
+    {
+        const auto& customZoneSetsJson = SerializeCustomZoneSets();
+        json::JsonObject root{};
+        root.SetNamedValue(L"custom-zone-sets", customZoneSetsJson);
+        json::to_file(filePath, root);
     }
 
     void FancyZonesData::LoadFancyZonesData()
@@ -657,30 +665,27 @@ namespace JSONHelpers
             infoJson.SetNamedValue(L"rows", json::value(gridInfo.rows));
             infoJson.SetNamedValue(L"columns", json::value(gridInfo.columns));
             json::JsonArray rowsPercentageJson;
-            int i = 0;
-            for (const auto& rowsPercentsElem : gridInfo.rowsPercents)
+
+            for (int i = 0; i < gridInfo.rows; ++i)
             {
-                rowsPercentageJson.Append(json::value(rowsPercentsElem));
+                rowsPercentageJson.Append(json::value(gridInfo.rowsPercents[i]));
             }
             infoJson.SetNamedValue(L"rows-percentage", rowsPercentageJson);
 
             json::JsonArray columnPercentageJson;
-            i = 0;
-            for (const auto& columnsPercentsElem : gridInfo.columnsPercents)
+            for (int i = 0; i < gridInfo.columns; ++i)
             {
-                columnPercentageJson.Append(json::value(columnsPercentsElem));
+                columnPercentageJson.Append(json::value(gridInfo.columnsPercents[i]));
             }
             infoJson.SetNamedValue(L"columns-percentage", columnPercentageJson);
 
-            i = 0;
             json::JsonArray cellChildMapJson;
-            for (const auto& cellChildMapRow : gridInfo.cellChildMap)
+            for (int i = 0; i < gridInfo.rows; ++i)
             {
-                int j = 0;
                 json::JsonArray cellChildMapRowJson;
-                for (const auto& cellChildMapRowElem : cellChildMapRow)
+                for (int j = 0; j < gridInfo.columns; ++j)
                 {
-                    cellChildMapRowJson.Append(json::value(cellChildMapRowElem));
+                    cellChildMapRowJson.Append(json::value(gridInfo.cellChildMap[i][j]));
                 }
                 cellChildMapJson.Append(cellChildMapRowJson);
             }

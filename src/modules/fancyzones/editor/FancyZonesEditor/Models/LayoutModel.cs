@@ -8,7 +8,9 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.IO;
 using System.Threading.Tasks;
+using System.Windows;
 using Microsoft.Win32;
 
 namespace FancyZonesEditor.Models
@@ -21,6 +23,12 @@ namespace FancyZonesEditor.Models
 
         protected LayoutModel(string name) : this()
         {
+            Name = name;
+        }
+
+        protected LayoutModel(string uuid, string name) : this()
+        {
+            _guid = Guid.Parse(uuid);
             Name = name;
         }
 
@@ -66,7 +74,7 @@ namespace FancyZonesEditor.Models
                 return _guid;
             }
         }
-        private Guid _guid = Guid.NewGuid();
+        private Guid _guid;
 
         // IsSelected (not-persisted) - tracks whether or not this LayoutModel is selected in the picker
         // TODO: once we switch to a picker per monitor, we need to move this state to the view  
@@ -97,12 +105,6 @@ namespace FancyZonesEditor.Models
         // Removes this Layout from the registry and the loaded CustomModels list
         public void Delete()
         {
-            RegistryKey key = Registry.CurrentUser.OpenSubKey(c_registryPath, true);
-            if (key != null)
-            {
-                key.DeleteValue(Name);
-            }
-
             int i = s_customModels.IndexOf(this);
             if (i != -1)
             {
@@ -115,35 +117,66 @@ namespace FancyZonesEditor.Models
         {
             s_customModels = new ObservableCollection<LayoutModel>();
 
-            RegistryKey key = Registry.CurrentUser.OpenSubKey(c_registryPath);
-            if (key != null)
+            FileStream inputStream = File.Open(Settings.CustomZoneSetsTmpFile, FileMode.Open);
+            var jsonObject = JsonDocument.Parse(inputStream, options: default);
+            JsonElement.ArrayEnumerator customZoneSetsEnumerator = jsonObject.RootElement.GetProperty("custom-zone-sets").EnumerateArray();
+            while (customZoneSetsEnumerator.MoveNext())
             {
-                foreach (string name in key.GetValueNames())
+                var current = customZoneSetsEnumerator.Current;
+                string name = current.GetProperty("name").GetString();
+                string type = current.GetProperty("type").GetString();
+                string uuid = current.GetProperty("uuid").GetString();
+                var info = current.GetProperty("info");
+                if (type.Equals("grid"))
                 {
-                    LayoutModel model = null;
-                    byte[] data = (byte[])Registry.GetValue(c_fullRegistryPath, name, null);
-
-                    ushort version = (ushort) (data[0]*256 + data[1]);
-                    byte type = data[2];
-                    ushort id = (ushort) (data[3]*256 + data[4]);
-
-                    switch (type)
+                    int rows = info.GetProperty("rows").GetInt32();
+                    int columns = info.GetProperty("columns").GetInt32();
+                    int[] rowsPercentage = new int[rows];
+                    JsonElement.ArrayEnumerator rowsPercentageEnumerator = info.GetProperty("rows-percentage").EnumerateArray();
+                    int i = 0;
+                    while (rowsPercentageEnumerator.MoveNext())
                     {
-                        case 0: model = new GridLayoutModel(version, name, id, data); break;
-                        case 1: model = new CanvasLayoutModel(version, name, id, data); break;
+                        rowsPercentage[i++] = rowsPercentageEnumerator.Current.GetInt32();
                     }
-
-                    if (model != null)
+                    i = 0;
+                    int[] columnsPercentage = new int[columns];
+                    JsonElement.ArrayEnumerator columnsPercentageEnumerator = info.GetProperty("columns-percentage").EnumerateArray();
+                    while (columnsPercentageEnumerator.MoveNext())
                     {
-                        if (s_maxId < id)
+                        columnsPercentage[i++] = columnsPercentageEnumerator.Current.GetInt32();
+                    }
+                    i = 0;
+                    JsonElement.ArrayEnumerator cellChildMapRows = info.GetProperty("cell-child-map").EnumerateArray();
+                    int[,] cellChildMap = new int[rows, columns];
+                    while (cellChildMapRows.MoveNext())
+                    {
+                        int j = 0;
+                        JsonElement.ArrayEnumerator cellChildMapRowElems = cellChildMapRows.Current.EnumerateArray();
+                        while (cellChildMapRowElems.MoveNext())
                         {
-                            s_maxId = id;
+                            cellChildMap[i, j++] = cellChildMapRowElems.Current.GetInt32();
                         }
-                        s_customModels.Add(model);
+                        i++;
                     }
+                    s_customModels.Add(new GridLayoutModel(uuid, name, rows, columns, rowsPercentage, columnsPercentage, cellChildMap));
+                }
+                else if (type.Equals("canvas"))
+                {
+                    int referenceWidth = info.GetProperty("ref-width").GetInt32();
+                    int referenceHeight = info.GetProperty("ref-height").GetInt32();
+                    JsonElement.ArrayEnumerator zonesEnumerator = info.GetProperty("zones").EnumerateArray();
+                    IList<Int32Rect> zones = new List<Int32Rect>();
+                    while (zonesEnumerator.MoveNext())
+                    {
+                        int x = zonesEnumerator.Current.GetProperty("X").GetInt32();
+                        int y = zonesEnumerator.Current.GetProperty("Y").GetInt32();
+                        int width = zonesEnumerator.Current.GetProperty("width").GetInt32();
+                        int height = zonesEnumerator.Current.GetProperty("height").GetInt32();
+                        zones.Add(new Int32Rect(x, y, width, height));
+                    }
+                    s_customModels.Add(new CanvasLayoutModel(uuid, name, referenceWidth, referenceHeight, zones));
                 }
             }
-
             return s_customModels;
         }
         private static ObservableCollection<LayoutModel> s_customModels = null;
@@ -171,7 +204,8 @@ namespace FancyZonesEditor.Models
                 [MarshalAs(UnmanagedType.LPWStr)] string activeZoneSetTmpFile,
                 int showSpacing,
                 int spacing,
-                int editorZoneCount);
+                int editorZoneCount,
+                [MarshalAs(UnmanagedType.LPWStr)] string guid);
         }
 
         public void Persist(System.Windows.Int32Rect[] zones)
@@ -219,7 +253,8 @@ namespace FancyZonesEditor.Models
 
             var persistZoneSet = Marshal.GetDelegateForFunctionPointer<Native.PersistZoneSet>(pfn);
             persistZoneSet(Settings.UniqueKey, _id, zoneCount, zoneArray,Settings.ActiveZoneSetTmpFile,
-                           Settings._settingsToPersist.ShowSpacing ? 1 : 0, Settings._settingsToPersist.Spacing, Settings._settingsToPersist.ZoneCount);
+                           Settings._settingsToPersist.ShowSpacing ? 1 : 0, Settings._settingsToPersist.Spacing, Settings._settingsToPersist.ZoneCount,
+                           Guid.ToString().ToUpper());
         }
 
         private static readonly string c_registryPath = Settings.RegistryPath + "\\Layouts";
