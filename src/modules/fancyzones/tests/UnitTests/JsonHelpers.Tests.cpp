@@ -16,7 +16,7 @@ namespace FancyZonesUnitTests
         while (iter.HasCurrent())
         {
             const auto key = iter.Current().Key();
-            Assert::IsTrue(actual.HasKey(key));
+            Assert::IsTrue(actual.HasKey(key), key.c_str());
 
             const std::wstring expectedStringified = iter.Current().Value().Stringify().c_str();
             const std::wstring actualStringified = actual.GetNamedValue(key).Stringify().c_str();
@@ -33,17 +33,17 @@ namespace FancyZonesUnitTests
                     }
                     else
                     {
-                        Assert::IsTrue(false);
+                        Assert::IsTrue(false, key.c_str());
                     }
                 }
                 else
                 {
-                    Assert::AreEqual(expectedStringified, actualStringified);
+                    Assert::AreEqual(expectedStringified, actualStringified, key.c_str());
                 }
             }
             else
             {
-                Assert::AreEqual(expectedStringified, actualStringified);
+                Assert::AreEqual(expectedStringified, actualStringified, key.c_str());
             }
 
             iter.MoveNext();
