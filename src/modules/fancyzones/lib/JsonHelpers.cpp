@@ -197,11 +197,8 @@ namespace JSONHelpers
 
     void FancyZonesData::SetDeviceInfoToTmpFile(const DeviceInfoJSON& deviceInfo, const std::wstring& tmpFilePath)
     {
-        std::ofstream tmpFile;
-        tmpFile.open(tmpFilePath);
-        json::JsonObject deviceInfoJson = DeviceInfoToJson(deviceInfo);
+        json::JsonObject deviceInfoJson = DeviceInfoJSON::ToJson(deviceInfo);
         json::to_file(tmpFilePath, deviceInfoJson);
-        tmpFile.close();
     }
 
     void FancyZonesData::GetDeviceInfoFromTmpFile(const std::wstring& uniqueID, const std::wstring& tmpFilePath)
@@ -214,7 +211,7 @@ namespace JSONHelpers
         if (std::filesystem::exists(tmpFilePath))
         {
             auto zoneSetJson = json::from_file(tmpFilePath);
-            DeviceInfoJSON deviceInfo = DeviceInfoFromJson(*zoneSetJson);
+            DeviceInfoJSON deviceInfo = DeviceInfoJSON::FromJson(*zoneSetJson);
             deviceInfoMap[uniqueID] = deviceInfo.data;
 
             DeleteFileW(tmpFilePath.c_str());
@@ -226,7 +223,7 @@ namespace JSONHelpers
         if (std::filesystem::exists(tmpFilePath))
         {
             auto customZoneSetJson = json::from_file(tmpFilePath);
-            CustomZoneSetJSON customZoneSet = CustomZoneSetFromJson(*customZoneSetJson);
+            CustomZoneSetJSON customZoneSet = CustomZoneSetJSON::FromJson(*customZoneSetJson);
             customZoneSetsMap[uuid] = customZoneSet.data;
 
             DeleteFileW(tmpFilePath.c_str());
@@ -242,7 +239,7 @@ namespace JSONHelpers
             for (int i = 0; i < appLastZones.Size(); ++i)
             {
                 json::JsonObject appLastZone = appLastZones.GetObjectAt(i);
-                const auto& appZoneHistory = AppZoneHistoryFromJson(appLastZone);
+                const auto& appZoneHistory = AppZoneHistoryJSON::FromJson(appLastZone);
                 appZoneHistoryMap[appZoneHistory.appPath] = appZoneHistory.data;
             }
         }
@@ -255,7 +252,7 @@ namespace JSONHelpers
         int i = 0;
         for (const auto& [appPath, appZoneHistoryData] : appZoneHistoryMap)
         {
-            appHistoryArray.Append(AppZoneHistoryToJson(AppZoneHistoryJSON{ appPath, appZoneHistoryData }));
+            appHistoryArray.Append(AppZoneHistoryJSON::ToJson(AppZoneHistoryJSON{ appPath, appZoneHistoryData }));
         }
 
         return appHistoryArray;
@@ -269,7 +266,7 @@ namespace JSONHelpers
 
             for (int i = 0; i < devices.Size(); ++i)
             {
-                const auto& device = DeviceInfoFromJson(devices.GetObjectAt(i));
+                const auto& device = DeviceInfoJSON::DeviceInfoJSON::FromJson(devices.GetObjectAt(i));
                 deviceInfoMap[device.deviceId] = device.data;
             }
         }
@@ -282,7 +279,7 @@ namespace JSONHelpers
         int i = 0;
         for (const auto& [deviceID, deviceData] : deviceInfoMap)
         {
-            DeviceInfosJSON.Append(DeviceInfoToJson(DeviceInfoJSON{ deviceID, deviceData }));
+            DeviceInfosJSON.Append(DeviceInfoJSON::DeviceInfoJSON::ToJson(DeviceInfoJSON{ deviceID, deviceData }));
         }
 
         return DeviceInfosJSON;
@@ -296,7 +293,7 @@ namespace JSONHelpers
 
             for (int i = 0; i < customZoneSets.Size(); ++i)
             {
-                const auto& zoneSet = CustomZoneSetFromJson(customZoneSets.GetObjectAt(i));
+                const auto& zoneSet = CustomZoneSetJSON::FromJson(customZoneSets.GetObjectAt(i));
                 customZoneSetsMap[zoneSet.uuid] = zoneSet.data;
             }
         }
@@ -309,7 +306,7 @@ namespace JSONHelpers
         int i = 0;
         for (const auto& [zoneSetId, zoneSetData] : customZoneSetsMap)
         {
-            CustomZoneSetsJSON.Append(CustomZoneSetToJson(CustomZoneSetJSON{ zoneSetId, zoneSetData }));
+            CustomZoneSetsJSON.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ zoneSetId, zoneSetData }));
         }
 
         return CustomZoneSetsJSON;
@@ -547,7 +544,7 @@ namespace JSONHelpers
         }
     }
 
-    json::JsonObject FancyZonesData::ZoneSetDataToJson(const ZoneSetData& zoneSet) const
+    json::JsonObject ZoneSetData::ToJson(const ZoneSetData& zoneSet)
     {
         json::JsonObject result{};
 
@@ -561,7 +558,7 @@ namespace JSONHelpers
         return result;
     }
 
-    ZoneSetData FancyZonesData::ZoneSetDataFromJson(const json::JsonObject& zoneSet) const
+    ZoneSetData ZoneSetData::FromJson(const json::JsonObject& zoneSet)
     {
         ZoneSetData zoneSetData;
 
@@ -575,7 +572,7 @@ namespace JSONHelpers
         return zoneSetData;
     }
 
-    json::JsonObject FancyZonesData::AppZoneHistoryToJson(const AppZoneHistoryJSON& appZoneHistory) const
+    json::JsonObject AppZoneHistoryJSON::ToJson(const AppZoneHistoryJSON& appZoneHistory)
     {
         json::JsonObject result{};
 
@@ -586,7 +583,7 @@ namespace JSONHelpers
         return result;
     }
 
-    AppZoneHistoryJSON FancyZonesData::AppZoneHistoryFromJson(const json::JsonObject& zoneSet) const
+    AppZoneHistoryJSON AppZoneHistoryJSON::FromJson(const json::JsonObject& zoneSet)
     {
         AppZoneHistoryJSON result;
 
@@ -597,12 +594,12 @@ namespace JSONHelpers
         return result;
     }
 
-    json::JsonObject FancyZonesData::DeviceInfoToJson(const DeviceInfoJSON& device) const
+    json::JsonObject DeviceInfoJSON::ToJson(const DeviceInfoJSON& device)
     {
         json::JsonObject result{};
 
         result.SetNamedValue(L"device-id", json::value(device.deviceId));
-        result.SetNamedValue(L"active-zoneset", ZoneSetDataToJson(device.data.activeZoneSet));
+        result.SetNamedValue(L"active-zoneset", ZoneSetData::ToJson(device.data.activeZoneSet));
         result.SetNamedValue(L"editor-show-spacing", json::value(device.data.showSpacing));
         result.SetNamedValue(L"editor-spacing", json::value(device.data.spacing));
         result.SetNamedValue(L"editor-zone-count", json::value(device.data.zoneCount));
@@ -610,12 +607,12 @@ namespace JSONHelpers
         return result;
     }
 
-    DeviceInfoJSON FancyZonesData::DeviceInfoFromJson(const json::JsonObject& device) const
+    DeviceInfoJSON DeviceInfoJSON::FromJson(const json::JsonObject& device)
     {
         DeviceInfoJSON result;
 
         result.deviceId = device.GetNamedString(L"device-id");
-        result.data.activeZoneSet = ZoneSetDataFromJson(device.GetNamedObject(L"active-zoneset"));
+        result.data.activeZoneSet = ZoneSetData::FromJson(device.GetNamedObject(L"active-zoneset"));
         result.data.showSpacing = device.GetNamedBoolean(L"editor-show-spacing");
         result.data.spacing = device.GetNamedNumber(L"editor-spacing");
         result.data.zoneCount = device.GetNamedNumber(L"editor-zone-count");
@@ -623,7 +620,7 @@ namespace JSONHelpers
         return result;
     }
 
-    json::JsonObject FancyZonesData::CustomZoneSetToJson(const CustomZoneSetJSON& customZoneSet) const
+    json::JsonObject CustomZoneSetJSON::ToJson(const CustomZoneSetJSON& customZoneSet)
     {
         json::JsonObject result{};
 
@@ -703,7 +700,7 @@ namespace JSONHelpers
         return result;
     }
 
-    CustomZoneSetJSON FancyZonesData::CustomZoneSetFromJson(const json::JsonObject& customZoneSet) const
+    CustomZoneSetJSON CustomZoneSetJSON::FromJson(const json::JsonObject& customZoneSet)
     {
         CustomZoneSetJSON result;
 

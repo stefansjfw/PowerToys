@@ -76,6 +76,9 @@ namespace JSONHelpers
     {
         TZoneUUID uuid;
         CustomZoneSetData data;
+
+        static json::JsonObject ToJson(const CustomZoneSetJSON& device);
+        static CustomZoneSetJSON FromJson(const json::JsonObject& customZoneSet);
     };
 
     // TODO(stefan): This needs to be moved to ZoneSet.h (probably)
@@ -84,6 +87,9 @@ namespace JSONHelpers
         TZoneUUID uuid;
         ZoneSetLayoutType type; // TODO(stefan): Change this to string in JSON so user can understand it
         std::optional<int> zoneCount;
+
+        static json::JsonObject ToJson(const ZoneSetData& zoneSet);
+        static ZoneSetData FromJson(const json::JsonObject& zoneSet);
     };
 
     struct AppZoneHistoryData
@@ -97,6 +103,9 @@ namespace JSONHelpers
     {
         TAppPath appPath;
         AppZoneHistoryData data;
+
+        static json::JsonObject ToJson(const AppZoneHistoryJSON& appZoneHistory);
+        static AppZoneHistoryJSON FromJson(const json::JsonObject& zoneSet);
     };
 
     struct DeviceInfoData
@@ -111,6 +120,9 @@ namespace JSONHelpers
     {
         TDeviceID deviceId;
         DeviceInfoData data;
+
+        static json::JsonObject ToJson(const DeviceInfoJSON& device);
+        static DeviceInfoJSON FromJson(const json::JsonObject& device);
     };
 
     using TDeviceInfosMap = std::unordered_map<TZoneUUID, DeviceInfoData>;
@@ -172,18 +184,6 @@ namespace JSONHelpers
         void MigrateAppZoneHistoryFromRegistry(); //TODO(stefan): If uuid is needed here, it needs to be resolved here some how
         void MigrateDeviceInfoFromRegistry();
         void MigrateCustomZoneSetsFromRegistry();
-
-        json::JsonObject ZoneSetDataToJson(const ZoneSetData& zoneSet) const;
-        ZoneSetData ZoneSetDataFromJson(const json::JsonObject& zoneSet) const;
-
-        json::JsonObject AppZoneHistoryToJson(const AppZoneHistoryJSON& appZoneHistory) const;
-        AppZoneHistoryJSON AppZoneHistoryFromJson(const json::JsonObject& zoneSet) const;
-
-        json::JsonObject DeviceInfoToJson(const DeviceInfoJSON& device) const;
-        DeviceInfoJSON DeviceInfoFromJson(const json::JsonObject& device) const;
-
-        json::JsonObject CustomZoneSetToJson(const CustomZoneSetJSON& device) const;
-        CustomZoneSetJSON CustomZoneSetFromJson(const json::JsonObject& customZoneSet) const;
 
         std::unordered_map<TAppPath, AppZoneHistoryData> appZoneHistoryMap{};
         TDeviceInfosMap deviceInfoMap{};
