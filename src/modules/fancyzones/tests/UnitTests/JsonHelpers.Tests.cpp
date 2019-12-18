@@ -383,6 +383,91 @@ namespace FancyZonesUnitTests
         }
     };
 
+    TEST_CLASS(CustomZoneSetUnitTests)
+    {
+        TEST_METHOD(ToJsonGrid)
+        {
+            CustomZoneSetJSON zoneSet;
+            zoneSet.uuid = L"uuid";
+            CustomZoneSetData data;
+            data.name = L"name";
+            data.type = CustomLayoutType::Grid;
+            data.info = GridLayoutInfo();
+            zoneSet.data = data;
+
+            json::JsonObject expected = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"name\": \"name\", \"type\": \"grid\"}");
+            expected.SetNamedValue(L"info", GridLayoutInfo::ToJson(std::get<GridLayoutInfo>(data.info)));
+
+            auto actual = CustomZoneSetJSON::ToJson(zoneSet);
+            compareJsonObjects(expected, actual);
+        }
+
+        TEST_METHOD(ToJsonCanvas)
+        {
+            CustomZoneSetJSON zoneSet;
+            zoneSet.uuid = L"uuid";
+            CustomZoneSetData data;
+            data.name = L"name";
+            data.type = CustomLayoutType::Canvas;
+            data.info = CanvasLayoutInfo();
+            zoneSet.data = data;
+
+            json::JsonObject expected = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"name\": \"name\", \"type\": \"canvas\"}");
+            expected.SetNamedValue(L"info", CanvasLayoutInfo::ToJson(std::get<CanvasLayoutInfo>(data.info)));
+
+            auto actual = CustomZoneSetJSON::ToJson(zoneSet);
+            compareJsonObjects(expected, actual);
+        }
+
+        TEST_METHOD(FromJsonGrid)
+        {            
+            CustomZoneSetJSON expected;
+            expected.uuid = L"uuid";
+            CustomZoneSetData data;
+            data.name = L"name";
+            data.type = CustomLayoutType::Grid;
+            data.info = GridLayoutInfo{ 1, 2 };
+            expected.data = data;
+
+            json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"name\": \"name\", \"type\": \"grid\"}");
+            json.SetNamedValue(L"info", GridLayoutInfo::ToJson(std::get<GridLayoutInfo>(data.info)));
+
+            auto actual = CustomZoneSetJSON::FromJson(json);
+            Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
+            Assert::AreEqual(expected.data.name.c_str(), actual.data.name.c_str());
+            Assert::AreEqual((int)expected.data.type, (int)actual.data.type);
+
+            auto expectedGrid = std::get<GridLayoutInfo>(expected.data.info);
+            auto actualGrid = std::get<GridLayoutInfo>(actual.data.info);
+            Assert::AreEqual(expectedGrid.rows, actualGrid.rows);
+            Assert::AreEqual(expectedGrid.columns, actualGrid.columns);
+        }
+
+        TEST_METHOD(FromJsonCanvas)
+        {
+            CustomZoneSetJSON expected;
+            expected.uuid = L"uuid";
+            CustomZoneSetData data;
+            data.name = L"name";
+            data.type = CustomLayoutType::Canvas;
+            data.info = CanvasLayoutInfo{ 2, 1 };
+            expected.data = data;
+
+            json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"name\": \"name\", \"type\": \"canvas\"}");
+            json.SetNamedValue(L"info", CanvasLayoutInfo::ToJson(std::get<CanvasLayoutInfo>(data.info)));
+
+            auto actual = CustomZoneSetJSON::FromJson(json);
+            Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
+            Assert::AreEqual(expected.data.name.c_str(), actual.data.name.c_str());
+            Assert::AreEqual((int)expected.data.type, (int)actual.data.type);
+
+            auto expectedGrid = std::get<CanvasLayoutInfo>(expected.data.info);
+            auto actualGrid = std::get<CanvasLayoutInfo>(actual.data.info);
+            Assert::AreEqual(expectedGrid.referenceWidth, actualGrid.referenceWidth);
+            Assert::AreEqual(expectedGrid.referenceHeight, actualGrid.referenceHeight);
+        }
+    };
+
     TEST_CLASS(FancyZonesDataUnitTests)
     {
     private:
