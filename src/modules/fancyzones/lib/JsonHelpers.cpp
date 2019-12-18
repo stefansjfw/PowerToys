@@ -620,6 +620,113 @@ namespace JSONHelpers
         return result;
     }
 
+    json::JsonObject CanvasLayoutInfo::ToJson(const CanvasLayoutInfo& canvasInfo)
+    {      
+        json::JsonObject infoJson{};
+        infoJson.SetNamedValue(L"ref-width", json::value(canvasInfo.referenceWidth));
+        infoJson.SetNamedValue(L"ref-height", json::value(canvasInfo.referenceHeight));
+        json::JsonArray zonesJson;
+        int i = 0;
+        for (const auto& [x, y, width, height] : canvasInfo.zones)
+        {
+            json::JsonObject zoneJson;
+            zoneJson.SetNamedValue(L"X", json::value(x));
+            zoneJson.SetNamedValue(L"Y", json::value(y));
+            zoneJson.SetNamedValue(L"width", json::value(width));
+            zoneJson.SetNamedValue(L"height", json::value(height));
+            zonesJson.Append(zoneJson);
+        }
+        infoJson.SetNamedValue(L"zones", zonesJson);
+        return infoJson;
+    }
+
+    CanvasLayoutInfo CanvasLayoutInfo::FromJson(const json::JsonObject& infoJson)
+    {
+        CanvasLayoutInfo info;
+        info.referenceWidth = infoJson.GetNamedNumber(L"ref-width");
+        info.referenceHeight = infoJson.GetNamedNumber(L"ref-height");
+        json::JsonArray zonesJson = infoJson.GetNamedArray(L"zones");
+        for (int i = 0; i < zonesJson.Size(); ++i)
+        {
+            json::JsonObject zoneJson = zonesJson.GetObjectAt(i);
+            CanvasLayoutInfo::Rect zone{ zoneJson.GetNamedNumber(L"X"), zoneJson.GetNamedNumber(L"Y"), zoneJson.GetNamedNumber(L"width"), zoneJson.GetNamedNumber(L"height") };
+            info.zones.push_back(zone);
+        }
+        return info;
+    }
+
+    json::JsonObject GridLayoutInfo::ToJson(const GridLayoutInfo& gridInfo)
+    {
+        json::JsonObject infoJson;
+        infoJson.SetNamedValue(L"rows", json::value(gridInfo.rows));
+        infoJson.SetNamedValue(L"columns", json::value(gridInfo.columns));
+        json::JsonArray rowsPercentageJson;
+        int i = 0;
+        for (const auto& rowsPercentsElem : gridInfo.rowsPercents)
+        {
+            rowsPercentageJson.Append(json::value(rowsPercentsElem));
+        }
+        infoJson.SetNamedValue(L"rows-percentage", rowsPercentageJson);
+
+        json::JsonArray columnPercentageJson;
+        i = 0;
+        for (const auto& columnsPercentsElem : gridInfo.columnsPercents)
+        {
+            columnPercentageJson.Append(json::value(columnsPercentsElem));
+        }
+        infoJson.SetNamedValue(L"columns-percentage", columnPercentageJson);
+
+        i = 0;
+        json::JsonArray cellChildMapJson;
+        for (const auto& cellChildMapRow : gridInfo.cellChildMap)
+        {
+            int j = 0;
+            json::JsonArray cellChildMapRowJson;
+            for (const auto& cellChildMapRowElem : cellChildMapRow)
+            {
+                cellChildMapRowJson.Append(json::value(cellChildMapRowElem));
+            }
+            cellChildMapJson.Append(cellChildMapRowJson);
+        }
+        infoJson.SetNamedValue(L"cell-child-map", cellChildMapJson);
+        return infoJson;
+    }
+
+    GridLayoutInfo GridLayoutInfo::FromJson(const json::JsonObject& infoJson)
+    {
+        GridLayoutInfo info;
+        int i = 0, j = 0;
+
+        info.rows = infoJson.GetNamedNumber(L"rows");
+        info.columns = infoJson.GetNamedNumber(L"columns");
+        json::JsonArray rowsPercentage = infoJson.GetNamedArray(L"rows-percentage");
+        for (auto percentage : rowsPercentage)
+        {
+            info.rowsPercents[i++] = percentage.GetNumber();
+        }
+        i = 0;
+
+        json::JsonArray columnsPercentage = infoJson.GetNamedArray(L"columns-percentage");
+        for (auto percentage : columnsPercentage)
+        {
+            info.columnsPercents[j++] = percentage.GetNumber();
+        }
+        j = 0;
+
+        json::JsonArray cellChildMap = infoJson.GetNamedArray(L"cell-child-map");
+        for (auto mapRow : cellChildMap)
+        {
+            std::vector<int> cellChildMapRow;
+            for (auto rowElem : mapRow.GetArray())
+            {
+                info.cellChildMap[i][j++] = rowElem.GetNumber();
+            }
+            i++;
+            j = 0;
+        }
+        return info;
+    }
+
     json::JsonObject CustomZoneSetJSON::ToJson(const CustomZoneSetJSON& customZoneSet)
     {
         json::JsonObject result{};
@@ -632,23 +739,8 @@ namespace JSONHelpers
         {
             result.SetNamedValue(L"type", json::value(L"canvas"));
 
-            CanvasLayoutInfo canvasInfo = std::get<CanvasLayoutInfo>(customZoneSet.data.info);
-            json::JsonObject infoJson{};
-            infoJson.SetNamedValue(L"ref-width", json::value(canvasInfo.referenceWidth));
-            infoJson.SetNamedValue(L"ref-height", json::value(canvasInfo.referenceHeight));
-            json::JsonArray zonesJson;
-            int i = 0;
-            for (const auto& [x, y, width, height] : canvasInfo.zones)
-            {
-                json::JsonObject zoneJson;
-                zoneJson.SetNamedValue(L"X", json::value(x));
-                zoneJson.SetNamedValue(L"Y", json::value(y));
-                zoneJson.SetNamedValue(L"width", json::value(width));
-                zoneJson.SetNamedValue(L"height", json::value(height));
-                zonesJson.Append(zoneJson);
-            }
-            infoJson.SetNamedValue(L"zones", zonesJson);
-            result.SetNamedValue(L"info", infoJson);
+            CanvasLayoutInfo info = std::get<CanvasLayoutInfo>(customZoneSet.data.info);
+            result.SetNamedValue(L"info", CanvasLayoutInfo::ToJson(info));
 
             break;
         }
@@ -657,40 +749,8 @@ namespace JSONHelpers
             result.SetNamedValue(L"type", json::value(L"grid"));
 
             GridLayoutInfo gridInfo = std::get<GridLayoutInfo>(customZoneSet.data.info);
-            json::JsonObject infoJson;
-            infoJson.SetNamedValue(L"rows", json::value(gridInfo.rows));
-            infoJson.SetNamedValue(L"columns", json::value(gridInfo.columns));
-            json::JsonArray rowsPercentageJson;
-            int i = 0;
-            for (const auto& rowsPercentsElem : gridInfo.rowsPercents)
-            {
-                rowsPercentageJson.Append(json::value(rowsPercentsElem));
-            }
-            infoJson.SetNamedValue(L"rows-percentage", rowsPercentageJson);
+            result.SetNamedValue(L"info", GridLayoutInfo::ToJson(gridInfo));
 
-            json::JsonArray columnPercentageJson;
-            i = 0;
-            for (const auto& columnsPercentsElem : gridInfo.columnsPercents)
-            {
-                columnPercentageJson.Append(json::value(columnsPercentsElem));
-            }
-            infoJson.SetNamedValue(L"columns-percentage", columnPercentageJson);
-
-            i = 0;
-            json::JsonArray cellChildMapJson;
-            for (const auto& cellChildMapRow : gridInfo.cellChildMap)
-            {
-                int j = 0;
-                json::JsonArray cellChildMapRowJson;
-                for (const auto& cellChildMapRowElem : cellChildMapRow)
-                {
-                    cellChildMapRowJson.Append(json::value(cellChildMapRowElem));
-                }
-                cellChildMapJson.Append(cellChildMapRowJson);
-            }
-            infoJson.SetNamedValue(L"cell-child-map", cellChildMapJson);
-
-            result.SetNamedValue(L"info", infoJson);
             break;
         }
         default:
@@ -710,55 +770,13 @@ namespace JSONHelpers
         json::JsonObject infoJson = customZoneSet.GetNamedObject(L"info");
         if (zoneSetType.compare(L"canvas") == 0)
         {
-            result.data.type = CustomLayoutType::Canvas;
-
-            CanvasLayoutInfo info;
-            info.referenceWidth = infoJson.GetNamedNumber(L"ref-width");
-            info.referenceHeight = infoJson.GetNamedNumber(L"ref-height");
-            json::JsonArray zonesJson = infoJson.GetNamedArray(L"zones");
-            for (int i = 0; i < zonesJson.Size(); ++i)
-            {
-                json::JsonObject zoneJson = zonesJson.GetObjectAt(i);
-                CanvasLayoutInfo::Rect zone{ zoneJson.GetNamedNumber(L"X"), zoneJson.GetNamedNumber(L"Y"), zoneJson.GetNamedNumber(L"width"), zoneJson.GetNamedNumber(L"height") };
-                info.zones.push_back(zone);
-            }
-            result.data.info = info;
+            result.data.type = CustomLayoutType::Canvas;            
+            result.data.info = CanvasLayoutInfo::FromJson(infoJson);
         }
         else if (zoneSetType.compare(L"grid") == 0)
         {
             result.data.type = CustomLayoutType::Grid;
-
-            GridLayoutInfo info;
-            int i = 0, j = 0;
-
-            info.rows = infoJson.GetNamedNumber(L"rows");
-            info.columns = infoJson.GetNamedNumber(L"columns");
-            json::JsonArray rowsPercentage = infoJson.GetNamedArray(L"rows-percentage");
-            for (auto percentage : rowsPercentage)
-            {
-                info.rowsPercents[i++] = percentage.GetNumber();
-            }
-            i = 0;
-
-            json::JsonArray columnsPercentage = infoJson.GetNamedArray(L"columns-percentage");
-            for (auto percentage : columnsPercentage)
-            {
-                info.columnsPercents[j++] = percentage.GetNumber();
-            }
-            j = 0;
-
-            json::JsonArray cellChildMap = infoJson.GetNamedArray(L"cell-child-map");
-            for (auto mapRow : cellChildMap)
-            {
-                std::vector<int> cellChildMapRow;
-                for (auto rowElem : mapRow.GetArray())
-                {
-                    info.cellChildMap[i][j++] = rowElem.GetNumber();
-                }
-                i++;
-                j = 0;
-            }
-            result.data.info = info;
+            result.data.info = GridLayoutInfo::FromJson(infoJson);
         }
         else
         {

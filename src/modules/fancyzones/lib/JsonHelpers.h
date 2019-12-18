@@ -54,6 +54,9 @@ namespace JSONHelpers
             int height;
         };
         std::vector<CanvasLayoutInfo::Rect> zones;
+
+        static json::JsonObject ToJson(const CanvasLayoutInfo& canvasInfo);
+        static CanvasLayoutInfo FromJson(const json::JsonObject& infoJson);
     };
 
     struct GridLayoutInfo
@@ -63,6 +66,9 @@ namespace JSONHelpers
         int rowsPercents[MAX_ZONE_COUNT];
         int columnsPercents[MAX_ZONE_COUNT];
         int cellChildMap[MAX_ZONE_COUNT][MAX_ZONE_COUNT];
+
+        static json::JsonObject ToJson(const GridLayoutInfo& gridInfo);
+        static GridLayoutInfo FromJson(const json::JsonObject& infoJson);
     };
 
     struct CustomZoneSetData
