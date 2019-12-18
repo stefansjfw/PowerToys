@@ -468,6 +468,92 @@ namespace FancyZonesUnitTests
         }
     };
 
+    TEST_CLASS(ZoneSetDataUnitTest)
+    {
+        TEST_METHOD(ToJsonCustom)
+        {
+            json::JsonObject expected = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"custom\"}");
+
+            ZoneSetData data;
+            data.uuid = L"uuid";
+            data.type = ZoneSetLayoutType::Custom;
+
+            const auto actual = ZoneSetData::ToJson(data);
+            compareJsonObjects(expected, actual);
+        }
+
+        TEST_METHOD(ToJsonGeneral)
+        {
+            json::JsonObject expected = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"rows\", \"zone-count\": 47372}");
+
+            ZoneSetData data;
+            data.uuid = L"uuid";
+            data.type = ZoneSetLayoutType::Rows;
+            data.zoneCount = 47372;
+
+            const auto actual = ZoneSetData::ToJson(data);
+            compareJsonObjects(expected, actual);
+        }
+
+        TEST_METHOD(FromJsonCustom)
+        {
+            ZoneSetData expected;
+            expected.uuid = L"uuid";
+            expected.type = ZoneSetLayoutType::Custom;
+
+            json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"custom\"}");
+            ZoneSetData actual = ZoneSetData::FromJson(json);
+
+            Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
+            Assert::AreEqual((int)expected.type, (int)actual.type);
+            Assert::IsFalse(actual.zoneCount.has_value());
+        }
+
+        TEST_METHOD(FromJsonCustomZoneAdded)
+        {
+            ZoneSetData expected;
+            expected.uuid = L"uuid";
+            expected.type = ZoneSetLayoutType::Custom;
+
+            json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"custom\", \"zone-count\": 47372}");
+            ZoneSetData actual = ZoneSetData::FromJson(json);
+
+            Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
+            Assert::AreEqual((int)expected.type, (int)actual.type);
+            Assert::IsFalse(actual.zoneCount.has_value());
+        }
+
+        TEST_METHOD(FromJsonGeneral)
+        {
+            ZoneSetData expected;
+            expected.uuid = L"uuid";
+            expected.type = ZoneSetLayoutType::Columns;
+            expected.zoneCount = 47372;
+
+            json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"columns\", \"zone-count\": 47372}");
+            ZoneSetData actual = ZoneSetData::FromJson(json);
+
+            Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
+            Assert::AreEqual((int)expected.type, (int)actual.type);
+            Assert::IsTrue(actual.zoneCount.has_value());
+            Assert::AreEqual(*expected.zoneCount, *actual.zoneCount);
+        }
+
+        TEST_METHOD(FromJsonTypeInvalid)
+        {
+            ZoneSetData expected;
+            expected.uuid = L"uuid";
+            expected.type = ZoneSetLayoutType::Custom;
+
+            json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"invalid_type\"}");
+            ZoneSetData actual = ZoneSetData::FromJson(json);
+
+            Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
+            Assert::AreEqual((int)expected.type, (int)actual.type);
+            Assert::IsFalse(actual.zoneCount.has_value());
+        }
+    };
+
     TEST_CLASS(FancyZonesDataUnitTests)
     {
     private:
