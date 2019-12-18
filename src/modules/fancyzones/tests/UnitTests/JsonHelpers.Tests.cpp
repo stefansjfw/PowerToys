@@ -10,7 +10,47 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace FancyZonesUnitTests
 {
-    TEST_CLASS(ZoneSetDataUnitTest)
+    void compareJsonObjects(const json::JsonObject& expected, const json::JsonObject& actual, bool recursive = true)
+    {
+        auto iter = expected.First();
+        while (iter.HasCurrent())
+        {
+            const auto key = iter.Current().Key();
+            Assert::IsTrue(actual.HasKey(key));
+
+            const std::wstring expectedStringified = iter.Current().Value().Stringify().c_str();
+            const std::wstring actualStringified = actual.GetNamedValue(key).Stringify().c_str();
+
+            if (recursive)
+            {
+                json::JsonObject expectedJson;
+                if (json::JsonObject::TryParse(expectedStringified, expectedJson))
+                {
+                    json::JsonObject actualJson;
+                    if (json::JsonObject::TryParse(actualStringified, actualJson))
+                    {
+                        compareJsonObjects(expectedJson, actualJson, true);
+                    }
+                    else
+                    {
+                        Assert::IsTrue(false);
+                    }
+                }
+                else
+                {
+                    Assert::AreEqual(expectedStringified, actualStringified);
+                }
+            }
+            else
+            {
+                Assert::AreEqual(expectedStringified, actualStringified);
+            }
+
+            iter.MoveNext();
+        }
+    }
+
+    TEST_CLASS(ZoneSetLayoutTypeUnitTest)
     {
 
         TEST_METHOD(ZoneSetLayoutTypeToString)
@@ -92,52 +132,48 @@ namespace FancyZonesUnitTests
         }
     };
 
+    TEST_CLASS(CanvasLayoutInfoUnitTests)
+    {
+        json::JsonObject m_json = json::JsonObject::Parse(L"{\"ref-width\": 123, \"ref-height\": 321, \"zones\": [{\"X\": 11, \"Y\": 22, \"width\": 33, \"height\": 44}, {\"X\": 55, \"Y\": 66, \"width\": 77, \"height\": 88}]}");
+
+        TEST_METHOD(ToJson)
+        {
+            CanvasLayoutInfo info;
+            info.referenceWidth = 123;
+            info.referenceHeight = 321;
+            info.zones = { CanvasLayoutInfo::Rect{ 11, 22, 33, 44 }, CanvasLayoutInfo::Rect{ 55, 66, 77, 88 } };
+
+            auto actual = CanvasLayoutInfo::ToJson(info);
+            compareJsonObjects(m_json, actual);
+        }
+
+        TEST_METHOD(FromJson)
+        {
+            CanvasLayoutInfo expected;
+            expected.referenceWidth = 123;
+            expected.referenceHeight = 321;
+            expected.zones = { CanvasLayoutInfo::Rect{ 11, 22, 33, 44 }, CanvasLayoutInfo::Rect{ 55, 66, 77, 88 } };
+
+            auto actual = CanvasLayoutInfo::FromJson(m_json);
+            Assert::AreEqual(expected.referenceHeight, actual.referenceHeight);
+            Assert::AreEqual(expected.referenceWidth, actual.referenceWidth);
+            Assert::AreEqual(expected.zones.size(), actual.zones.size());
+            for (int i = 0; i < expected.zones.size(); i++)
+            {
+                Assert::AreEqual(expected.zones[i].x, actual.zones[i].x);
+                Assert::AreEqual(expected.zones[i].y, actual.zones[i].y);
+                Assert::AreEqual(expected.zones[i].width, actual.zones[i].width);
+                Assert::AreEqual(expected.zones[i].height, actual.zones[i].height);
+            }
+        }
+    };
+
     TEST_CLASS(FancyZonesDataUnitTests)
     {
     private:
         const std::wstring m_defaultCustomDeviceStr = L"{\"device-id\": \"default_device_id\", \"active-zoneset\": {\"type\": \"custom\", \"uuid\": \"uuid\"}, \"editor-show-spacing\": true, \"editor-spacing\": 16, \"editor-zone-count\": 3}";
         const json::JsonValue m_defaultCustomDeviceValue = json::JsonValue::Parse(m_defaultCustomDeviceStr);
         const json::JsonObject m_defaultCustomDeviceObj = json::JsonObject::Parse(m_defaultCustomDeviceStr);
-
-        void compareJsonObjects(const json::JsonObject& expected, const json::JsonObject& actual, bool recursive = true)
-        {
-            auto iter = expected.First();
-            while (iter.HasCurrent())
-            {
-                const auto key = iter.Current().Key();
-                Assert::IsTrue(actual.HasKey(key));
-
-                const std::wstring expectedStringified = iter.Current().Value().Stringify().c_str();
-                const std::wstring actualStringified = actual.GetNamedValue(key).Stringify().c_str();
-
-                if (recursive)
-                {
-                    json::JsonObject expectedJson;
-                    if (json::JsonObject::TryParse(expectedStringified, expectedJson))
-                    {
-                        json::JsonObject actualJson;
-                        if (json::JsonObject::TryParse(actualStringified, actualJson))
-                        {
-                            compareJsonObjects(expectedJson, actualJson, true);
-                        }
-                        else
-                        {
-                            Assert::IsTrue(false);
-                        }
-                    }
-                    else
-                    {
-                        Assert::AreEqual(expectedStringified, actualStringified);
-                    }
-                }
-                else
-                {
-                    Assert::AreEqual(expectedStringified, actualStringified);
-                }
-
-                iter.MoveNext();
-            }
-        }
 
         void compareJsonArrays(const json::JsonArray& expected, const json::JsonArray& actual)
         {
