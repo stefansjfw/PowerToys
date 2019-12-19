@@ -591,6 +591,103 @@ namespace FancyZonesUnitTests
         }
     };
 
+    TEST_CLASS(DeviceInfoUnitTests)
+    {
+    private:
+        DeviceInfoJSON m_defaultDeviceInfo = DeviceInfoJSON{ L"default_device_id", DeviceInfoData{ ZoneSetData{ L"uuid", ZoneSetLayoutType::Custom }, true, 16, 3 } };
+        json::JsonObject m_defaultJson = json::JsonObject::Parse(L"{\"device-id\": \"default_device_id\", \"active-zoneset\": {\"type\": \"custom\", \"uuid\": \"uuid\"}, \"editor-show-spacing\": true, \"editor-spacing\": 16, \"editor-zone-count\": 3}");
+
+    public:
+        TEST_METHOD(ToJson)
+        {
+            DeviceInfoJSON deviceInfo = m_defaultDeviceInfo;
+            json::JsonObject expected = m_defaultJson;
+
+            auto actual = DeviceInfoJSON::ToJson(deviceInfo);
+            compareJsonObjects(expected, actual);
+        }
+
+        TEST_METHOD(FromJson)
+        {
+            DeviceInfoJSON expected = m_defaultDeviceInfo;
+            expected.data.spacing = true;
+
+            json::JsonObject json = DeviceInfoJSON::ToJson(expected);
+            auto actual = DeviceInfoJSON::FromJson(json);
+
+            Assert::AreEqual(expected.deviceId.c_str(), actual.deviceId.c_str(), L"device id");
+            Assert::AreEqual(expected.data.zoneCount, actual.data.zoneCount, L"zone count");
+            Assert::AreEqual((int)expected.data.activeZoneSet.type, (int)actual.data.activeZoneSet.type, L"zone set type");
+            Assert::AreEqual(expected.data.activeZoneSet.uuid.c_str(), actual.data.activeZoneSet.uuid.c_str(), L"zone set uuid");
+        }
+        TEST_METHOD(FromJsonSpacingTrue)
+        {
+            DeviceInfoJSON expected = m_defaultDeviceInfo;
+            expected.data.spacing = true;
+
+            json::JsonObject json = DeviceInfoJSON::ToJson(expected);
+            auto actual = DeviceInfoJSON::FromJson(json);
+
+            Assert::AreEqual(expected.data.spacing, actual.data.spacing);
+        }
+
+        TEST_METHOD(FromJsonSpacingFalse)
+        {
+            DeviceInfoJSON expected = m_defaultDeviceInfo;
+            expected.data.activeZoneSet.type = ZoneSetLayoutType::Custom;
+
+            json::JsonObject json = DeviceInfoJSON::ToJson(expected);
+            auto actual = DeviceInfoJSON::FromJson(json);
+
+            Assert::AreEqual(expected.data.spacing, actual.data.spacing);
+        }
+
+        TEST_METHOD(FromJsonZoneCustom)
+        {
+            DeviceInfoJSON expected = m_defaultDeviceInfo;
+            expected.data.activeZoneSet.type = ZoneSetLayoutType::Custom;
+
+            json::JsonObject json = DeviceInfoJSON::ToJson(expected);
+            auto actual = DeviceInfoJSON::FromJson(json);
+
+            Assert::AreEqual((int)expected.data.activeZoneSet.type, (int)actual.data.activeZoneSet.type, L"zone set type");
+            Assert::IsFalse(actual.data.activeZoneSet.zoneCount.has_value(), L"zone set count");
+        }
+
+        TEST_METHOD(FromJsonZoneGeneral)
+        {
+            DeviceInfoJSON expected = m_defaultDeviceInfo;
+            expected.data.activeZoneSet.type = ZoneSetLayoutType::PriorityGrid;
+            expected.data.activeZoneSet.zoneCount = 10;
+
+            json::JsonObject json = DeviceInfoJSON::ToJson(expected);
+            auto actual = DeviceInfoJSON::FromJson(json);
+
+            Assert::AreEqual((int)expected.data.activeZoneSet.type, (int)actual.data.activeZoneSet.type, L"zone set type");
+            Assert::IsTrue(actual.data.activeZoneSet.zoneCount.has_value(), L"zone set count");
+            Assert::AreEqual(*expected.data.activeZoneSet.zoneCount, *actual.data.activeZoneSet.zoneCount);
+        }
+        TEST_METHOD(FromJsonMissingKeys)
+        {
+            DeviceInfoJSON deviceInfo{ L"default_device_id", DeviceInfoData{ ZoneSetData{ L"uuid", ZoneSetLayoutType::Custom }, true, 16, 3 } };
+            const auto json = DeviceInfoJSON::ToJson(deviceInfo);
+
+            auto iter = json.First();
+            while (iter.HasCurrent())
+            {
+                json::JsonObject modifiedJson = json::JsonObject::Parse(json.Stringify());
+                modifiedJson.Remove(iter.Current().Key());
+
+                auto parseFunc = [&modifiedJson] {
+                    AppZoneHistoryJSON::FromJson(modifiedJson);
+                };
+                Assert::ExpectException<winrt::hresult_error>(parseFunc);
+
+                iter.MoveNext();
+            }
+        }
+    };
+
     TEST_CLASS(FancyZonesDataUnitTests)
     {
     private:
@@ -697,24 +794,18 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(FancyZonesDataDeviceInfoMapParseInvalid)
         {
-            auto iter = m_defaultCustomDeviceObj.First();
-            while (iter.HasCurrent())
-            {
-                json::JsonArray devices;
-                json::JsonObject obj = json::JsonObject::Parse(m_defaultCustomDeviceStr);
-                obj.Remove(iter.Current().Key());
-                devices.Append(obj);
-                json::JsonObject expected;
-                expected.SetNamedValue(L"devices", devices);
+            json::JsonArray devices;
+            devices.Append(json::JsonObject::Parse(m_defaultCustomDeviceStr));
+            devices.Append(json::JsonObject::Parse(L"{\"device-id\": \"device_id\"}"));
 
-                auto func = [&expected] {
-                    FancyZonesData data;
-                    data.ParseDeviceInfos(expected);
-                };
-                Assert::ExpectException<winrt::hresult_error>(func);
+            json::JsonObject expected;
+            expected.SetNamedValue(L"devices", devices);
 
-                iter.MoveNext();
-            }
+            auto parseFunc = [&expected] {
+                FancyZonesData data;
+                data.ParseDeviceInfos(expected);
+            };
+            Assert::ExpectException<winrt::hresult_error>(parseFunc);
         }
 
         TEST_METHOD(FancyZonesDataDeviceInfoMapParseSingle)
@@ -755,155 +846,6 @@ namespace FancyZonesUnitTests
 
             const auto actualMap = data.GetDeviceInfoMap();
             Assert::AreEqual((size_t)10, actualMap.size());
-        }
-
-        TEST_METHOD(FancyZonesDataDeviceInfoMapParseSpacingTrue)
-        {
-            const auto expectedValue = true;
-            json::JsonArray devices;
-            json::JsonObject obj = m_defaultCustomDeviceObj;
-            obj.SetNamedValue(L"editor-show-spacing", json::JsonValue::CreateBooleanValue(expectedValue));
-            devices.Append(obj);
-
-            json::JsonObject expected;
-            expected.SetNamedValue(L"devices", devices);
-
-            FancyZonesData data;
-            data.ParseDeviceInfos(expected);
-
-            const auto actual = data.GetDeviceInfoMap().begin()->second;
-            Assert::AreEqual(expectedValue, actual.showSpacing);
-        }
-
-        TEST_METHOD(FancyZonesDataDeviceInfoMapParseSpacingFalse)
-        {
-            const auto expectedValue = false;
-            json::JsonArray devices;
-            json::JsonObject obj = m_defaultCustomDeviceObj;
-            obj.SetNamedValue(L"editor-show-spacing", json::JsonValue::CreateBooleanValue(expectedValue));
-            devices.Append(obj);
-
-            json::JsonObject expected;
-            expected.SetNamedValue(L"devices", devices);
-
-            FancyZonesData data;
-            data.ParseDeviceInfos(expected);
-
-            const auto actual = data.GetDeviceInfoMap().begin()->second;
-            Assert::AreEqual(expectedValue, actual.showSpacing);
-        }
-
-        TEST_METHOD(FancyZonesDataDeviceInfoMapParseSpacingPositive)
-        {
-            const auto expectedValue = 12345;
-            json::JsonArray devices;
-            json::JsonObject obj = m_defaultCustomDeviceObj;
-            obj.SetNamedValue(L"editor-spacing", json::JsonValue::CreateNumberValue(expectedValue));
-            devices.Append(obj);
-
-            json::JsonObject expected;
-            expected.SetNamedValue(L"devices", devices);
-
-            FancyZonesData data;
-            data.ParseDeviceInfos(expected);
-
-            const auto actual = data.GetDeviceInfoMap().begin()->second;
-            Assert::AreEqual(expectedValue, actual.spacing);
-        }
-
-        TEST_METHOD(FancyZonesDataDeviceInfoMapParseSpacingNegative)
-        {
-            const auto expectedValue = -12345;
-            json::JsonArray devices;
-            json::JsonObject obj = m_defaultCustomDeviceObj;
-            obj.SetNamedValue(L"editor-spacing", json::JsonValue::CreateNumberValue(expectedValue));
-            devices.Append(obj);
-
-            json::JsonObject expected;
-            expected.SetNamedValue(L"devices", devices);
-
-            FancyZonesData data;
-            data.ParseDeviceInfos(expected);
-
-            const auto actual = data.GetDeviceInfoMap().begin()->second;
-            Assert::AreEqual(expectedValue, actual.spacing);
-        }
-
-        TEST_METHOD(FancyZonesDataDeviceInfoMapParseZoneCountPositive)
-        {
-            const auto expectedValue = 12345;
-            json::JsonArray devices;
-            json::JsonObject obj = m_defaultCustomDeviceObj;
-            obj.SetNamedValue(L"editor-zone-count", json::JsonValue::CreateNumberValue(expectedValue));
-            devices.Append(obj);
-
-            json::JsonObject expected;
-            expected.SetNamedValue(L"devices", devices);
-
-            FancyZonesData data;
-            data.ParseDeviceInfos(expected);
-
-            const auto actual = data.GetDeviceInfoMap().begin()->second;
-            Assert::AreEqual(expectedValue, actual.zoneCount);
-        }
-
-        TEST_METHOD(FancyZonesDataDeviceInfoMapParseZoneCountNegative)
-        {
-            const auto expectedValue = -12345;
-            json::JsonArray devices;
-            json::JsonObject obj = m_defaultCustomDeviceObj;
-            obj.SetNamedValue(L"editor-zone-count", json::JsonValue::CreateNumberValue(expectedValue));
-            devices.Append(obj);
-
-            json::JsonObject expected;
-            expected.SetNamedValue(L"devices", devices);
-
-            FancyZonesData data;
-            data.ParseDeviceInfos(expected);
-
-            const auto actual = data.GetDeviceInfoMap().begin()->second;
-            Assert::AreEqual(expectedValue, actual.zoneCount);
-        }
-
-        TEST_METHOD(FancyZonesDataDeviceInfoMapParseZoneCustom)
-        {
-            const auto expectedValue = json::JsonValue::Parse(L"{\"type\": \"custom\", \"uuid\": \"uuid\"}");
-            json::JsonArray devices;
-            json::JsonObject obj = m_defaultCustomDeviceObj;
-            obj.SetNamedValue(L"active-zoneset", expectedValue);
-            devices.Append(obj);
-
-            json::JsonObject expected;
-            expected.SetNamedValue(L"devices", devices);
-
-            FancyZonesData data;
-            data.ParseDeviceInfos(expected);
-
-            const auto actual = data.GetDeviceInfoMap().begin()->second.activeZoneSet;
-            Assert::AreEqual(static_cast<int>(ZoneSetLayoutType::Custom), static_cast<int>(actual.type));
-            Assert::AreEqual(L"uuid", actual.uuid.c_str());
-            Assert::IsFalse(actual.zoneCount.has_value());
-        }
-
-        TEST_METHOD(FancyZonesDataDeviceInfoMapParseZoneGeneral)
-        {
-            const auto expectedValue = json::JsonValue::Parse(L"{\"type\": \"focus\", \"uuid\": \"uuid\", \"zone-count\": 10}");
-            json::JsonArray devices;
-            json::JsonObject obj = m_defaultCustomDeviceObj;
-            obj.SetNamedValue(L"active-zoneset", expectedValue);
-            devices.Append(obj);
-
-            json::JsonObject expected;
-            expected.SetNamedValue(L"devices", devices);
-
-            FancyZonesData data;
-            data.ParseDeviceInfos(expected);
-
-            const auto actual = data.GetDeviceInfoMap().begin()->second.activeZoneSet;
-            Assert::AreEqual(static_cast<int>(ZoneSetLayoutType::Focus), static_cast<int>(actual.type));
-            Assert::AreEqual(L"uuid", actual.uuid.c_str());
-            Assert::IsTrue(actual.zoneCount.has_value());
-            Assert::AreEqual(10, *actual.zoneCount);
         }
 
         TEST_METHOD(FancyZonesDataSerialize)
