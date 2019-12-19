@@ -861,5 +861,541 @@ namespace FancyZonesUnitTests
             auto actual = data.SerializeDeviceInfos();
             compareJsonArrays(expectedDevices, actual);
         }
+
+        TEST_METHOD(DeviceInfoSaveTemp)
+        {
+            FancyZonesData data;
+            DeviceInfoJSON deviceInfo{ L"default_device_id", DeviceInfoData{ ZoneSetData{ L"uuid", ZoneSetLayoutType::Custom }, true, 16, 3 } };
+            
+            const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
+            data.SetDeviceInfoToTmpFile(deviceInfo, path);
+            
+            bool actualFileExists = std::filesystem::exists(path);
+            Assert::IsTrue(actualFileExists);
+            
+            auto expectedData = DeviceInfoJSON::ToJson(deviceInfo);
+            auto actualSavedData = json::from_file(path);
+            std::filesystem::remove(path); //clean up before compare asserts
+
+            Assert::IsTrue(actualSavedData.has_value());
+            compareJsonObjects(expectedData, *actualSavedData);
+        }
+
+        TEST_METHOD(DeviceInfoReadTemp)
+        {
+            FancyZonesData data;
+            const std::wstring zoneUuid = L"default_device_id";
+            DeviceInfoJSON expected{ zoneUuid, DeviceInfoData{ ZoneSetData{ L"uuid", ZoneSetLayoutType::Custom }, true, 16, 3 } };
+            const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
+            data.SetDeviceInfoToTmpFile(expected, path);
+
+            data.GetDeviceInfoFromTmpFile(zoneUuid, path);
+            
+            bool actualFileExists = std::filesystem::exists(path);
+            if (actualFileExists)
+            {
+                std::filesystem::remove(path); //clean up before compare asserts
+            }
+            Assert::IsFalse(actualFileExists);
+            
+            auto devices = data.GetDeviceInfoMap();
+            Assert::AreEqual((size_t)1, devices.size());
+
+            auto actual = devices.find(zoneUuid)->second;
+            Assert::AreEqual(expected.data.showSpacing, actual.showSpacing);
+            Assert::AreEqual(expected.data.spacing, actual.spacing);
+            Assert::AreEqual(expected.data.zoneCount, actual.zoneCount);
+            Assert::AreEqual((int)expected.data.activeZoneSet.type, (int)actual.activeZoneSet.type);
+            Assert::AreEqual(expected.data.activeZoneSet.uuid.c_str(), actual.activeZoneSet.uuid.c_str());
+            Assert::IsFalse(actual.activeZoneSet.zoneCount.has_value());
+        }
+
+        TEST_METHOD(DeviceInfoReadTempUnexsisted)
+        {
+            FancyZonesData data;
+            DeviceInfoData expected{ ZoneSetData{ L"", ZoneSetLayoutType::Grid, 0 }, true, 16, 3 };
+
+            const std::wstring zoneUuid = L"default_device_id";
+            const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
+            data.GetDeviceInfoFromTmpFile(zoneUuid, path);
+
+            auto devices = data.GetDeviceInfoMap();
+            Assert::AreEqual((size_t)1, devices.size());
+
+            auto actual = devices.find(zoneUuid)->second;
+            Assert::AreEqual(expected.showSpacing, actual.showSpacing);
+            Assert::AreEqual(expected.spacing, actual.spacing);
+            Assert::AreEqual(expected.zoneCount, actual.zoneCount);
+            Assert::AreEqual((int)expected.activeZoneSet.type, (int)actual.activeZoneSet.type);
+            Assert::AreEqual(expected.activeZoneSet.uuid.c_str(), actual.activeZoneSet.uuid.c_str());
+            Assert::IsTrue(actual.activeZoneSet.zoneCount.has_value());
+            Assert::AreEqual(*expected.activeZoneSet.zoneCount, *actual.activeZoneSet.zoneCount);
+        }
+    
+        TEST_METHOD(AppZoneHistoryParseSingle)
+        {
+            const std::wstring appPath = L"appPath";
+            json::JsonObject json;
+            AppZoneHistoryJSON expected{ appPath, AppZoneHistoryData{ L"zone-set-uuid", 54321 } };
+            json::JsonArray zoneHistoryArray;
+            zoneHistoryArray.Append(AppZoneHistoryJSON::ToJson(expected));
+            json.SetNamedValue(L"app-zone-history", json::JsonValue::Parse(zoneHistoryArray.Stringify()));
+
+            FancyZonesData data;
+            data.ParseAppZoneHistory(json);
+
+            auto actualMap = data.GetAppZoneHistoryMap();
+            Assert::AreEqual((size_t)zoneHistoryArray.Size(), actualMap.size());
+
+            auto actual = actualMap.find(appPath)->second;
+            Assert::AreEqual(expected.data.zoneSetUuid.c_str(), actual.zoneSetUuid.c_str());
+            Assert::AreEqual(expected.data.zoneIndex, actual.zoneIndex);
+        }
+
+        TEST_METHOD(AppZoneHistoryParseMany)
+        {
+            json::JsonObject json;
+            json::JsonArray zoneHistoryArray;
+            zoneHistoryArray.Append(AppZoneHistoryJSON::ToJson(AppZoneHistoryJSON{ L"app-path-1", AppZoneHistoryData{ L"zone-set-uuid", 54321 } }));
+            zoneHistoryArray.Append(AppZoneHistoryJSON::ToJson(AppZoneHistoryJSON{ L"app-path-2", AppZoneHistoryData{ L"zone-set-uuid", 54321 } }));
+            zoneHistoryArray.Append(AppZoneHistoryJSON::ToJson(AppZoneHistoryJSON{ L"app-path-3", AppZoneHistoryData{ L"zone-set-uuid", 54321 } }));
+            zoneHistoryArray.Append(AppZoneHistoryJSON::ToJson(AppZoneHistoryJSON{ L"app-path-4", AppZoneHistoryData{ L"zone-set-uuid", 54321 } }));
+            json.SetNamedValue(L"app-zone-history", json::JsonValue::Parse(zoneHistoryArray.Stringify()));
+
+            FancyZonesData data;
+            data.ParseAppZoneHistory(json);
+
+            auto actualMap = data.GetAppZoneHistoryMap();
+            Assert::AreEqual((size_t)zoneHistoryArray.Size(), actualMap.size());
+
+            auto iter = zoneHistoryArray.First();
+            while (iter.HasCurrent())
+            {
+                auto expected = AppZoneHistoryJSON::FromJson(json::JsonObject::Parse(iter.Current().Stringify()));
+                auto actual = actualMap.find(expected.appPath)->second;
+                Assert::AreEqual(expected.data.zoneSetUuid.c_str(), actual.zoneSetUuid.c_str());
+                Assert::AreEqual(expected.data.zoneIndex, actual.zoneIndex);
+
+                iter.MoveNext();
+            }
+        }
+
+        TEST_METHOD(AppZoneHistoryParseEmpty)
+        {
+            FancyZonesData data;
+            data.ParseAppZoneHistory(json::JsonObject());
+
+            auto actual = data.GetAppZoneHistoryMap();
+            Assert::IsTrue(actual.empty());
+        }
+
+        TEST_METHOD(AppZoneHistoryParseInvalid)
+        {
+            const std::wstring appPath = L"appPath";
+            json::JsonObject json;
+            AppZoneHistoryJSON expected{ appPath, AppZoneHistoryData{ L"zone-set-uuid", 54321 } };
+            json.SetNamedValue(L"app-zone-history", json::JsonValue::Parse(AppZoneHistoryJSON::ToJson(expected).Stringify()));
+
+            auto func = [json]() {
+                FancyZonesData data;
+                data.ParseAppZoneHistory(json);
+            };
+            Assert::ExpectException<winrt::hresult_error>(func);
+        }
+
+        TEST_METHOD(AppZoneHistorySerializeSingle)
+        {
+            const std::wstring appPath = L"appPath";
+            json::JsonArray expected;
+            expected.Append(AppZoneHistoryJSON::ToJson(AppZoneHistoryJSON{ appPath, AppZoneHistoryData{ L"zone-set-uuid", 54321 } }));
+            json::JsonObject json;
+            json.SetNamedValue(L"app-zone-history", json::JsonValue::Parse(expected.Stringify()));
+
+            FancyZonesData data;
+            data.ParseAppZoneHistory(json);
+
+            auto actual = data.SerializeAppZoneHistory();
+            compareJsonArrays(expected, actual);
+        }
+
+        TEST_METHOD(AppZoneHistorySerializeMany)
+        {
+            json::JsonObject json;
+            json::JsonArray expected;
+            expected.Append(AppZoneHistoryJSON::ToJson(AppZoneHistoryJSON{ L"app-path-1", AppZoneHistoryData{ L"zone-set-uuid", 54321 } }));
+            expected.Append(AppZoneHistoryJSON::ToJson(AppZoneHistoryJSON{ L"app-path-2", AppZoneHistoryData{ L"zone-set-uuid", 54321 } }));
+            expected.Append(AppZoneHistoryJSON::ToJson(AppZoneHistoryJSON{ L"app-path-3", AppZoneHistoryData{ L"zone-set-uuid", 54321 } }));
+            expected.Append(AppZoneHistoryJSON::ToJson(AppZoneHistoryJSON{ L"app-path-4", AppZoneHistoryData{ L"zone-set-uuid", 54321 } }));
+            json.SetNamedValue(L"app-zone-history", json::JsonValue::Parse(expected.Stringify()));
+
+            FancyZonesData data;
+            data.ParseAppZoneHistory(json);
+
+            auto actual = data.SerializeAppZoneHistory();
+            compareJsonArrays(expected, actual);
+        }
+
+        TEST_METHOD(AppZoneHistorySerializeEmpty)
+        {
+            json::JsonArray expected;
+            json::JsonObject json;
+            json.SetNamedValue(L"app-zone-history", json::JsonValue::Parse(expected.Stringify()));
+
+            FancyZonesData data;
+            data.ParseAppZoneHistory(json);
+
+            auto actual = data.SerializeAppZoneHistory();
+            compareJsonArrays(expected, actual);
+        }
+
+        TEST_METHOD(CustomZoneSetsParseSingle)
+        {
+            const std::wstring zoneUuid = L"uuid";
+            json::JsonObject json;
+            CustomZoneSetJSON expected{ zoneUuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } };
+            json::JsonArray array;
+            array.Append(CustomZoneSetJSON::ToJson(expected));
+            json.SetNamedValue(L"custom-zone-sets", json::JsonValue::Parse(array.Stringify()));
+
+            FancyZonesData data;
+            data.ParseCustomZoneSets(json);
+
+            auto actualMap = data.GetCustomZoneSetsMap();
+            Assert::AreEqual((size_t)array.Size(), actualMap.size());
+
+            auto actual = actualMap.find(zoneUuid)->second;
+            Assert::AreEqual(expected.data.name.c_str(), actual.name.c_str());
+            Assert::AreEqual((int)expected.data.type, (int)actual.type);
+
+            auto expectedGrid = std::get<GridLayoutInfo>(expected.data.info);
+            auto actualGrid = std::get<GridLayoutInfo>(actual.info);
+            Assert::AreEqual(expectedGrid.rows, actualGrid.rows);
+            Assert::AreEqual(expectedGrid.columns, actualGrid.columns);
+        }
+
+        TEST_METHOD(CustomZoneSetsParseMany)
+        {
+            json::JsonObject json;
+            json::JsonArray array;
+            array.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-1", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } }));
+            array.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-2", CustomZoneSetData{ L"name", CustomLayoutType::Canvas, CanvasLayoutInfo{ 1, 2 } } }));
+            array.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-3", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } }));
+            array.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-4", CustomZoneSetData{ L"name", CustomLayoutType::Canvas, CanvasLayoutInfo{ 1, 2 } } }));
+            json.SetNamedValue(L"custom-zone-sets", json::JsonValue::Parse(array.Stringify()));
+
+            FancyZonesData data;
+            data.ParseCustomZoneSets(json);
+
+            auto actualMap = data.GetCustomZoneSetsMap();
+            Assert::AreEqual((size_t)array.Size(), actualMap.size());
+
+            auto iter = array.First();
+            while (iter.HasCurrent())
+            {
+                auto expected = CustomZoneSetJSON::FromJson(json::JsonObject::Parse(iter.Current().Stringify()));
+                auto actual = actualMap.find(expected.uuid)->second;
+                Assert::AreEqual(expected.data.name.c_str(), actual.name.c_str(), L"name");
+                Assert::AreEqual((int)expected.data.type, (int)actual.type, L"type");
+
+                if (expected.data.type == CustomLayoutType::Grid)
+                {
+                    auto expectedInfo = std::get<GridLayoutInfo>(expected.data.info);
+                    auto actualInfo = std::get<GridLayoutInfo>(actual.info);
+                    Assert::AreEqual(expectedInfo.rows, actualInfo.rows, L"grid rows");
+                    Assert::AreEqual(expectedInfo.columns, actualInfo.columns, L"grid columns");
+                }
+                else
+                {
+                    auto expectedInfo = std::get<CanvasLayoutInfo>(expected.data.info);
+                    auto actualInfo = std::get<CanvasLayoutInfo>(actual.info);
+                    Assert::AreEqual(expectedInfo.referenceWidth, actualInfo.referenceWidth, L"canvas width");
+                    Assert::AreEqual(expectedInfo.referenceHeight, actualInfo.referenceHeight, L"canvas height");
+                }
+                
+
+                iter.MoveNext();
+            }
+        }
+
+        TEST_METHOD(CustomZoneSetsParseEmpty)
+        {
+            FancyZonesData data;
+            data.ParseCustomZoneSets(json::JsonObject());
+
+            auto actual = data.GetCustomZoneSetsMap();
+            Assert::IsTrue(actual.empty());
+        }
+
+        TEST_METHOD(CustomZoneSetsParseInvalid)
+        {
+            json::JsonObject json;
+            CustomZoneSetJSON expected{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } };
+            json.SetNamedValue(L"custom-zone-sets", json::JsonValue::Parse(CustomZoneSetJSON::ToJson(expected).Stringify()));
+
+            auto func = [json]() {
+                FancyZonesData data;
+                data.ParseCustomZoneSets(json);
+            };
+            Assert::ExpectException<winrt::hresult_error>(func);
+        }
+
+        TEST_METHOD(CustomZoneSetsSerializeSingle)
+        {
+            json::JsonArray expected;
+            expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON { L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } }));
+            json::JsonObject json;
+            json.SetNamedValue(L"custom-zone-sets", json::JsonValue::Parse(expected.Stringify()));
+
+            FancyZonesData data;
+            data.ParseCustomZoneSets(json);
+
+            auto actual = data.SerializeCustomZoneSets();
+            compareJsonArrays(expected, actual);
+        }
+
+        TEST_METHOD(CustomZoneSetsSerializeMany)
+        {
+            json::JsonObject json;
+            json::JsonArray expected;
+            expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-1", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } }));
+            expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-2", CustomZoneSetData{ L"name", CustomLayoutType::Canvas, CanvasLayoutInfo{ 1, 2 } } }));
+            expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-3", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } }));
+            expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-4", CustomZoneSetData{ L"name", CustomLayoutType::Canvas, CanvasLayoutInfo{ 1, 2 } } }));
+            json.SetNamedValue(L"custom-zone-sets", json::JsonValue::Parse(expected.Stringify()));
+
+            FancyZonesData data;
+            data.ParseCustomZoneSets(json);
+
+            auto actual = data.SerializeCustomZoneSets();
+            compareJsonArrays(expected, actual);
+        }
+
+        TEST_METHOD(CustomZoneSetsSerializeEmpty)
+        {
+            json::JsonArray expected;
+            json::JsonObject json;
+            json.SetNamedValue(L"custom-zone-sets", json::JsonValue::Parse(expected.Stringify()));
+
+            FancyZonesData data;
+            data.ParseCustomZoneSets(json);
+
+            auto actual = data.SerializeCustomZoneSets();
+            compareJsonArrays(expected, actual);
+        }
+    
+        TEST_METHOD(CustomZoneSetsReadTemp)
+        {
+            const std::wstring uuid = L"uuid";
+            CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } };
+
+            FancyZonesData data;
+            const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
+            json::to_file(path, CustomZoneSetJSON::ToJson(expected));
+
+            data.GetCustomZoneSetFromTmpFile(path, uuid);
+
+            bool actualFileExists = std::filesystem::exists(path);
+            if (actualFileExists)
+            {
+                std::filesystem::remove(path); //clean up before compare asserts
+            }
+            Assert::IsFalse(actualFileExists);
+
+            auto devices = data.GetCustomZoneSetsMap();
+            Assert::AreEqual((size_t)1, devices.size());
+
+            auto actual = devices.find(uuid)->second;
+            Assert::AreEqual((int)expected.data.type, (int)actual.type);
+            Assert::AreEqual(expected.data.name.c_str(), actual.name.c_str());
+            auto expectedGrid = std::get<GridLayoutInfo>(expected.data.info);
+            auto actualGrid = std::get<GridLayoutInfo>(actual.info);
+            Assert::AreEqual(expectedGrid.rows, actualGrid.rows);
+            Assert::AreEqual(expectedGrid.columns, actualGrid.columns);
+        }
+
+        TEST_METHOD(CustomZoneSetsReadTempUnexsisted)
+        {
+            const std::wstring uuid = L"uuid";
+            FancyZonesData data;
+
+            const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
+
+            data.GetCustomZoneSetFromTmpFile(path, uuid);
+            auto devices = data.GetDeviceInfoMap();
+            Assert::AreEqual((size_t)0, devices.size());
+        }
+
+        TEST_METHOD(CustomZoneSetsReadTempMissedUuid)
+        {
+            const std::wstring uuid = L"uuid";
+            CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } };
+            FancyZonesData data;
+
+            const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
+
+            json::to_file(path, CustomZoneSetJSON::ToJson(expected));
+            data.GetCustomZoneSetFromTmpFile(path, L"another_uuid");
+
+            bool actualFileExists = std::filesystem::exists(path);
+            if (actualFileExists)
+            {
+                std::filesystem::remove(path); //clean up before compare asserts
+            }
+            Assert::IsFalse(actualFileExists);
+
+            auto devices = data.GetDeviceInfoMap();
+            Assert::AreEqual((size_t)0, devices.size());
+        }
+
+        TEST_METHOD(SetActiveZoneSet)
+        {
+            FancyZonesData data;
+            const std::wstring uuid = L"uuid";
+            const std::wstring uniqueId = L"default_device_id";
+
+            json::JsonArray devices;
+            devices.Append(m_defaultCustomDeviceValue);
+            json::JsonObject json;
+            json.SetNamedValue(L"devices", devices);
+            data.ParseDeviceInfos(json);
+
+            data.SetActiveZoneSet(uniqueId, uuid);
+
+            auto actual = data.GetDeviceInfoMap().find(uniqueId)->second;
+            Assert::AreEqual(uuid, actual.activeZoneSet.uuid);
+        }
+
+        TEST_METHOD(SetActiveZoneSetUuidEmpty)
+        {
+            FancyZonesData data;
+            const std::wstring uuid = L"";
+            const std::wstring expected = L"uuid";
+            const std::wstring uniqueId = L"default_device_id";
+
+            json::JsonArray devices;
+            devices.Append(m_defaultCustomDeviceValue);
+            json::JsonObject json;
+            json.SetNamedValue(L"devices", devices);
+            data.ParseDeviceInfos(json);
+
+            data.SetActiveZoneSet(uniqueId, uuid);
+
+            auto actual = data.GetDeviceInfoMap().find(uniqueId)->second;
+            Assert::AreEqual(expected, actual.activeZoneSet.uuid);
+        }
+
+        TEST_METHOD(SetActiveZoneSetUniqueIdInvalid)
+        {
+            FancyZonesData data;
+            const std::wstring uuid = L"new_uuid";
+            const std::wstring expected = L"uuid";
+            const std::wstring uniqueId = L"id_not_contained_by_device_info_map";
+
+            json::JsonArray devices;
+            devices.Append(m_defaultCustomDeviceValue);
+            json::JsonObject json;
+            json.SetNamedValue(L"devices", devices);
+            data.ParseDeviceInfos(json);
+
+            data.SetActiveZoneSet(uniqueId, uuid);
+
+            const auto& deviceInfoMap = data.GetDeviceInfoMap();
+            auto actual = deviceInfoMap.find(L"default_device_id")->second;
+            Assert::AreEqual(expected, actual.activeZoneSet.uuid);
+
+            Assert::IsTrue(deviceInfoMap.end() == deviceInfoMap.find(uniqueId), L"new device info should not be added");
+        }
+
+        TEST_METHOD(LoadFancyZonesDataFromJson)
+        {
+            FancyZonesData data;
+            const auto jsonPath = data.GetPersistFancyZonesJSONPath();
+            auto savedJson = json::from_file(jsonPath);
+
+            if (std::filesystem::exists(jsonPath))
+            {
+                std::filesystem::remove(jsonPath);
+            }
+
+            CustomZoneSetJSON zoneSets{ L"zone-set-uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } };
+            AppZoneHistoryJSON appZoneHistory{ L"app-path", AppZoneHistoryData{ L"zone-set-uuid", 54321 }};
+            DeviceInfoJSON deviceInfo{ L"uuid", DeviceInfoData{ ZoneSetData{ L"uuid", ZoneSetLayoutType::Custom }, true, 16, 3 } };
+            json::JsonArray zoneSetsArray, appZonesArray, deviceInfoArray;
+            zoneSetsArray.Append(CustomZoneSetJSON::ToJson(zoneSets));
+            appZonesArray.Append(AppZoneHistoryJSON::ToJson(appZoneHistory));
+            deviceInfoArray.Append(DeviceInfoJSON::ToJson(deviceInfo));
+            json::JsonObject fancyZones;
+            fancyZones.SetNamedValue(L"custom-zone-sets", zoneSetsArray);
+            fancyZones.SetNamedValue(L"app-zone-history", appZonesArray);
+            fancyZones.SetNamedValue(L"devices", deviceInfoArray);
+
+            json::to_file(jsonPath, fancyZones);
+
+            data.LoadFancyZonesData();
+            if (savedJson)
+            {
+                json::to_file(jsonPath, *savedJson);
+            }
+            else
+            {
+                std::filesystem::remove(jsonPath);
+            }
+
+            Assert::IsFalse(data.GetCustomZoneSetsMap().empty());
+            Assert::IsFalse(data.GetCustomZoneSetsMap().empty());
+            Assert::IsFalse(data.GetCustomZoneSetsMap().empty());
+        }
+
+        TEST_METHOD(LoadFancyZonesDataFromRegistry)
+        {
+            FancyZonesData data;
+            const auto jsonPath = data.GetPersistFancyZonesJSONPath();
+            auto savedJson = json::from_file(jsonPath);
+
+            if (std::filesystem::exists(jsonPath))
+            {
+                std::filesystem::remove(jsonPath);
+            }
+
+
+            data.LoadFancyZonesData();
+            bool actual = std::filesystem::exists(jsonPath);
+            if (savedJson)
+            {
+                json::to_file(jsonPath, *savedJson);
+            }
+            else
+            {
+                std::filesystem::remove(jsonPath);
+            }
+
+            Assert::IsTrue(actual);
+        }
+
+        TEST_METHOD(SaveFancyZonesData)
+        {
+            FancyZonesData data;
+            const auto jsonPath = data.GetPersistFancyZonesJSONPath();
+            auto savedJson = json::from_file(jsonPath);
+
+            if (std::filesystem::exists(jsonPath))
+            {
+                std::filesystem::remove(jsonPath);
+            }
+
+            data.SaveFancyZonesData();
+            bool actual = std::filesystem::exists(jsonPath);
+
+            if (savedJson)
+            {
+                json::to_file(jsonPath, *savedJson);
+            }
+            else
+            {
+                std::filesystem::remove(jsonPath);
+            }
+
+            Assert::IsTrue(actual);
+        }
     };
 }
