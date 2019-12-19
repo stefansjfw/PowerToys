@@ -548,6 +548,49 @@ namespace FancyZonesUnitTests
         }
     };
 
+    TEST_CLASS(AppZoneHistoryUnitTests)
+    {
+        TEST_METHOD(ToJson)
+        {
+            AppZoneHistoryJSON appZoneHistory{ L"appPath", AppZoneHistoryData{ L"zone-set-uuid", 54321 } };
+            json::JsonObject expected = json::JsonObject::Parse(L"{\"app-path\": \"appPath\", \"zoneset-uuid\": \"zone-set-uuid\", \"zone-index\": 54321}");
+
+            auto actual = AppZoneHistoryJSON::ToJson(appZoneHistory);
+            compareJsonObjects(expected, actual);
+        }
+
+        TEST_METHOD(FromJson)
+        {
+            AppZoneHistoryJSON expected{ L"appPath", AppZoneHistoryData{ L"zone-set-uuid", 54321 } };
+            json::JsonObject json = json::JsonObject::Parse(L"{\"app-path\": \"appPath\", \"zoneset-uuid\": \"zone-set-uuid\", \"zone-index\": 54321}");
+
+            auto actual = AppZoneHistoryJSON::FromJson(json);
+            Assert::AreEqual(expected.appPath.c_str(), actual.appPath.c_str());
+            Assert::AreEqual(expected.data.zoneIndex, actual.data.zoneIndex);
+            Assert::AreEqual(expected.data.zoneSetUuid.c_str(), actual.data.zoneSetUuid.c_str());
+        }
+
+        TEST_METHOD(FromJsonMissingKeys)
+        {
+            AppZoneHistoryJSON appZoneHistory{ L"appPath", AppZoneHistoryData{ L"zone-set-uuid", 54321 } };
+            const auto json = AppZoneHistoryJSON::ToJson(appZoneHistory);
+
+            auto iter = json.First();
+            while (iter.HasCurrent())
+            {
+                json::JsonObject modifiedJson = json::JsonObject::Parse(json.Stringify());
+                modifiedJson.Remove(iter.Current().Key());
+
+                auto parseFunc = [&modifiedJson] {
+                    AppZoneHistoryJSON::FromJson(modifiedJson);
+                };
+                Assert::ExpectException<winrt::hresult_error>(parseFunc);
+
+                iter.MoveNext();
+            }
+        }
+    };
+
     TEST_CLASS(FancyZonesDataUnitTests)
     {
     private:
