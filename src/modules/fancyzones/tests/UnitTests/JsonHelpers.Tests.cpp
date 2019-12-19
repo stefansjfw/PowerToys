@@ -49,7 +49,7 @@ namespace FancyZonesUnitTests
             iter.MoveNext();
         }
     }
-
+    
     TEST_CLASS(ZoneSetLayoutTypeUnitTest)
     {
 
@@ -166,78 +166,87 @@ namespace FancyZonesUnitTests
                 Assert::AreEqual(expected.zones[i].height, actual.zones[i].height);
             }
         }
+
+        TEST_METHOD(FromJsonMissingKeys)
+        {
+            CanvasLayoutInfo info{ 123, 321, { CanvasLayoutInfo::Rect{ 11, 22, 33, 44 }, CanvasLayoutInfo::Rect{ 55, 66, 77, 88 } } };
+            const auto json = CanvasLayoutInfo::ToJson(info);
+
+            auto iter = json.First();
+            while (iter.HasCurrent())
+            {
+                json::JsonObject modifiedJson = json::JsonObject::Parse(json.Stringify());
+                modifiedJson.Remove(iter.Current().Key());
+
+                auto parseFunc = [&modifiedJson] {
+                    CanvasLayoutInfo::FromJson(modifiedJson);
+                };
+                Assert::ExpectException<winrt::hresult_error>(parseFunc);
+
+                iter.MoveNext();
+            }
+        }
     };
 
     TEST_CLASS(GridLayoutInfoUnitTests)
     {
-        TEST_METHOD(ToJson)
-        {
-            json::JsonObject expected = json::JsonObject::Parse(L"{\"rows\": 1, \"columns\": 2}");
-            GridLayoutInfo info;
-            info.rows = 1;
-            info.columns = 2;
+    private:
+        GridLayoutInfo m_info{1, 2};
+        json::JsonObject m_gridJson = json::JsonObject();
+        json::JsonArray m_rowsArray, m_columnsArray, m_cells;
 
-            json::JsonArray rowsArray, columnsArray, cells;
+        TEST_METHOD_INITIALIZE(Init)
+        {
             for (int i = 0; i < MAX_ZONE_COUNT; i++)
             {
                 int row = rand() % 100;
-                rowsArray.Append(json::JsonValue::CreateNumberValue(row));
-                info.rowsPercents[i] = row;
-                
+                m_rowsArray.Append(json::JsonValue::CreateNumberValue(row));
+                m_info.rowsPercents[i] = row;
+
                 int column = rand() % 100;
-                columnsArray.Append(json::JsonValue::CreateNumberValue(column));
-                info.columnsPercents[i] = column;
+                m_columnsArray.Append(json::JsonValue::CreateNumberValue(column));
+                m_info.columnsPercents[i] = column;
 
                 json::JsonArray cellsArray;
                 for (int j = 0; j < MAX_ZONE_COUNT; j++)
                 {
                     int cell = rand() % 100;
-                    info.cellChildMap[i][j] = cell;
+                    m_info.cellChildMap[i][j] = cell;
                     cellsArray.Append(json::JsonValue::CreateNumberValue(cell));
                 }
-                cells.Append(cellsArray);
+                m_cells.Append(cellsArray);
             }
 
-            expected.SetNamedValue(L"rows-percentage", rowsArray);
-            expected.SetNamedValue(L"columns-percentage", columnsArray);
-            expected.SetNamedValue(L"cell-child-map", cells);
-            
+            m_gridJson = json::JsonObject::Parse(L"{\"rows\": 1, \"columns\": 2}");
+            m_gridJson.SetNamedValue(L"rows-percentage", m_rowsArray);
+            m_gridJson.SetNamedValue(L"columns-percentage", m_columnsArray);
+            m_gridJson.SetNamedValue(L"cell-child-map", m_cells);
+        }
+
+        TEST_METHOD_CLEANUP(Cleanup)
+        {
+            m_rowsArray.Clear();
+            m_cells.Clear();
+            m_columnsArray.Clear();
+            m_gridJson.Clear();
+            m_info = GridLayoutInfo{ 1, 2 };
+        }
+
+    public:
+        TEST_METHOD(ToJson)
+        {
+            json::JsonObject expected = json::JsonObject(m_gridJson);
+            GridLayoutInfo info = m_info;
+                        
             auto actual = GridLayoutInfo::ToJson(info);
             compareJsonObjects(expected, actual);
         }
 
         TEST_METHOD(FromJson)
         {
-            json::JsonObject json = json::JsonObject::Parse(L"{\"rows\": 1, \"columns\": 2}");
-            GridLayoutInfo expected;
-            expected.rows = 1;
-            expected.columns = 2;
+            json::JsonObject json = json::JsonObject(m_gridJson);
+            GridLayoutInfo expected = m_info;
 
-            json::JsonArray rowsArray, columnsArray, cells;
-            for (int i = 0; i < MAX_ZONE_COUNT; i++)
-            {
-                int row = rand() % 100;
-                rowsArray.Append(json::JsonValue::CreateNumberValue(row));
-                expected.rowsPercents[i] = row;
-
-                int column = rand() % 100;
-                columnsArray.Append(json::JsonValue::CreateNumberValue(column));
-                expected.columnsPercents[i] = column;
-
-                json::JsonArray cellsArray;
-                for (int j = 0; j < MAX_ZONE_COUNT; j++)
-                {
-                    int cell = rand() % 100;
-                    expected.cellChildMap[i][j] = cell;
-                    cellsArray.Append(json::JsonValue::CreateNumberValue(cell));
-                }
-                cells.Append(cellsArray);
-            }
-
-            json.SetNamedValue(L"rows-percentage", rowsArray);
-            json.SetNamedValue(L"columns-percentage", columnsArray);
-            json.SetNamedValue(L"cell-child-map", cells);
-            
             auto actual = GridLayoutInfo::FromJson(json);
             Assert::AreEqual(expected.rows, actual.rows);
             Assert::AreEqual(expected.columns, actual.columns);
@@ -255,15 +264,11 @@ namespace FancyZonesUnitTests
         TEST_METHOD(FromJsonEmptyArray)
         {
             json::JsonObject json = json::JsonObject::Parse(L"{\"rows\": 1, \"columns\": 2}");
-            GridLayoutInfo expected;
-            expected.rows = 1;
-            expected.columns = 2;
-
-            json::JsonArray rowsArray, columnsArray, cells;
-
-            json.SetNamedValue(L"rows-percentage", rowsArray);
-            json.SetNamedValue(L"columns-percentage", columnsArray);
-            json.SetNamedValue(L"cell-child-map", cells);
+            GridLayoutInfo expected { 1, 2 };
+            
+            json.SetNamedValue(L"rows-percentage", json::JsonArray());
+            json.SetNamedValue(L"columns-percentage", json::JsonArray());
+            json.SetNamedValue(L"cell-child-map", json::JsonArray());
 
             auto actual = GridLayoutInfo::FromJson(json);
             Assert::AreEqual(expected.rows, actual.rows);
@@ -281,35 +286,8 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(FromJsonSmallerArray)
         {
-            json::JsonObject json = json::JsonObject::Parse(L"{\"rows\": 1, \"columns\": 2}");
-            GridLayoutInfo expected;
-            expected.rows = 1;
-            expected.columns = 2;
-
-            json::JsonArray rowsArray, columnsArray, cells;
-            for (int i = 0; i < MAX_ZONE_COUNT - 5; i++)
-            {
-                int row = rand() % 100;
-                rowsArray.Append(json::JsonValue::CreateNumberValue(row));
-                expected.rowsPercents[i] = row;
-
-                int column = rand() % 100;
-                columnsArray.Append(json::JsonValue::CreateNumberValue(column));
-                expected.columnsPercents[i] = column;
-
-                json::JsonArray cellsArray;
-                for (int j = 0; j < MAX_ZONE_COUNT; j++)
-                {
-                    int cell = rand() % 100;
-                    expected.cellChildMap[i][j] = cell;
-                    cellsArray.Append(json::JsonValue::CreateNumberValue(cell));
-                }
-                cells.Append(cellsArray);
-            }
-
-            json.SetNamedValue(L"rows-percentage", rowsArray);
-            json.SetNamedValue(L"columns-percentage", columnsArray);
-            json.SetNamedValue(L"cell-child-map", cells);
+            json::JsonObject json = json::JsonObject(m_gridJson);
+            GridLayoutInfo expected = m_info;
 
             auto actual = GridLayoutInfo::FromJson(json);
             Assert::AreEqual(expected.rows, actual.rows);
@@ -328,9 +306,7 @@ namespace FancyZonesUnitTests
         TEST_METHOD(FromJsonBiggerArray)
         {
             json::JsonObject json = json::JsonObject::Parse(L"{\"rows\": 1, \"columns\": 2}");
-            GridLayoutInfo expected;
-            expected.rows = 1;
-            expected.columns = 2;
+            GridLayoutInfo expected{ 1, 2 };
 
             json::JsonArray rowsArray, columnsArray, cells;
             for (int i = 0; i < MAX_ZONE_COUNT; i++)
@@ -381,22 +357,36 @@ namespace FancyZonesUnitTests
                 }
             }
         }
+
+        TEST_METHOD(FromJsonMissingKeys)
+        {
+            GridLayoutInfo info = m_info;
+            const auto json = json::JsonObject(m_gridJson);
+
+            auto iter = json.First();
+            while (iter.HasCurrent())
+            {
+                json::JsonObject modifiedJson = json::JsonObject::Parse(json.Stringify());
+                modifiedJson.Remove(iter.Current().Key());
+
+                auto parseFunc = [&modifiedJson] {
+                    GridLayoutInfo::FromJson(modifiedJson);
+                };
+                Assert::ExpectException<winrt::hresult_error>(parseFunc);
+
+                iter.MoveNext();
+            }
+        }
     };
 
     TEST_CLASS(CustomZoneSetUnitTests)
     {
         TEST_METHOD(ToJsonGrid)
         {
-            CustomZoneSetJSON zoneSet;
-            zoneSet.uuid = L"uuid";
-            CustomZoneSetData data;
-            data.name = L"name";
-            data.type = CustomLayoutType::Grid;
-            data.info = GridLayoutInfo();
-            zoneSet.data = data;
+            CustomZoneSetJSON zoneSet{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{} } };
 
             json::JsonObject expected = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"name\": \"name\", \"type\": \"grid\"}");
-            expected.SetNamedValue(L"info", GridLayoutInfo::ToJson(std::get<GridLayoutInfo>(data.info)));
+            expected.SetNamedValue(L"info", GridLayoutInfo::ToJson(std::get<GridLayoutInfo>(zoneSet.data.info)));
 
             auto actual = CustomZoneSetJSON::ToJson(zoneSet);
             compareJsonObjects(expected, actual);
@@ -404,16 +394,10 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(ToJsonCanvas)
         {
-            CustomZoneSetJSON zoneSet;
-            zoneSet.uuid = L"uuid";
-            CustomZoneSetData data;
-            data.name = L"name";
-            data.type = CustomLayoutType::Canvas;
-            data.info = CanvasLayoutInfo();
-            zoneSet.data = data;
+            CustomZoneSetJSON zoneSet{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Canvas, CanvasLayoutInfo{} } };
 
             json::JsonObject expected = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"name\": \"name\", \"type\": \"canvas\"}");
-            expected.SetNamedValue(L"info", CanvasLayoutInfo::ToJson(std::get<CanvasLayoutInfo>(data.info)));
+            expected.SetNamedValue(L"info", CanvasLayoutInfo::ToJson(std::get<CanvasLayoutInfo>(zoneSet.data.info)));
 
             auto actual = CustomZoneSetJSON::ToJson(zoneSet);
             compareJsonObjects(expected, actual);
@@ -421,16 +405,10 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(FromJsonGrid)
         {            
-            CustomZoneSetJSON expected;
-            expected.uuid = L"uuid";
-            CustomZoneSetData data;
-            data.name = L"name";
-            data.type = CustomLayoutType::Grid;
-            data.info = GridLayoutInfo{ 1, 2 };
-            expected.data = data;
+            CustomZoneSetJSON expected{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{1, 2} } };
 
             json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"name\": \"name\", \"type\": \"grid\"}");
-            json.SetNamedValue(L"info", GridLayoutInfo::ToJson(std::get<GridLayoutInfo>(data.info)));
+            json.SetNamedValue(L"info", GridLayoutInfo::ToJson(std::get<GridLayoutInfo>(expected.data.info)));
 
             auto actual = CustomZoneSetJSON::FromJson(json);
             Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
@@ -445,16 +423,10 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(FromJsonCanvas)
         {
-            CustomZoneSetJSON expected;
-            expected.uuid = L"uuid";
-            CustomZoneSetData data;
-            data.name = L"name";
-            data.type = CustomLayoutType::Canvas;
-            data.info = CanvasLayoutInfo{ 2, 1 };
-            expected.data = data;
-
+            CustomZoneSetJSON expected{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Canvas, CanvasLayoutInfo{ 2, 1 } } };
+            
             json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"name\": \"name\", \"type\": \"canvas\"}");
-            json.SetNamedValue(L"info", CanvasLayoutInfo::ToJson(std::get<CanvasLayoutInfo>(data.info)));
+            json.SetNamedValue(L"info", CanvasLayoutInfo::ToJson(std::get<CanvasLayoutInfo>(expected.data.info)));
 
             auto actual = CustomZoneSetJSON::FromJson(json);
             Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
@@ -466,6 +438,26 @@ namespace FancyZonesUnitTests
             Assert::AreEqual(expectedGrid.referenceWidth, actualGrid.referenceWidth);
             Assert::AreEqual(expectedGrid.referenceHeight, actualGrid.referenceHeight);
         }
+
+        TEST_METHOD(FromJsonMissingKeys)
+        {
+            CustomZoneSetJSON zoneSet{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Canvas, CanvasLayoutInfo{ 2, 1 } } };
+            const auto json = CustomZoneSetJSON::ToJson(zoneSet);
+
+            auto iter = json.First();
+            while (iter.HasCurrent())
+            {
+                json::JsonObject modifiedJson = json::JsonObject::Parse(json.Stringify());
+                modifiedJson.Remove(iter.Current().Key());
+
+                auto parseFunc = [&modifiedJson] {
+                    CustomZoneSetJSON::FromJson(modifiedJson);
+                };
+                Assert::ExpectException<winrt::hresult_error>(parseFunc);
+
+                iter.MoveNext();
+            }
+        }
     };
 
     TEST_CLASS(ZoneSetDataUnitTest)
@@ -473,11 +465,7 @@ namespace FancyZonesUnitTests
         TEST_METHOD(ToJsonCustom)
         {
             json::JsonObject expected = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"custom\"}");
-
-            ZoneSetData data;
-            data.uuid = L"uuid";
-            data.type = ZoneSetLayoutType::Custom;
-
+            ZoneSetData data{ L"uuid", ZoneSetLayoutType::Custom };
             const auto actual = ZoneSetData::ToJson(data);
             compareJsonObjects(expected, actual);
         }
@@ -485,21 +473,14 @@ namespace FancyZonesUnitTests
         TEST_METHOD(ToJsonGeneral)
         {
             json::JsonObject expected = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"rows\", \"zone-count\": 47372}");
-
-            ZoneSetData data;
-            data.uuid = L"uuid";
-            data.type = ZoneSetLayoutType::Rows;
-            data.zoneCount = 47372;
-
+            ZoneSetData data{ L"uuid", ZoneSetLayoutType::Rows, 47372 };
             const auto actual = ZoneSetData::ToJson(data);
             compareJsonObjects(expected, actual);
         }
 
         TEST_METHOD(FromJsonCustom)
         {
-            ZoneSetData expected;
-            expected.uuid = L"uuid";
-            expected.type = ZoneSetLayoutType::Custom;
+            ZoneSetData expected{ L"uuid", ZoneSetLayoutType::Custom };
 
             json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"custom\"}");
             ZoneSetData actual = ZoneSetData::FromJson(json);
@@ -511,9 +492,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(FromJsonCustomZoneAdded)
         {
-            ZoneSetData expected;
-            expected.uuid = L"uuid";
-            expected.type = ZoneSetLayoutType::Custom;
+            ZoneSetData expected{ L"uuid", ZoneSetLayoutType::Custom };
 
             json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"custom\", \"zone-count\": 47372}");
             ZoneSetData actual = ZoneSetData::FromJson(json);
@@ -525,10 +504,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(FromJsonGeneral)
         {
-            ZoneSetData expected;
-            expected.uuid = L"uuid";
-            expected.type = ZoneSetLayoutType::Columns;
-            expected.zoneCount = 47372;
+            ZoneSetData expected{ L"uuid", ZoneSetLayoutType::Columns, 47372 };
 
             json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"columns\", \"zone-count\": 47372}");
             ZoneSetData actual = ZoneSetData::FromJson(json);
@@ -541,9 +517,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(FromJsonTypeInvalid)
         {
-            ZoneSetData expected;
-            expected.uuid = L"uuid";
-            expected.type = ZoneSetLayoutType::Custom;
+            ZoneSetData expected{ L"uuid", ZoneSetLayoutType::Custom };
 
             json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"invalid_type\"}");
             ZoneSetData actual = ZoneSetData::FromJson(json);
@@ -551,6 +525,26 @@ namespace FancyZonesUnitTests
             Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
             Assert::AreEqual((int)expected.type, (int)actual.type);
             Assert::IsFalse(actual.zoneCount.has_value());
+        }
+
+        TEST_METHOD(FromJsonMissingKeys)
+        {
+            ZoneSetData data{ L"uuid", ZoneSetLayoutType::Columns, 47372 };
+            const auto json = ZoneSetData::ToJson(data);
+
+            auto iter = json.First();
+            while (iter.HasCurrent())
+            {
+                json::JsonObject modifiedJson = json::JsonObject::Parse(json.Stringify());
+                modifiedJson.Remove(iter.Current().Key());
+
+                auto parseFunc = [&modifiedJson] {
+                    ZoneSetData::FromJson(modifiedJson);
+                };
+                Assert::ExpectException<winrt::hresult_error>(parseFunc);
+
+                iter.MoveNext();
+            }
         }
     };
 
