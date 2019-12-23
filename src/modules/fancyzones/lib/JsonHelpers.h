@@ -31,6 +31,12 @@ namespace JSONHelpers
         Canvas
     };
 
+    std::wstring TypeToString(ZoneSetLayoutType type);
+    ZoneSetLayoutType TypeFromString(const std::wstring& typeStr);
+
+    ZoneSetLayoutType TypeFromLayoutId(int layoutID);
+    int TypeToLayoutId(JSONHelpers::ZoneSetLayoutType layoutType);
+
     using TZoneCount = int;
     using TZoneUUID = std::wstring;
     using TAppPath = std::wstring;
@@ -48,6 +54,9 @@ namespace JSONHelpers
             int height;
         };
         std::vector<CanvasLayoutInfo::Rect> zones;
+
+        static json::JsonObject ToJson(const CanvasLayoutInfo& canvasInfo);
+        static CanvasLayoutInfo FromJson(const json::JsonObject& infoJson);
     };
 
     struct GridLayoutInfo
@@ -57,6 +66,9 @@ namespace JSONHelpers
         int rowsPercents[MAX_ZONE_COUNT];
         int columnsPercents[MAX_ZONE_COUNT];
         int cellChildMap[MAX_ZONE_COUNT][MAX_ZONE_COUNT];
+
+        static json::JsonObject ToJson(const GridLayoutInfo& gridInfo);
+        static GridLayoutInfo FromJson(const json::JsonObject& infoJson);
     };
 
     struct CustomZoneSetData
@@ -70,6 +82,9 @@ namespace JSONHelpers
     {
         TZoneUUID uuid;
         CustomZoneSetData data;
+
+        static json::JsonObject ToJson(const CustomZoneSetJSON& device);
+        static CustomZoneSetJSON FromJson(const json::JsonObject& customZoneSet);
     };
 
     // TODO(stefan): This needs to be moved to ZoneSet.h (probably)
@@ -79,12 +94,8 @@ namespace JSONHelpers
         ZoneSetLayoutType type; // TODO(stefan): Change this to string in JSON so user can understand it
         std::optional<int> zoneCount;
 
-    public:
-        static std::wstring TypeToString(ZoneSetLayoutType type);
-        static ZoneSetLayoutType TypeFromString(std::wstring typeStr);
-
-        static ZoneSetLayoutType LayoutIdToType(int layoutID);
-        static int TypeToLayoutId(JSONHelpers::ZoneSetLayoutType layoutType);
+        static json::JsonObject ToJson(const ZoneSetData& zoneSet);
+        static ZoneSetData FromJson(const json::JsonObject& zoneSet);
     };
 
     struct AppZoneHistoryData
@@ -98,6 +109,9 @@ namespace JSONHelpers
     {
         TAppPath appPath;
         AppZoneHistoryData data;
+
+        static json::JsonObject ToJson(const AppZoneHistoryJSON& appZoneHistory);
+        static AppZoneHistoryJSON FromJson(const json::JsonObject& zoneSet);
     };
 
     struct DeviceInfoData
@@ -112,6 +126,9 @@ namespace JSONHelpers
     {
         TDeviceID deviceId;
         DeviceInfoData data;
+
+        static json::JsonObject ToJson(const DeviceInfoJSON& device);
+        static DeviceInfoJSON FromJson(const json::JsonObject& device);
     };
 
     using TDeviceInfosMap = std::unordered_map<TZoneUUID, DeviceInfoData>;
@@ -148,12 +165,17 @@ namespace JSONHelpers
             return customZoneSetsMap;
         }
 
+        const std::unordered_map<TAppPath, AppZoneHistoryData>& GetAppZoneHistoryMap() const
+        {
+            return appZoneHistoryMap;
+        }
+
         bool GetAppLastZone(HWND window, PCWSTR appPath, _Out_ PINT iZoneIndex) const;
         bool SetAppLastZone(HWND window, PCWSTR appPath, DWORD zoneIndex); //TODO(stefan): Missing zone uuid (pass as arg)
 
         void SetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& uuid); //TODO(stefan): deviceID missing and what about spacing fields?
 
-        void SetDeviceInfoToTmpFile(const DeviceInfoJSON& deviceInfo, const std::wstring& tmpFilePath);
+        void SetDeviceInfoToTmpFile(const DeviceInfoJSON& deviceInfo, const std::wstring& tmpFilePath) const;
         void GetDeviceInfoFromTmpFile(const std::wstring& uniqueID, const std::wstring& tmpFilePath);
 
         void GetCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath, const std::wstring& uuid);
@@ -173,18 +195,6 @@ namespace JSONHelpers
         void MigrateAppZoneHistoryFromRegistry(); //TODO(stefan): If uuid is needed here, it needs to be resolved here some how
         void MigrateDeviceInfoFromRegistry();
         void MigrateCustomZoneSetsFromRegistry();
-
-        json::JsonObject ZoneSetDataToJson(const ZoneSetData& zoneSet) const;
-        ZoneSetData ZoneSetDataFromJson(const json::JsonObject& zoneSet) const;
-
-        json::JsonObject AppZoneHistoryToJson(const AppZoneHistoryJSON& appZoneHistory) const;
-        AppZoneHistoryJSON AppZoneHistoryFromJson(const json::JsonObject& zoneSet) const;
-
-        json::JsonObject DeviceInfoToJson(const DeviceInfoJSON& device) const;
-        DeviceInfoJSON DeviceInfoFromJson(const json::JsonObject& device) const;
-
-        json::JsonObject CustomZoneSetToJson(const CustomZoneSetJSON& device) const;
-        CustomZoneSetJSON CustomZoneSetFromJson(const json::JsonObject& customZoneSet) const;
 
         std::unordered_map<TAppPath, AppZoneHistoryData> appZoneHistoryMap{};
         TDeviceInfosMap deviceInfoMap{};

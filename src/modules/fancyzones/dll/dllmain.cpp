@@ -51,7 +51,7 @@ STDAPI PersistZoneSet(
     {
         JSONHelpers::ZoneSetData data;
         data.uuid = zoneSetId.get();
-        data.type = JSONHelpers::ZoneSetData::LayoutIdToType(layoutId);
+        data.type = JSONHelpers::TypeFromLayoutId(layoutId);
         if (data.type != JSONHelpers::ZoneSetLayoutType::Custom) {
           data.zoneCount = zoneCount;
         }
