@@ -102,6 +102,7 @@
     </ClCompile>
     <ClCompile Include="RegistryHelpers.Spec.cpp" />
     <ClCompile Include="Util.Spec.cpp" />
+    <ClCompile Include="Util.cpp" />
     <ClCompile Include="Zone.Spec.cpp" />
     <ClCompile Include="ZoneSet.Spec.cpp" />
     <ClCompile Include="ZoneWindow.Spec.cpp" />
