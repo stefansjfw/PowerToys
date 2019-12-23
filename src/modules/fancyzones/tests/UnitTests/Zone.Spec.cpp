@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "lib\Zone.h"
+#include "lib\Settings.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -401,6 +402,50 @@ namespace FancyZonesUnitTests
             zone->RemoveWindowFromZone(window, true);
 
             Assert::IsTrue(zone->IsEmpty());
+        }
+
+        TEST_METHOD(StampTrue)
+        {
+            winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
+
+            HWND zoneWindow = Mocks::HwndCreator()(m_hInst);
+            HWND window = Mocks::HwndCreator()(m_hInst);
+
+            size_t expected = 123456;
+            zone->SetId(expected);
+            zone->AddWindowToZone(window, zoneWindow, true);
+
+            HANDLE actual = GetProp(window, ZONE_STAMP);
+            Assert::IsNotNull(actual);
+
+            size_t actualVal = HandleToLong(actual);
+            Assert::AreEqual(expected, actualVal);
+        }
+
+        TEST_METHOD(StampTrueNoId)
+        {
+            winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
+
+            HWND zoneWindow = Mocks::HwndCreator()(m_hInst);
+            HWND window = Mocks::HwndCreator()(m_hInst);
+
+            zone->AddWindowToZone(window, zoneWindow, true);
+
+            HANDLE actual = GetProp(window, ZONE_STAMP);
+            Assert::IsNull(actual);
+        }
+
+        TEST_METHOD(StampFalse)
+        {
+            winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
+
+            HWND zoneWindow = Mocks::HwndCreator()(m_hInst);
+            HWND window = Mocks::HwndCreator()(m_hInst);
+
+            zone->AddWindowToZone(window, zoneWindow, false);
+
+            HANDLE actual = GetProp(window, ZONE_STAMP);
+            Assert::IsNull(actual);
         }
     };
 }
