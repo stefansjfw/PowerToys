@@ -155,15 +155,17 @@ namespace FancyZonesUnitTests
             expected.zones = { CanvasLayoutInfo::Rect{ 11, 22, 33, 44 }, CanvasLayoutInfo::Rect{ 55, 66, 77, 88 } };
 
             auto actual = CanvasLayoutInfo::FromJson(m_json);
-            Assert::AreEqual(expected.referenceHeight, actual.referenceHeight);
-            Assert::AreEqual(expected.referenceWidth, actual.referenceWidth);
-            Assert::AreEqual(expected.zones.size(), actual.zones.size());
+            Assert::IsTrue(actual.has_value());
+
+            Assert::AreEqual(expected.referenceHeight, actual->referenceHeight);
+            Assert::AreEqual(expected.referenceWidth, actual->referenceWidth);
+            Assert::AreEqual(expected.zones.size(), actual->zones.size());
             for (int i = 0; i < expected.zones.size(); i++)
             {
-                Assert::AreEqual(expected.zones[i].x, actual.zones[i].x);
-                Assert::AreEqual(expected.zones[i].y, actual.zones[i].y);
-                Assert::AreEqual(expected.zones[i].width, actual.zones[i].width);
-                Assert::AreEqual(expected.zones[i].height, actual.zones[i].height);
+                Assert::AreEqual(expected.zones[i].x, actual->zones[i].x);
+                Assert::AreEqual(expected.zones[i].y, actual->zones[i].y);
+                Assert::AreEqual(expected.zones[i].width, actual->zones[i].width);
+                Assert::AreEqual(expected.zones[i].height, actual->zones[i].height);
             }
         }
 
@@ -178,10 +180,8 @@ namespace FancyZonesUnitTests
                 json::JsonObject modifiedJson = json::JsonObject::Parse(json.Stringify());
                 modifiedJson.Remove(iter.Current().Key());
 
-                auto parseFunc = [&modifiedJson] {
-                    CanvasLayoutInfo::FromJson(modifiedJson);
-                };
-                Assert::ExpectException<winrt::hresult_error>(parseFunc);
+                auto actual = CanvasLayoutInfo::FromJson(modifiedJson);
+                Assert::IsFalse(actual.has_value());
 
                 iter.MoveNext();
             }
@@ -248,15 +248,17 @@ namespace FancyZonesUnitTests
             GridLayoutInfo expected = m_info;
 
             auto actual = GridLayoutInfo::FromJson(json);
-            Assert::AreEqual(expected.rows, actual.rows);
-            Assert::AreEqual(expected.columns, actual.columns);
+            Assert::IsTrue(actual.has_value());
+
+            Assert::AreEqual(expected.rows, actual->rows);
+            Assert::AreEqual(expected.columns, actual->columns);
             for (int i = 0; i < MAX_ZONE_COUNT; i++)
             {
-                Assert::AreEqual(expected.rowsPercents[i], actual.rowsPercents[i]);
-                Assert::AreEqual(expected.columnsPercents[i], actual.columnsPercents[i]);
+                Assert::AreEqual(expected.rowsPercents[i], actual->rowsPercents[i]);
+                Assert::AreEqual(expected.columnsPercents[i], actual->columnsPercents[i]);
                 for (int j = 0; j < MAX_ZONE_COUNT; j++)
                 {
-                    Assert::AreEqual(expected.cellChildMap[i][j], actual.cellChildMap[i][j]);
+                    Assert::AreEqual(expected.cellChildMap[i][j], actual->cellChildMap[i][j]);
                 }
             }
         }
@@ -271,15 +273,17 @@ namespace FancyZonesUnitTests
             json.SetNamedValue(L"cell-child-map", json::JsonArray());
 
             auto actual = GridLayoutInfo::FromJson(json);
-            Assert::AreEqual(expected.rows, actual.rows);
-            Assert::AreEqual(expected.columns, actual.columns);
+            Assert::IsTrue(actual.has_value());
+
+            Assert::AreEqual(expected.rows, actual->rows);
+            Assert::AreEqual(expected.columns, actual->columns);
             for (int i = 0; i < MAX_ZONE_COUNT; i++)
             {
-                Assert::AreEqual(expected.rowsPercents[i], actual.rowsPercents[i]);
-                Assert::AreEqual(expected.columnsPercents[i], actual.columnsPercents[i]);
+                Assert::AreEqual(expected.rowsPercents[i], actual->rowsPercents[i]);
+                Assert::AreEqual(expected.columnsPercents[i], actual->columnsPercents[i]);
                 for (int j = 0; j < MAX_ZONE_COUNT; j++)
                 {
-                    Assert::AreEqual(expected.cellChildMap[i][j], actual.cellChildMap[i][j]);
+                    Assert::AreEqual(expected.cellChildMap[i][j], actual->cellChildMap[i][j]);
                 }
             }
         }
@@ -290,15 +294,17 @@ namespace FancyZonesUnitTests
             GridLayoutInfo expected = m_info;
 
             auto actual = GridLayoutInfo::FromJson(json);
-            Assert::AreEqual(expected.rows, actual.rows);
-            Assert::AreEqual(expected.columns, actual.columns);
+            Assert::IsTrue(actual.has_value());
+
+            Assert::AreEqual(expected.rows, actual->rows);
+            Assert::AreEqual(expected.columns, actual->columns);
             for (int i = 0; i < MAX_ZONE_COUNT; i++)
             {
-                Assert::AreEqual(expected.rowsPercents[i], actual.rowsPercents[i]);
-                Assert::AreEqual(expected.columnsPercents[i], actual.columnsPercents[i]);
+                Assert::AreEqual(expected.rowsPercents[i], actual->rowsPercents[i]);
+                Assert::AreEqual(expected.columnsPercents[i], actual->columnsPercents[i]);
                 for (int j = 0; j < MAX_ZONE_COUNT; j++)
                 {
-                    Assert::AreEqual(expected.cellChildMap[i][j], actual.cellChildMap[i][j]);
+                    Assert::AreEqual(expected.cellChildMap[i][j], actual->cellChildMap[i][j]);
                 }
             }
         }
@@ -345,15 +351,17 @@ namespace FancyZonesUnitTests
             json.SetNamedValue(L"cell-child-map", cells);
 
             auto actual = GridLayoutInfo::FromJson(json);
-            Assert::AreEqual(expected.rows, actual.rows);
-            Assert::AreEqual(expected.columns, actual.columns);
+            Assert::IsTrue(actual.has_value());
+
+            Assert::AreEqual(expected.rows, actual->rows);
+            Assert::AreEqual(expected.columns, actual->columns);
             for (int i = 0; i < MAX_ZONE_COUNT; i++)
             {
-                Assert::AreEqual(expected.rowsPercents[i], actual.rowsPercents[i]);
-                Assert::AreEqual(expected.columnsPercents[i], actual.columnsPercents[i]);
+                Assert::AreEqual(expected.rowsPercents[i], actual->rowsPercents[i]);
+                Assert::AreEqual(expected.columnsPercents[i], actual->columnsPercents[i]);
                 for (int j = 0; j < MAX_ZONE_COUNT; j++)
                 {
-                    Assert::AreEqual(expected.cellChildMap[i][j], actual.cellChildMap[i][j]);
+                    Assert::AreEqual(expected.cellChildMap[i][j], actual->cellChildMap[i][j]);
                 }
             }
         }
@@ -369,10 +377,8 @@ namespace FancyZonesUnitTests
                 json::JsonObject modifiedJson = json::JsonObject::Parse(json.Stringify());
                 modifiedJson.Remove(iter.Current().Key());
 
-                auto parseFunc = [&modifiedJson] {
-                    GridLayoutInfo::FromJson(modifiedJson);
-                };
-                Assert::ExpectException<winrt::hresult_error>(parseFunc);
+                auto actual = GridLayoutInfo::FromJson(modifiedJson);
+                Assert::IsFalse(actual.has_value());
 
                 iter.MoveNext();
             }
@@ -411,12 +417,14 @@ namespace FancyZonesUnitTests
             json.SetNamedValue(L"info", GridLayoutInfo::ToJson(std::get<GridLayoutInfo>(expected.data.info)));
 
             auto actual = CustomZoneSetJSON::FromJson(json);
-            Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
-            Assert::AreEqual(expected.data.name.c_str(), actual.data.name.c_str());
-            Assert::AreEqual((int)expected.data.type, (int)actual.data.type);
+            Assert::IsTrue(actual.has_value());
+
+            Assert::AreEqual(expected.uuid.c_str(), actual->uuid.c_str());
+            Assert::AreEqual(expected.data.name.c_str(), actual->data.name.c_str());
+            Assert::AreEqual((int)expected.data.type, (int)actual->data.type);
 
             auto expectedGrid = std::get<GridLayoutInfo>(expected.data.info);
-            auto actualGrid = std::get<GridLayoutInfo>(actual.data.info);
+            auto actualGrid = std::get<GridLayoutInfo>(actual->data.info);
             Assert::AreEqual(expectedGrid.rows, actualGrid.rows);
             Assert::AreEqual(expectedGrid.columns, actualGrid.columns);
         }
@@ -429,12 +437,14 @@ namespace FancyZonesUnitTests
             json.SetNamedValue(L"info", CanvasLayoutInfo::ToJson(std::get<CanvasLayoutInfo>(expected.data.info)));
 
             auto actual = CustomZoneSetJSON::FromJson(json);
-            Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
-            Assert::AreEqual(expected.data.name.c_str(), actual.data.name.c_str());
-            Assert::AreEqual((int)expected.data.type, (int)actual.data.type);
+            Assert::IsTrue(actual.has_value());
+
+            Assert::AreEqual(expected.uuid.c_str(), actual->uuid.c_str());
+            Assert::AreEqual(expected.data.name.c_str(), actual->data.name.c_str());
+            Assert::AreEqual((int)expected.data.type, (int)actual->data.type);
 
             auto expectedGrid = std::get<CanvasLayoutInfo>(expected.data.info);
-            auto actualGrid = std::get<CanvasLayoutInfo>(actual.data.info);
+            auto actualGrid = std::get<CanvasLayoutInfo>(actual->data.info);
             Assert::AreEqual(expectedGrid.referenceWidth, actualGrid.referenceWidth);
             Assert::AreEqual(expectedGrid.referenceHeight, actualGrid.referenceHeight);
         }
@@ -450,10 +460,8 @@ namespace FancyZonesUnitTests
                 json::JsonObject modifiedJson = json::JsonObject::Parse(json.Stringify());
                 modifiedJson.Remove(iter.Current().Key());
 
-                auto parseFunc = [&modifiedJson] {
-                    CustomZoneSetJSON::FromJson(modifiedJson);
-                };
-                Assert::ExpectException<winrt::hresult_error>(parseFunc);
+                auto actual = CustomZoneSetJSON::FromJson(modifiedJson);
+                Assert::IsFalse(actual.has_value());
 
                 iter.MoveNext();
             }
@@ -483,11 +491,12 @@ namespace FancyZonesUnitTests
             ZoneSetData expected{ L"uuid", ZoneSetLayoutType::Custom };
 
             json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"custom\"}");
-            ZoneSetData actual = ZoneSetData::FromJson(json);
+            auto actual = ZoneSetData::FromJson(json);
+            Assert::IsTrue(actual.has_value());
 
-            Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
-            Assert::AreEqual((int)expected.type, (int)actual.type);
-            Assert::IsFalse(actual.zoneCount.has_value());
+            Assert::AreEqual(expected.uuid.c_str(), actual->uuid.c_str());
+            Assert::AreEqual((int)expected.type, (int)actual->type);
+            Assert::IsFalse(actual->zoneCount.has_value());
         }
 
         TEST_METHOD(FromJsonCustomZoneAdded)
@@ -495,11 +504,12 @@ namespace FancyZonesUnitTests
             ZoneSetData expected{ L"uuid", ZoneSetLayoutType::Custom };
 
             json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"custom\", \"zone-count\": 47372}");
-            ZoneSetData actual = ZoneSetData::FromJson(json);
+            auto actual = ZoneSetData::FromJson(json);
+            Assert::IsTrue(actual.has_value());
 
-            Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
-            Assert::AreEqual((int)expected.type, (int)actual.type);
-            Assert::IsFalse(actual.zoneCount.has_value());
+            Assert::AreEqual(expected.uuid.c_str(), actual->uuid.c_str());
+            Assert::AreEqual((int)expected.type, (int)actual->type);
+            Assert::IsFalse(actual->zoneCount.has_value());
         }
 
         TEST_METHOD(FromJsonGeneral)
@@ -507,12 +517,13 @@ namespace FancyZonesUnitTests
             ZoneSetData expected{ L"uuid", ZoneSetLayoutType::Columns, 47372 };
 
             json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"columns\", \"zone-count\": 47372}");
-            ZoneSetData actual = ZoneSetData::FromJson(json);
+            auto actual = ZoneSetData::FromJson(json);
+            Assert::IsTrue(actual.has_value());
 
-            Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
-            Assert::AreEqual((int)expected.type, (int)actual.type);
-            Assert::IsTrue(actual.zoneCount.has_value());
-            Assert::AreEqual(*expected.zoneCount, *actual.zoneCount);
+            Assert::AreEqual(expected.uuid.c_str(), actual->uuid.c_str());
+            Assert::AreEqual((int)expected.type, (int)actual->type);
+            Assert::IsTrue(actual->zoneCount.has_value());
+            Assert::AreEqual(*expected.zoneCount, *actual->zoneCount);
         }
 
         TEST_METHOD(FromJsonTypeInvalid)
@@ -520,11 +531,12 @@ namespace FancyZonesUnitTests
             ZoneSetData expected{ L"uuid", ZoneSetLayoutType::Custom };
 
             json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"invalid_type\"}");
-            ZoneSetData actual = ZoneSetData::FromJson(json);
+            auto actual = ZoneSetData::FromJson(json);
+            Assert::IsTrue(actual.has_value());
 
-            Assert::AreEqual(expected.uuid.c_str(), actual.uuid.c_str());
-            Assert::AreEqual((int)expected.type, (int)actual.type);
-            Assert::IsFalse(actual.zoneCount.has_value());
+            Assert::AreEqual(expected.uuid.c_str(), actual->uuid.c_str());
+            Assert::AreEqual((int)expected.type, (int)actual->type);
+            Assert::IsFalse(actual->zoneCount.has_value());
         }
 
         TEST_METHOD(FromJsonMissingKeys)
@@ -538,10 +550,8 @@ namespace FancyZonesUnitTests
                 json::JsonObject modifiedJson = json::JsonObject::Parse(json.Stringify());
                 modifiedJson.Remove(iter.Current().Key());
 
-                auto parseFunc = [&modifiedJson] {
-                    ZoneSetData::FromJson(modifiedJson);
-                };
-                Assert::ExpectException<winrt::hresult_error>(parseFunc);
+                auto actual = ZoneSetData::FromJson(modifiedJson);
+                Assert::IsFalse(actual.has_value());
 
                 iter.MoveNext();
             }
@@ -565,9 +575,11 @@ namespace FancyZonesUnitTests
             json::JsonObject json = json::JsonObject::Parse(L"{\"app-path\": \"appPath\", \"zoneset-uuid\": \"zone-set-uuid\", \"zone-index\": 54321}");
 
             auto actual = AppZoneHistoryJSON::FromJson(json);
-            Assert::AreEqual(expected.appPath.c_str(), actual.appPath.c_str());
-            Assert::AreEqual(expected.data.zoneIndex, actual.data.zoneIndex);
-            Assert::AreEqual(expected.data.zoneSetUuid.c_str(), actual.data.zoneSetUuid.c_str());
+            Assert::IsTrue(actual.has_value());
+
+            Assert::AreEqual(expected.appPath.c_str(), actual->appPath.c_str());
+            Assert::AreEqual(expected.data.zoneIndex, actual->data.zoneIndex);
+            Assert::AreEqual(expected.data.zoneSetUuid.c_str(), actual->data.zoneSetUuid.c_str());
         }
 
         TEST_METHOD(FromJsonMissingKeys)
@@ -581,10 +593,8 @@ namespace FancyZonesUnitTests
                 json::JsonObject modifiedJson = json::JsonObject::Parse(json.Stringify());
                 modifiedJson.Remove(iter.Current().Key());
 
-                auto parseFunc = [&modifiedJson] {
-                    AppZoneHistoryJSON::FromJson(modifiedJson);
-                };
-                Assert::ExpectException<winrt::hresult_error>(parseFunc);
+                auto actual = AppZoneHistoryJSON::FromJson(modifiedJson);
+                Assert::IsFalse(actual.has_value());
 
                 iter.MoveNext();
             }
@@ -614,11 +624,12 @@ namespace FancyZonesUnitTests
 
             json::JsonObject json = DeviceInfoJSON::ToJson(expected);
             auto actual = DeviceInfoJSON::FromJson(json);
+            Assert::IsTrue(actual.has_value());
 
-            Assert::AreEqual(expected.deviceId.c_str(), actual.deviceId.c_str(), L"device id");
-            Assert::AreEqual(expected.data.zoneCount, actual.data.zoneCount, L"zone count");
-            Assert::AreEqual((int)expected.data.activeZoneSet.type, (int)actual.data.activeZoneSet.type, L"zone set type");
-            Assert::AreEqual(expected.data.activeZoneSet.uuid.c_str(), actual.data.activeZoneSet.uuid.c_str(), L"zone set uuid");
+            Assert::AreEqual(expected.deviceId.c_str(), actual->deviceId.c_str(), L"device id");
+            Assert::AreEqual(expected.data.zoneCount, actual->data.zoneCount, L"zone count");
+            Assert::AreEqual((int)expected.data.activeZoneSet.type, (int)actual->data.activeZoneSet.type, L"zone set type");
+            Assert::AreEqual(expected.data.activeZoneSet.uuid.c_str(), actual->data.activeZoneSet.uuid.c_str(), L"zone set uuid");
         }
         TEST_METHOD(FromJsonSpacingTrue)
         {
@@ -627,8 +638,9 @@ namespace FancyZonesUnitTests
 
             json::JsonObject json = DeviceInfoJSON::ToJson(expected);
             auto actual = DeviceInfoJSON::FromJson(json);
+            Assert::IsTrue(actual.has_value());
 
-            Assert::AreEqual(expected.data.spacing, actual.data.spacing);
+            Assert::AreEqual(expected.data.spacing, actual->data.spacing);
         }
 
         TEST_METHOD(FromJsonSpacingFalse)
@@ -638,8 +650,9 @@ namespace FancyZonesUnitTests
 
             json::JsonObject json = DeviceInfoJSON::ToJson(expected);
             auto actual = DeviceInfoJSON::FromJson(json);
+            Assert::IsTrue(actual.has_value());
 
-            Assert::AreEqual(expected.data.spacing, actual.data.spacing);
+            Assert::AreEqual(expected.data.spacing, actual->data.spacing);
         }
 
         TEST_METHOD(FromJsonZoneCustom)
@@ -649,9 +662,10 @@ namespace FancyZonesUnitTests
 
             json::JsonObject json = DeviceInfoJSON::ToJson(expected);
             auto actual = DeviceInfoJSON::FromJson(json);
+            Assert::IsTrue(actual.has_value());
 
-            Assert::AreEqual((int)expected.data.activeZoneSet.type, (int)actual.data.activeZoneSet.type, L"zone set type");
-            Assert::IsFalse(actual.data.activeZoneSet.zoneCount.has_value(), L"zone set count");
+            Assert::AreEqual((int)expected.data.activeZoneSet.type, (int)actual->data.activeZoneSet.type, L"zone set type");
+            Assert::IsFalse(actual->data.activeZoneSet.zoneCount.has_value(), L"zone set count");
         }
 
         TEST_METHOD(FromJsonZoneGeneral)
@@ -662,11 +676,13 @@ namespace FancyZonesUnitTests
 
             json::JsonObject json = DeviceInfoJSON::ToJson(expected);
             auto actual = DeviceInfoJSON::FromJson(json);
+            Assert::IsTrue(actual.has_value());
 
-            Assert::AreEqual((int)expected.data.activeZoneSet.type, (int)actual.data.activeZoneSet.type, L"zone set type");
-            Assert::IsTrue(actual.data.activeZoneSet.zoneCount.has_value(), L"zone set count");
-            Assert::AreEqual(*expected.data.activeZoneSet.zoneCount, *actual.data.activeZoneSet.zoneCount);
+            Assert::AreEqual((int)expected.data.activeZoneSet.type, (int)actual->data.activeZoneSet.type, L"zone set type");
+            Assert::IsTrue(actual->data.activeZoneSet.zoneCount.has_value(), L"zone set count");
+            Assert::AreEqual(*expected.data.activeZoneSet.zoneCount, *actual->data.activeZoneSet.zoneCount);
         }
+
         TEST_METHOD(FromJsonMissingKeys)
         {
             DeviceInfoJSON deviceInfo{ L"default_device_id", DeviceInfoData{ ZoneSetData{ L"uuid", ZoneSetLayoutType::Custom }, true, 16, 3 } };
@@ -678,10 +694,8 @@ namespace FancyZonesUnitTests
                 json::JsonObject modifiedJson = json::JsonObject::Parse(json.Stringify());
                 modifiedJson.Remove(iter.Current().Key());
 
-                auto parseFunc = [&modifiedJson] {
-                    AppZoneHistoryJSON::FromJson(modifiedJson);
-                };
-                Assert::ExpectException<winrt::hresult_error>(parseFunc);
+                auto actual = DeviceInfoJSON::FromJson(modifiedJson);
+                Assert::IsFalse(actual.has_value());
 
                 iter.MoveNext();
             }
@@ -801,11 +815,10 @@ namespace FancyZonesUnitTests
             json::JsonObject expected;
             expected.SetNamedValue(L"devices", devices);
 
-            auto parseFunc = [&expected] {
-                FancyZonesData data;
-                data.ParseDeviceInfos(expected);
-            };
-            Assert::ExpectException<winrt::hresult_error>(parseFunc);
+            FancyZonesData data;
+            auto actual = data.ParseDeviceInfos(expected);
+
+            Assert::IsFalse(actual);
         }
 
         TEST_METHOD(FancyZonesDataDeviceInfoMapParseSingle)
@@ -972,9 +985,9 @@ namespace FancyZonesUnitTests
             while (iter.HasCurrent())
             {
                 auto expected = AppZoneHistoryJSON::FromJson(json::JsonObject::Parse(iter.Current().Stringify()));
-                auto actual = actualMap.find(expected.appPath)->second;
-                Assert::AreEqual(expected.data.zoneSetUuid.c_str(), actual.zoneSetUuid.c_str());
-                Assert::AreEqual(expected.data.zoneIndex, actual.zoneIndex);
+                auto actual = actualMap.find(expected->appPath)->second;
+                Assert::AreEqual(expected->data.zoneSetUuid.c_str(), actual.zoneSetUuid.c_str());
+                Assert::AreEqual(expected->data.zoneIndex, actual.zoneIndex);
 
                 iter.MoveNext();
             }
@@ -996,11 +1009,10 @@ namespace FancyZonesUnitTests
             AppZoneHistoryJSON expected{ appPath, AppZoneHistoryData{ L"zone-set-uuid", 54321 } };
             json.SetNamedValue(L"app-zone-history", json::JsonValue::Parse(AppZoneHistoryJSON::ToJson(expected).Stringify()));
 
-            auto func = [json]() {
-                FancyZonesData data;
-                data.ParseAppZoneHistory(json);
-            };
-            Assert::ExpectException<winrt::hresult_error>(func);
+            FancyZonesData data;
+            bool actual = data.ParseAppZoneHistory(json);
+
+            Assert::IsFalse(actual);
         }
 
         TEST_METHOD(AppZoneHistorySerializeSingle)
@@ -1093,20 +1105,20 @@ namespace FancyZonesUnitTests
             while (iter.HasCurrent())
             {
                 auto expected = CustomZoneSetJSON::FromJson(json::JsonObject::Parse(iter.Current().Stringify()));
-                auto actual = actualMap.find(expected.uuid)->second;
-                Assert::AreEqual(expected.data.name.c_str(), actual.name.c_str(), L"name");
-                Assert::AreEqual((int)expected.data.type, (int)actual.type, L"type");
+                auto actual = actualMap.find(expected->uuid)->second;
+                Assert::AreEqual(expected->data.name.c_str(), actual.name.c_str(), L"name");
+                Assert::AreEqual((int)expected->data.type, (int)actual.type, L"type");
 
-                if (expected.data.type == CustomLayoutType::Grid)
+                if (expected->data.type == CustomLayoutType::Grid)
                 {
-                    auto expectedInfo = std::get<GridLayoutInfo>(expected.data.info);
+                    auto expectedInfo = std::get<GridLayoutInfo>(expected->data.info);
                     auto actualInfo = std::get<GridLayoutInfo>(actual.info);
                     Assert::AreEqual(expectedInfo.rows, actualInfo.rows, L"grid rows");
                     Assert::AreEqual(expectedInfo.columns, actualInfo.columns, L"grid columns");
                 }
                 else
                 {
-                    auto expectedInfo = std::get<CanvasLayoutInfo>(expected.data.info);
+                    auto expectedInfo = std::get<CanvasLayoutInfo>(expected->data.info);
                     auto actualInfo = std::get<CanvasLayoutInfo>(actual.info);
                     Assert::AreEqual(expectedInfo.referenceWidth, actualInfo.referenceWidth, L"canvas width");
                     Assert::AreEqual(expectedInfo.referenceHeight, actualInfo.referenceHeight, L"canvas height");
@@ -1132,11 +1144,10 @@ namespace FancyZonesUnitTests
             CustomZoneSetJSON expected{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } };
             json.SetNamedValue(L"custom-zone-sets", json::JsonValue::Parse(CustomZoneSetJSON::ToJson(expected).Stringify()));
 
-            auto func = [json]() {
-                FancyZonesData data;
-                data.ParseCustomZoneSets(json);
-            };
-            Assert::ExpectException<winrt::hresult_error>(func);
+            FancyZonesData data;
+            auto actual = data.ParseCustomZoneSets(json);
+
+            Assert::IsFalse(actual);
         }
 
         TEST_METHOD(CustomZoneSetsSerializeSingle)
@@ -1295,7 +1306,8 @@ namespace FancyZonesUnitTests
             devices.Append(m_defaultCustomDeviceValue);
             json::JsonObject json;
             json.SetNamedValue(L"devices", devices);
-            data.ParseDeviceInfos(json);
+            bool parseRes = data.ParseDeviceInfos(json);
+            Assert::IsTrue(parseRes);
 
             data.SetActiveZoneSet(uniqueId, uuid);
 
