@@ -142,10 +142,10 @@ namespace FancyZonesEditor.Models
                 foreach (Int32Rect rect in _zones)
                 {
                     writer.WriteStartObject();
-                    writer.WriteNumber("X", rect.X * Settings.Dpi);
-                    writer.WriteNumber("Y", rect.Y * Settings.Dpi);
-                    writer.WriteNumber("width", rect.Width * Settings.Dpi);
-                    writer.WriteNumber("height", rect.Height * Settings.Dpi);
+                    writer.WriteNumber("X", rect.X);
+                    writer.WriteNumber("Y", rect.Y);
+                    writer.WriteNumber("width", rect.Width);
+                    writer.WriteNumber("height", rect.Height);
                     writer.WriteEndObject();
                 }
                 writer.WriteEndArray();
