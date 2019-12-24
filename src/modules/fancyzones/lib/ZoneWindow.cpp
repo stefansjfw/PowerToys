@@ -399,7 +399,7 @@ void ZoneWindow::CalculateZoneSet() noexcept
     if (SUCCEEDED_LOG(CLSIDFromString(activeZoneSet.uuid.c_str(), &zoneSetId))) {
         auto zoneSet = MakeZoneSet(ZoneSetConfig(
             zoneSetId,
-            JSONHelpers::ZoneSetData::TypeToLayoutId(activeZoneSet.type),
+            JSONHelpers::TypeToLayoutId(activeZoneSet.type),
             m_monitor,
             m_workArea));
       MONITORINFO monitorInfo{};

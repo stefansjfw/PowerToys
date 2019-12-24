@@ -33,7 +33,7 @@ namespace
 
 namespace JSONHelpers
 {
-    int ZoneSetData::TypeToLayoutId(JSONHelpers::ZoneSetLayoutType layoutType)
+    int TypeToLayoutId(JSONHelpers::ZoneSetLayoutType layoutType)
     {
         switch (layoutType)
         {
@@ -53,7 +53,7 @@ namespace JSONHelpers
         return -1; // Error
     }
 
-    ZoneSetLayoutType ZoneSetData::LayoutIdToType(int layoutID)
+    ZoneSetLayoutType TypeFromLayoutId(int layoutID)
     {
         switch (layoutID)
         {
@@ -72,7 +72,7 @@ namespace JSONHelpers
         }
     }
 
-    std::wstring ZoneSetData::TypeToString(ZoneSetLayoutType type)
+    std::wstring TypeToString(ZoneSetLayoutType type)
     {
         switch (type)
         {
@@ -93,7 +93,7 @@ namespace JSONHelpers
         }
     }
 
-    ZoneSetLayoutType ZoneSetData::TypeFromString(std::wstring typeStr)
+    ZoneSetLayoutType TypeFromString(const std::wstring& typeStr)
     {
         if (typeStr.compare(L"focus") == 0)
         {
@@ -143,7 +143,14 @@ namespace JSONHelpers
         std::wstring save_file_path = GetPersistFancyZonesJSONPath();
 
         auto result = json::from_file(save_file_path);
-        return *result;
+        if (result)
+        {
+            return *result;
+        }
+        else
+        {
+            return json::JsonObject();
+        }
     }
 
     bool FancyZonesData::GetAppLastZone(HWND window, PCWSTR appPath, _Out_ PINT iZoneIndex) const
@@ -188,13 +195,10 @@ namespace JSONHelpers
         }
     }
 
-    void FancyZonesData::SetDeviceInfoToTmpFile(const DeviceInfoJSON& deviceInfo, const std::wstring& tmpFilePath)
+    void FancyZonesData::SetDeviceInfoToTmpFile(const DeviceInfoJSON& deviceInfo, const std::wstring& tmpFilePath) const
     {
-        std::ofstream tmpFile;
-        tmpFile.open(tmpFilePath);
-        json::JsonObject deviceInfoJson = DeviceInfoToJson(deviceInfo);
+        json::JsonObject deviceInfoJson = DeviceInfoJSON::ToJson(deviceInfo);
         json::to_file(tmpFilePath, deviceInfoJson);
-        tmpFile.close();
     }
 
     void FancyZonesData::GetDeviceInfoFromTmpFile(const std::wstring& uniqueID, const std::wstring& tmpFilePath)
@@ -207,7 +211,7 @@ namespace JSONHelpers
         if (std::filesystem::exists(tmpFilePath))
         {
             auto zoneSetJson = json::from_file(tmpFilePath);
-            DeviceInfoJSON deviceInfo = DeviceInfoFromJson(*zoneSetJson);
+            DeviceInfoJSON deviceInfo = DeviceInfoJSON::FromJson(*zoneSetJson);
             deviceInfoMap[uniqueID] = deviceInfo.data;
 
             DeleteFileW(tmpFilePath.c_str());
@@ -219,7 +223,7 @@ namespace JSONHelpers
         if (std::filesystem::exists(tmpFilePath))
         {
             auto customZoneSetJson = json::from_file(tmpFilePath);
-            CustomZoneSetJSON customZoneSet = CustomZoneSetFromJson(*customZoneSetJson);
+            CustomZoneSetJSON customZoneSet = CustomZoneSetJSON::FromJson(*customZoneSetJson);
             customZoneSetsMap[uuid] = customZoneSet.data;
 
             DeleteFileW(tmpFilePath.c_str());
@@ -235,7 +239,7 @@ namespace JSONHelpers
             for (int i = 0; i < appLastZones.Size(); ++i)
             {
                 json::JsonObject appLastZone = appLastZones.GetObjectAt(i);
-                const auto& appZoneHistory = AppZoneHistoryFromJson(appLastZone);
+                const auto& appZoneHistory = AppZoneHistoryJSON::FromJson(appLastZone);
                 appZoneHistoryMap[appZoneHistory.appPath] = appZoneHistory.data;
             }
         }
@@ -248,7 +252,7 @@ namespace JSONHelpers
         int i = 0;
         for (const auto& [appPath, appZoneHistoryData] : appZoneHistoryMap)
         {
-            appHistoryArray.Append(AppZoneHistoryToJson(AppZoneHistoryJSON{ appPath, appZoneHistoryData }));
+            appHistoryArray.Append(AppZoneHistoryJSON::ToJson(AppZoneHistoryJSON{ appPath, appZoneHistoryData }));
         }
 
         return appHistoryArray;
@@ -262,7 +266,7 @@ namespace JSONHelpers
 
             for (int i = 0; i < devices.Size(); ++i)
             {
-                const auto& device = DeviceInfoFromJson(devices.GetObjectAt(i));
+                const auto& device = DeviceInfoJSON::DeviceInfoJSON::FromJson(devices.GetObjectAt(i));
                 deviceInfoMap[device.deviceId] = device.data;
             }
         }
@@ -275,7 +279,7 @@ namespace JSONHelpers
         int i = 0;
         for (const auto& [deviceID, deviceData] : deviceInfoMap)
         {
-            DeviceInfosJSON.Append(DeviceInfoToJson(DeviceInfoJSON{ deviceID, deviceData }));
+            DeviceInfosJSON.Append(DeviceInfoJSON::DeviceInfoJSON::ToJson(DeviceInfoJSON{ deviceID, deviceData }));
         }
 
         return DeviceInfosJSON;
@@ -289,7 +293,7 @@ namespace JSONHelpers
 
             for (int i = 0; i < customZoneSets.Size(); ++i)
             {
-                const auto& zoneSet = CustomZoneSetFromJson(customZoneSets.GetObjectAt(i));
+                const auto& zoneSet = CustomZoneSetJSON::FromJson(customZoneSets.GetObjectAt(i));
                 customZoneSetsMap[zoneSet.uuid] = zoneSet.data;
             }
         }
@@ -302,7 +306,7 @@ namespace JSONHelpers
         int i = 0;
         for (const auto& [zoneSetId, zoneSetData] : customZoneSetsMap)
         {
-            customZoneSetsJSON.Append(CustomZoneSetToJson(CustomZoneSetJSON{ zoneSetId, zoneSetData }));
+            customZoneSetsJSON.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ zoneSetId, zoneSetData }));
         }
 
         return customZoneSetsJSON;
@@ -377,7 +381,7 @@ namespace JSONHelpers
                     while (RegEnumValueW(appliedZoneSetsHkey, i++, value, &valueLength, nullptr, nullptr, reinterpret_cast<BYTE*>(&data), &dataSize) == ERROR_SUCCESS)
                     {
                         ZoneSetData appliedZoneSetData;
-                        appliedZoneSetData.type = ZoneSetData::LayoutIdToType(data.LayoutId);
+                        appliedZoneSetData.type = TypeFromLayoutId(data.LayoutId);
                         if (appliedZoneSetData.type != ZoneSetLayoutType::Custom)
                         {
                             appliedZoneSetData.zoneCount = data.ZoneCount;
@@ -548,12 +552,12 @@ namespace JSONHelpers
         }
     }
 
-    json::JsonObject FancyZonesData::ZoneSetDataToJson(const ZoneSetData& zoneSet) const
+    json::JsonObject ZoneSetData::ToJson(const ZoneSetData& zoneSet)
     {
         json::JsonObject result{};
 
         result.SetNamedValue(L"uuid", json::value(zoneSet.uuid));
-        result.SetNamedValue(L"type", json::value(ZoneSetData::TypeToString(zoneSet.type)));
+        result.SetNamedValue(L"type", json::value(TypeToString(zoneSet.type)));
         if (zoneSet.type != ZoneSetLayoutType::Custom)
         {
             result.SetNamedValue(L"zone-count", json::value(*zoneSet.zoneCount));
@@ -562,12 +566,12 @@ namespace JSONHelpers
         return result;
     }
 
-    ZoneSetData FancyZonesData::ZoneSetDataFromJson(const json::JsonObject& zoneSet) const
+    ZoneSetData ZoneSetData::FromJson(const json::JsonObject& zoneSet)
     {
         ZoneSetData zoneSetData;
 
         zoneSetData.uuid = zoneSet.GetNamedString(L"uuid");
-        zoneSetData.type = ZoneSetData::TypeFromString(std::wstring{ zoneSet.GetNamedString(L"type") });
+        zoneSetData.type = TypeFromString(std::wstring{ zoneSet.GetNamedString(L"type") });
         if (zoneSetData.type != ZoneSetLayoutType::Custom)
         {
             zoneSetData.zoneCount = zoneSet.GetNamedNumber(L"zone-count");
@@ -576,7 +580,7 @@ namespace JSONHelpers
         return zoneSetData;
     }
 
-    json::JsonObject FancyZonesData::AppZoneHistoryToJson(const AppZoneHistoryJSON& appZoneHistory) const
+    json::JsonObject AppZoneHistoryJSON::ToJson(const AppZoneHistoryJSON& appZoneHistory)
     {
         json::JsonObject result{};
 
@@ -587,7 +591,7 @@ namespace JSONHelpers
         return result;
     }
 
-    AppZoneHistoryJSON FancyZonesData::AppZoneHistoryFromJson(const json::JsonObject& zoneSet) const
+    AppZoneHistoryJSON AppZoneHistoryJSON::FromJson(const json::JsonObject& zoneSet)
     {
         AppZoneHistoryJSON result;
 
@@ -598,12 +602,12 @@ namespace JSONHelpers
         return result;
     }
 
-    json::JsonObject FancyZonesData::DeviceInfoToJson(const DeviceInfoJSON& device) const
+    json::JsonObject DeviceInfoJSON::ToJson(const DeviceInfoJSON& device)
     {
         json::JsonObject result{};
 
         result.SetNamedValue(L"device-id", json::value(device.deviceId));
-        result.SetNamedValue(L"active-zoneset", ZoneSetDataToJson(device.data.activeZoneSet));
+        result.SetNamedValue(L"active-zoneset", ZoneSetData::ToJson(device.data.activeZoneSet));
         result.SetNamedValue(L"editor-show-spacing", json::value(device.data.showSpacing));
         result.SetNamedValue(L"editor-spacing", json::value(device.data.spacing));
         result.SetNamedValue(L"editor-zone-count", json::value(device.data.zoneCount));
@@ -611,12 +615,12 @@ namespace JSONHelpers
         return result;
     }
 
-    DeviceInfoJSON FancyZonesData::DeviceInfoFromJson(const json::JsonObject& device) const
+    DeviceInfoJSON DeviceInfoJSON::FromJson(const json::JsonObject& device)
     {
         DeviceInfoJSON result;
 
         result.deviceId = device.GetNamedString(L"device-id");
-        result.data.activeZoneSet = ZoneSetDataFromJson(device.GetNamedObject(L"active-zoneset"));
+        result.data.activeZoneSet = ZoneSetData::FromJson(device.GetNamedObject(L"active-zoneset"));
         result.data.showSpacing = device.GetNamedBoolean(L"editor-show-spacing");
         result.data.spacing = device.GetNamedNumber(L"editor-spacing");
         result.data.zoneCount = device.GetNamedNumber(L"editor-zone-count");
@@ -624,7 +628,114 @@ namespace JSONHelpers
         return result;
     }
 
-    json::JsonObject FancyZonesData::CustomZoneSetToJson(const CustomZoneSetJSON& customZoneSet) const
+    json::JsonObject CanvasLayoutInfo::ToJson(const CanvasLayoutInfo& canvasInfo)
+    {      
+        json::JsonObject infoJson{};
+        infoJson.SetNamedValue(L"ref-width", json::value(canvasInfo.referenceWidth));
+        infoJson.SetNamedValue(L"ref-height", json::value(canvasInfo.referenceHeight));
+        json::JsonArray zonesJson;
+        int i = 0;
+        for (const auto& [x, y, width, height] : canvasInfo.zones)
+        {
+            json::JsonObject zoneJson;
+            zoneJson.SetNamedValue(L"X", json::value(x));
+            zoneJson.SetNamedValue(L"Y", json::value(y));
+            zoneJson.SetNamedValue(L"width", json::value(width));
+            zoneJson.SetNamedValue(L"height", json::value(height));
+            zonesJson.Append(zoneJson);
+        }
+        infoJson.SetNamedValue(L"zones", zonesJson);
+        return infoJson;
+    }
+
+    CanvasLayoutInfo CanvasLayoutInfo::FromJson(const json::JsonObject& infoJson)
+    {
+        CanvasLayoutInfo info;
+        info.referenceWidth = infoJson.GetNamedNumber(L"ref-width");
+        info.referenceHeight = infoJson.GetNamedNumber(L"ref-height");
+        json::JsonArray zonesJson = infoJson.GetNamedArray(L"zones");
+        for (int i = 0; i < zonesJson.Size(); ++i)
+        {
+            json::JsonObject zoneJson = zonesJson.GetObjectAt(i);
+            CanvasLayoutInfo::Rect zone{ zoneJson.GetNamedNumber(L"X"), zoneJson.GetNamedNumber(L"Y"), zoneJson.GetNamedNumber(L"width"), zoneJson.GetNamedNumber(L"height") };
+            info.zones.push_back(zone);
+        }
+        return info;
+    }
+
+    json::JsonObject GridLayoutInfo::ToJson(const GridLayoutInfo& gridInfo)
+    {
+        json::JsonObject infoJson;
+        infoJson.SetNamedValue(L"rows", json::value(gridInfo.rows));
+        infoJson.SetNamedValue(L"columns", json::value(gridInfo.columns));
+        json::JsonArray rowsPercentageJson;
+        int i = 0;
+        for (const auto& rowsPercentsElem : gridInfo.rowsPercents)
+        {
+            rowsPercentageJson.Append(json::value(rowsPercentsElem));
+        }
+        infoJson.SetNamedValue(L"rows-percentage", rowsPercentageJson);
+
+        json::JsonArray columnPercentageJson;
+        i = 0;
+        for (const auto& columnsPercentsElem : gridInfo.columnsPercents)
+        {
+            columnPercentageJson.Append(json::value(columnsPercentsElem));
+        }
+        infoJson.SetNamedValue(L"columns-percentage", columnPercentageJson);
+
+        i = 0;
+        json::JsonArray cellChildMapJson;
+        for (const auto& cellChildMapRow : gridInfo.cellChildMap)
+        {
+            int j = 0;
+            json::JsonArray cellChildMapRowJson;
+            for (const auto& cellChildMapRowElem : cellChildMapRow)
+            {
+                cellChildMapRowJson.Append(json::value(cellChildMapRowElem));
+            }
+            cellChildMapJson.Append(cellChildMapRowJson);
+        }
+        infoJson.SetNamedValue(L"cell-child-map", cellChildMapJson);
+        return infoJson;
+    }
+
+    GridLayoutInfo GridLayoutInfo::FromJson(const json::JsonObject& infoJson)
+    {
+        GridLayoutInfo info;
+        int i = 0, j = 0;
+
+        info.rows = infoJson.GetNamedNumber(L"rows");
+        info.columns = infoJson.GetNamedNumber(L"columns");
+        json::JsonArray rowsPercentage = infoJson.GetNamedArray(L"rows-percentage");
+        for (auto percentage : rowsPercentage)
+        {
+            info.rowsPercents[i++] = percentage.GetNumber();
+        }
+        i = 0;
+
+        json::JsonArray columnsPercentage = infoJson.GetNamedArray(L"columns-percentage");
+        for (auto percentage : columnsPercentage)
+        {
+            info.columnsPercents[j++] = percentage.GetNumber();
+        }
+        j = 0;
+
+        json::JsonArray cellChildMap = infoJson.GetNamedArray(L"cell-child-map");
+        for (auto mapRow : cellChildMap)
+        {
+            std::vector<int> cellChildMapRow;
+            for (auto rowElem : mapRow.GetArray())
+            {
+                info.cellChildMap[i][j++] = rowElem.GetNumber();
+            }
+            i++;
+            j = 0;
+        }
+        return info;
+    }
+
+    json::JsonObject CustomZoneSetJSON::ToJson(const CustomZoneSetJSON& customZoneSet)
     {
         json::JsonObject result{};
 
@@ -636,23 +747,8 @@ namespace JSONHelpers
         {
             result.SetNamedValue(L"type", json::value(L"canvas"));
 
-            CanvasLayoutInfo canvasInfo = std::get<CanvasLayoutInfo>(customZoneSet.data.info);
-            json::JsonObject infoJson{};
-            infoJson.SetNamedValue(L"ref-width", json::value(canvasInfo.referenceWidth));
-            infoJson.SetNamedValue(L"ref-height", json::value(canvasInfo.referenceHeight));
-            json::JsonArray zonesJson;
-            int i = 0;
-            for (const auto& [x, y, width, height] : canvasInfo.zones)
-            {
-                json::JsonObject zoneJson;
-                zoneJson.SetNamedValue(L"X", json::value(x));
-                zoneJson.SetNamedValue(L"Y", json::value(y));
-                zoneJson.SetNamedValue(L"width", json::value(width));
-                zoneJson.SetNamedValue(L"height", json::value(height));
-                zonesJson.Append(zoneJson);
-            }
-            infoJson.SetNamedValue(L"zones", zonesJson);
-            result.SetNamedValue(L"info", infoJson);
+            CanvasLayoutInfo info = std::get<CanvasLayoutInfo>(customZoneSet.data.info);
+            result.SetNamedValue(L"info", CanvasLayoutInfo::ToJson(info));
 
             break;
         }
@@ -661,37 +757,8 @@ namespace JSONHelpers
             result.SetNamedValue(L"type", json::value(L"grid"));
 
             GridLayoutInfo gridInfo = std::get<GridLayoutInfo>(customZoneSet.data.info);
-            json::JsonObject infoJson;
-            infoJson.SetNamedValue(L"rows", json::value(gridInfo.rows));
-            infoJson.SetNamedValue(L"columns", json::value(gridInfo.columns));
-            json::JsonArray rowsPercentageJson;
+            result.SetNamedValue(L"info", GridLayoutInfo::ToJson(gridInfo));
 
-            for (int i = 0; i < gridInfo.rows; ++i)
-            {
-                rowsPercentageJson.Append(json::value(gridInfo.rowsPercents[i]));
-            }
-            infoJson.SetNamedValue(L"rows-percentage", rowsPercentageJson);
-
-            json::JsonArray columnPercentageJson;
-            for (int i = 0; i < gridInfo.columns; ++i)
-            {
-                columnPercentageJson.Append(json::value(gridInfo.columnsPercents[i]));
-            }
-            infoJson.SetNamedValue(L"columns-percentage", columnPercentageJson);
-
-            json::JsonArray cellChildMapJson;
-            for (int i = 0; i < gridInfo.rows; ++i)
-            {
-                json::JsonArray cellChildMapRowJson;
-                for (int j = 0; j < gridInfo.columns; ++j)
-                {
-                    cellChildMapRowJson.Append(json::value(gridInfo.cellChildMap[i][j]));
-                }
-                cellChildMapJson.Append(cellChildMapRowJson);
-            }
-            infoJson.SetNamedValue(L"cell-child-map", cellChildMapJson);
-
-            result.SetNamedValue(L"info", infoJson);
             break;
         }
         default:
@@ -701,7 +768,7 @@ namespace JSONHelpers
         return result;
     }
 
-    CustomZoneSetJSON FancyZonesData::CustomZoneSetFromJson(const json::JsonObject& customZoneSet) const
+    CustomZoneSetJSON CustomZoneSetJSON::FromJson(const json::JsonObject& customZoneSet)
     {
         CustomZoneSetJSON result;
 
@@ -711,55 +778,13 @@ namespace JSONHelpers
         json::JsonObject infoJson = customZoneSet.GetNamedObject(L"info");
         if (zoneSetType.compare(L"canvas") == 0)
         {
-            result.data.type = CustomLayoutType::Canvas;
-
-            CanvasLayoutInfo info;
-            info.referenceWidth = infoJson.GetNamedNumber(L"ref-width");
-            info.referenceHeight = infoJson.GetNamedNumber(L"ref-height");
-            json::JsonArray zonesJson = infoJson.GetNamedArray(L"zones");
-            for (int i = 0; i < zonesJson.Size(); ++i)
-            {
-                json::JsonObject zoneJson = zonesJson.GetObjectAt(i);
-                CanvasLayoutInfo::Rect zone{ zoneJson.GetNamedNumber(L"X"), zoneJson.GetNamedNumber(L"Y"), zoneJson.GetNamedNumber(L"width"), zoneJson.GetNamedNumber(L"height") };
-                info.zones.push_back(zone);
-            }
-            result.data.info = info;
+            result.data.type = CustomLayoutType::Canvas;            
+            result.data.info = CanvasLayoutInfo::FromJson(infoJson);
         }
         else if (zoneSetType.compare(L"grid") == 0)
         {
             result.data.type = CustomLayoutType::Grid;
-
-            GridLayoutInfo info;
-            int i = 0, j = 0;
-
-            info.rows = infoJson.GetNamedNumber(L"rows");
-            info.columns = infoJson.GetNamedNumber(L"columns");
-            json::JsonArray rowsPercentage = infoJson.GetNamedArray(L"rows-percentage");
-            for (auto percentage : rowsPercentage)
-            {
-                info.rowsPercents[i++] = percentage.GetNumber();
-            }
-            i = 0;
-
-            json::JsonArray columnsPercentage = infoJson.GetNamedArray(L"columns-percentage");
-            for (auto percentage : columnsPercentage)
-            {
-                info.columnsPercents[j++] = percentage.GetNumber();
-            }
-            j = 0;
-
-            json::JsonArray cellChildMap = infoJson.GetNamedArray(L"cell-child-map");
-            for (auto mapRow : cellChildMap)
-            {
-                std::vector<int> cellChildMapRow;
-                for (auto rowElem : mapRow.GetArray())
-                {
-                    info.cellChildMap[i][j++] = rowElem.GetNumber();
-                }
-                i++;
-                j = 0;
-            }
-            result.data.info = info;
+            result.data.info = GridLayoutInfo::FromJson(infoJson);
         }
         else
         {
