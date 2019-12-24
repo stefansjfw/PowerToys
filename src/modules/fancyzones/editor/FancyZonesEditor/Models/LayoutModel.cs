@@ -187,74 +187,58 @@ namespace FancyZonesEditor.Models
         protected abstract void PersistData();
         public abstract LayoutModel Clone();
         
-        // PInvokes to handshake with fancyzones backend
-        internal static class Native
-        {
-            [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Ansi)]
-            public static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPStr)]string lpFileName);
-
-            [DllImport("kernel32", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
-            public static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
-
-            internal delegate int PersistZoneSet(
-                [MarshalAs(UnmanagedType.LPWStr)] string activeKey,
-                ushort layoutId,
-                int zoneCount,
-                [MarshalAs(UnmanagedType.LPArray)] int[] zoneArray,
-                [MarshalAs(UnmanagedType.LPWStr)] string activeZoneSetTmpFile,
-                int showSpacing,
-                int spacing,
-                int editorZoneCount,
-                [MarshalAs(UnmanagedType.LPWStr)] string guid);
-        }
-
         public void Persist(System.Windows.Int32Rect[] zones)
         {
-            // Persist the editor data
-
-            // napravi json string i upisi ga u fajl
-            // jsonString = GetPersistData();
             PersistData();
-            //Registry.SetValue(c_fullRegistryPath, Name, GetPersistData(), Microsoft.Win32.RegistryValueKind.Binary);
             Apply(zones);
         }
 
         public void Apply(System.Windows.Int32Rect[] zones)
         { 
-            // Persist the zone data back into FZ
-            var module = Native.LoadLibrary("fancyzones.dll");
-            if (module == IntPtr.Zero)
-            {
-                return;
-            }
-
-            var pfn = Native.GetProcAddress(module, "PersistZoneSet");
-            if (pfn == IntPtr.Zero)
-            {
-                return;
-            }
-
-            // Scale all the zones to the DPI and then pack them up to be marshalled.
             int zoneCount = zones.Length;
-            var zoneArray = new int[zoneCount * 4];
-            for (int i = 0; i < zones.Length; i++)
+            FileStream outputStream = File.Open(Settings.ActiveZoneSetTmpFile, FileMode.Create);
+            var writer = new Utf8JsonWriter(outputStream, options: default);
+
+            writer.WriteStartObject();
+            writer.WriteString("device-id", Settings.UniqueKey);
+
+            writer.WriteStartObject("active-zoneset");
+            writer.WriteString("uuid", "{" + Guid.ToString().ToUpper() + "}");
+            bool custom = false;
+            switch (_id)
             {
-                var left = (int)(zones[i].X * Settings.Dpi);
-                var top = (int)(zones[i].Y * Settings.Dpi);
-                var right = left + (int)(zones[i].Width * Settings.Dpi);
-                var bottom = top + (int)(zones[i].Height * Settings.Dpi);
-
-                var index = i * 4;
-                zoneArray[index] = left;
-                zoneArray[index+1] = top;
-                zoneArray[index+2] = right;
-                zoneArray[index+3] = bottom;
+                case Settings.c_focusModelId:
+                    writer.WriteString("type", "focus");
+                    break;
+                case Settings.c_rowsModelId:
+                    writer.WriteString("type", "rows");
+                    break;
+                case Settings.c_columnsModelId:
+                    writer.WriteString("type", "columns");
+                    break;
+                case Settings.c_gridModelId:
+                    writer.WriteString("type", "grid");
+                    break;
+                case Settings.c_priorityGridModelId:
+                    writer.WriteString("type", "priority-grid");
+                    break;
+                default:
+                    writer.WriteString("type", "custom");
+                    custom = true;
+                    break;
             }
+            if (!custom)
+            {
+                writer.WriteNumber("zone-count", zoneCount);
+            }
+            writer.WriteEndObject();
 
-            var persistZoneSet = Marshal.GetDelegateForFunctionPointer<Native.PersistZoneSet>(pfn);
-            persistZoneSet(Settings.UniqueKey, _id, zoneCount, zoneArray,Settings.ActiveZoneSetTmpFile,
-                           Settings._settingsToPersist.ShowSpacing ? 1 : 0, Settings._settingsToPersist.Spacing, Settings._settingsToPersist.ZoneCount,
-                           Guid.ToString().ToUpper());
+            writer.WriteBoolean("editor-show-spacing", Settings._settingsToPersist.ShowSpacing);
+            writer.WriteNumber("editor-spacing", Settings._settingsToPersist.Spacing);
+            writer.WriteNumber("editor-zone-count", Settings._settingsToPersist.ZoneCount);
+            writer.WriteEndObject();
+            writer.Flush();
+            outputStream.Close();
         }
 
         private static readonly string c_registryPath = Settings.RegistryPath + "\\Layouts";

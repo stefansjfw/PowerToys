@@ -436,13 +436,13 @@ namespace FancyZonesEditor
         private GridLayoutModel _priorityGridModel;
         private static CanvasLayoutModel _blankCustomModel;
 
-        private static readonly ushort c_focusModelId = 0xFFFF;
-        private static readonly ushort c_rowsModelId = 0xFFFE;
-        private static readonly ushort c_columnsModelId = 0xFFFD;
-        private static readonly ushort c_gridModelId = 0xFFFC;
-        private static readonly ushort c_priorityGridModelId = 0xFFFB;
-        private static readonly ushort c_blankCustomModelId = 0xFFFA;
-        private static readonly ushort c_lastPrefinedId = c_blankCustomModelId;
+        public const ushort c_focusModelId = 0xFFFF;
+        public const ushort c_rowsModelId = 0xFFFE;
+        public const ushort c_columnsModelId = 0xFFFD;
+        public const ushort c_gridModelId = 0xFFFC;
+        public const ushort c_priorityGridModelId = 0xFFFB;
+        public const ushort c_blankCustomModelId = 0xFFFA;
+        public const ushort c_lastPrefinedId = c_blankCustomModelId;
 
         // hard coded data for all the "Priority Grid" configurations that are unique to "Grid"
         private static byte[][] s_priorityData = new byte[][]
