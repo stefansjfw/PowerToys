@@ -189,7 +189,7 @@ namespace JSONHelpers
 
     void FancyZonesData::SetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& uuid /*TODO(stefan): deviceId instead of uniqueId in the future*/)
     {
-        if (!uuid.empty())
+        if (!uuid.empty() && deviceInfoMap.find(uniqueID) != deviceInfoMap.end())
         {
             deviceInfoMap[uniqueID].activeZoneSet.uuid = uuid;
         }
