@@ -8,7 +8,9 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.IO;
 using System.Threading.Tasks;
+using System.Windows;
 using Microsoft.Win32;
 
 namespace FancyZonesEditor.Models
@@ -21,6 +23,12 @@ namespace FancyZonesEditor.Models
 
         protected LayoutModel(string name) : this()
         {
+            Name = name;
+        }
+
+        protected LayoutModel(string uuid, string name) : this()
+        {
+            _guid = Guid.Parse(uuid);
             Name = name;
         }
 
@@ -66,7 +74,7 @@ namespace FancyZonesEditor.Models
                 return _guid;
             }
         }
-        private Guid _guid = Guid.NewGuid();
+        private Guid _guid;
 
         // IsSelected (not-persisted) - tracks whether or not this LayoutModel is selected in the picker
         // TODO: once we switch to a picker per monitor, we need to move this state to the view  
@@ -97,12 +105,6 @@ namespace FancyZonesEditor.Models
         // Removes this Layout from the registry and the loaded CustomModels list
         public void Delete()
         {
-            RegistryKey key = Registry.CurrentUser.OpenSubKey(c_registryPath, true);
-            if (key != null)
-            {
-                key.DeleteValue(Name);
-            }
-
             int i = s_customModels.IndexOf(this);
             if (i != -1)
             {
@@ -115,35 +117,66 @@ namespace FancyZonesEditor.Models
         {
             s_customModels = new ObservableCollection<LayoutModel>();
 
-            RegistryKey key = Registry.CurrentUser.OpenSubKey(c_registryPath);
-            if (key != null)
+            FileStream inputStream = File.Open(Settings.CustomZoneSetsTmpFile, FileMode.Open);
+            var jsonObject = JsonDocument.Parse(inputStream, options: default);
+            JsonElement.ArrayEnumerator customZoneSetsEnumerator = jsonObject.RootElement.GetProperty("custom-zone-sets").EnumerateArray();
+            while (customZoneSetsEnumerator.MoveNext())
             {
-                foreach (string name in key.GetValueNames())
+                var current = customZoneSetsEnumerator.Current;
+                string name = current.GetProperty("name").GetString();
+                string type = current.GetProperty("type").GetString();
+                string uuid = current.GetProperty("uuid").GetString();
+                var info = current.GetProperty("info");
+                if (type.Equals("grid"))
                 {
-                    LayoutModel model = null;
-                    byte[] data = (byte[])Registry.GetValue(c_fullRegistryPath, name, null);
-
-                    ushort version = (ushort) (data[0]*256 + data[1]);
-                    byte type = data[2];
-                    ushort id = (ushort) (data[3]*256 + data[4]);
-
-                    switch (type)
+                    int rows = info.GetProperty("rows").GetInt32();
+                    int columns = info.GetProperty("columns").GetInt32();
+                    int[] rowsPercentage = new int[rows];
+                    JsonElement.ArrayEnumerator rowsPercentageEnumerator = info.GetProperty("rows-percentage").EnumerateArray();
+                    int i = 0;
+                    while (rowsPercentageEnumerator.MoveNext())
                     {
-                        case 0: model = new GridLayoutModel(version, name, id, data); break;
-                        case 1: model = new CanvasLayoutModel(version, name, id, data); break;
+                        rowsPercentage[i++] = rowsPercentageEnumerator.Current.GetInt32();
                     }
-
-                    if (model != null)
+                    i = 0;
+                    int[] columnsPercentage = new int[columns];
+                    JsonElement.ArrayEnumerator columnsPercentageEnumerator = info.GetProperty("columns-percentage").EnumerateArray();
+                    while (columnsPercentageEnumerator.MoveNext())
                     {
-                        if (s_maxId < id)
+                        columnsPercentage[i++] = columnsPercentageEnumerator.Current.GetInt32();
+                    }
+                    i = 0;
+                    JsonElement.ArrayEnumerator cellChildMapRows = info.GetProperty("cell-child-map").EnumerateArray();
+                    int[,] cellChildMap = new int[rows, columns];
+                    while (cellChildMapRows.MoveNext())
+                    {
+                        int j = 0;
+                        JsonElement.ArrayEnumerator cellChildMapRowElems = cellChildMapRows.Current.EnumerateArray();
+                        while (cellChildMapRowElems.MoveNext())
                         {
-                            s_maxId = id;
+                            cellChildMap[i, j++] = cellChildMapRowElems.Current.GetInt32();
                         }
-                        s_customModels.Add(model);
+                        i++;
                     }
+                    s_customModels.Add(new GridLayoutModel(uuid, name, rows, columns, rowsPercentage, columnsPercentage, cellChildMap));
+                }
+                else if (type.Equals("canvas"))
+                {
+                    int referenceWidth = info.GetProperty("ref-width").GetInt32();
+                    int referenceHeight = info.GetProperty("ref-height").GetInt32();
+                    JsonElement.ArrayEnumerator zonesEnumerator = info.GetProperty("zones").EnumerateArray();
+                    IList<Int32Rect> zones = new List<Int32Rect>();
+                    while (zonesEnumerator.MoveNext())
+                    {
+                        int x = zonesEnumerator.Current.GetProperty("X").GetInt32();
+                        int y = zonesEnumerator.Current.GetProperty("Y").GetInt32();
+                        int width = zonesEnumerator.Current.GetProperty("width").GetInt32();
+                        int height = zonesEnumerator.Current.GetProperty("height").GetInt32();
+                        zones.Add(new Int32Rect(x, y, width, height));
+                    }
+                    s_customModels.Add(new CanvasLayoutModel(uuid, name, referenceWidth, referenceHeight, zones));
                 }
             }
-
             return s_customModels;
         }
         private static ObservableCollection<LayoutModel> s_customModels = null;
@@ -154,72 +187,58 @@ namespace FancyZonesEditor.Models
         protected abstract void PersistData();
         public abstract LayoutModel Clone();
         
-        // PInvokes to handshake with fancyzones backend
-        internal static class Native
-        {
-            [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Ansi)]
-            public static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPStr)]string lpFileName);
-
-            [DllImport("kernel32", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
-            public static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
-
-            internal delegate int PersistZoneSet(
-                [MarshalAs(UnmanagedType.LPWStr)] string activeKey,
-                ushort layoutId,
-                int zoneCount,
-                [MarshalAs(UnmanagedType.LPArray)] int[] zoneArray,
-                [MarshalAs(UnmanagedType.LPWStr)] string activeZoneSetTmpFile,
-                int showSpacing,
-                int spacing,
-                int editorZoneCount);
-        }
-
         public void Persist(System.Windows.Int32Rect[] zones)
         {
-            // Persist the editor data
-
-            // napravi json string i upisi ga u fajl
-            // jsonString = GetPersistData();
             PersistData();
-            //Registry.SetValue(c_fullRegistryPath, Name, GetPersistData(), Microsoft.Win32.RegistryValueKind.Binary);
             Apply(zones);
         }
 
         public void Apply(System.Windows.Int32Rect[] zones)
         { 
-            // Persist the zone data back into FZ
-            var module = Native.LoadLibrary("fancyzones.dll");
-            if (module == IntPtr.Zero)
-            {
-                return;
-            }
-
-            var pfn = Native.GetProcAddress(module, "PersistZoneSet");
-            if (pfn == IntPtr.Zero)
-            {
-                return;
-            }
-
-            // Scale all the zones to the DPI and then pack them up to be marshalled.
             int zoneCount = zones.Length;
-            var zoneArray = new int[zoneCount * 4];
-            for (int i = 0; i < zones.Length; i++)
+            FileStream outputStream = File.Open(Settings.ActiveZoneSetTmpFile, FileMode.Create);
+            var writer = new Utf8JsonWriter(outputStream, options: default);
+
+            writer.WriteStartObject();
+            writer.WriteString("device-id", Settings.UniqueKey);
+
+            writer.WriteStartObject("active-zoneset");
+            writer.WriteString("uuid", "{" + Guid.ToString().ToUpper() + "}");
+            bool custom = false;
+            switch (_id)
             {
-                var left = (int)(zones[i].X * Settings.Dpi);
-                var top = (int)(zones[i].Y * Settings.Dpi);
-                var right = left + (int)(zones[i].Width * Settings.Dpi);
-                var bottom = top + (int)(zones[i].Height * Settings.Dpi);
-
-                var index = i * 4;
-                zoneArray[index] = left;
-                zoneArray[index+1] = top;
-                zoneArray[index+2] = right;
-                zoneArray[index+3] = bottom;
+                case Settings.c_focusModelId:
+                    writer.WriteString("type", "focus");
+                    break;
+                case Settings.c_rowsModelId:
+                    writer.WriteString("type", "rows");
+                    break;
+                case Settings.c_columnsModelId:
+                    writer.WriteString("type", "columns");
+                    break;
+                case Settings.c_gridModelId:
+                    writer.WriteString("type", "grid");
+                    break;
+                case Settings.c_priorityGridModelId:
+                    writer.WriteString("type", "priority-grid");
+                    break;
+                default:
+                    writer.WriteString("type", "custom");
+                    custom = true;
+                    break;
             }
+            if (!custom)
+            {
+                writer.WriteNumber("zone-count", zoneCount);
+            }
+            writer.WriteEndObject();
 
-            var persistZoneSet = Marshal.GetDelegateForFunctionPointer<Native.PersistZoneSet>(pfn);
-            persistZoneSet(Settings.UniqueKey, _id, zoneCount, zoneArray,Settings.ActiveZoneSetTmpFile,
-                           Settings._settingsToPersist.ShowSpacing ? 1 : 0, Settings._settingsToPersist.Spacing, Settings._settingsToPersist.ZoneCount);
+            writer.WriteBoolean("editor-show-spacing", Settings._settingsToPersist.ShowSpacing);
+            writer.WriteNumber("editor-spacing", Settings._settingsToPersist.Spacing);
+            writer.WriteNumber("editor-zone-count", Settings._settingsToPersist.ZoneCount);
+            writer.WriteEndObject();
+            writer.Flush();
+            outputStream.Close();
         }
 
         private static readonly string c_registryPath = Settings.RegistryPath + "\\Layouts";

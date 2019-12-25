@@ -32,38 +32,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
     return TRUE;
 }
 
-// This function is exported and called from FancyZonesEditor.exe to save a layout from the editor.
-STDAPI PersistZoneSet(
-    PCWSTR activeKey, // Registry key holding ActiveZoneSet
-    WORD layoutId, // LayoutModel Id
-    int zoneCount, // Number of zones in zones
-    int zones[],  // Array of zones serialized in left/top/right/bottom chunks
-    PCWSTR activeZoneSetTmpFile, // Temp file to store active zone set
-    int showSpacing, // Editor showSpacing value
-    int spacing, // Editor spacing value
-    int editorZoneCount) // Editor zone count value
-{
-    UUID id{GUID_NULL};
-    UuidCreate(&id);
-
-    wil::unique_cotaskmem_string zoneSetId;
-    if (SUCCEEDED_LOG(StringFromCLSID(id, &zoneSetId)))
-    {
-        JSONHelpers::ZoneSetData data;
-        data.uuid = zoneSetId.get();
-        data.type = JSONHelpers::TypeFromLayoutId(layoutId);
-        if (data.type != JSONHelpers::ZoneSetLayoutType::Custom) {
-          data.zoneCount = zoneCount;
-        }
-        //                 MonitorFromPoint({}, MONITOR_DEFAULTTOPRIMARY), WHATS THIS???
-
-        JSONHelpers::DeviceInfoJSON deviceInfo{ activeKey, { data, showSpacing == 1 ? true : false, spacing, editorZoneCount} };
-        JSONHelpers::FancyZonesDataInstance().SetDeviceInfoToTmpFile(deviceInfo, activeZoneSetTmpFile);
-    }
-
-    return S_OK;
-}
-
 class FancyZonesModule : public PowertoyModuleIface
 {
 public:

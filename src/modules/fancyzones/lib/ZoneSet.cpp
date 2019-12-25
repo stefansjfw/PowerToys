@@ -1,4 +1,5 @@
 #include "pch.h"
+#include <common/dpi_aware.h>
 
 namespace
 {
@@ -442,7 +443,14 @@ void ZoneSet::CalculateCustomLayout(Rect workArea, const std::wstring& customZon
             const auto& zoneSetInfo = std::get<JSONHelpers::CanvasLayoutInfo>(zoneSet.info);
             for (const auto& zone : zoneSetInfo.zones)
             {
-                RECT focusZoneRect{ zone.x, zone.y, zone.x + zone.width, zone.y + zone.height};
+                int x = zone.x;
+                int y = zone.y;
+                int width = zone.width;
+                int height = zone.height;
+                DPIAware::Convert(NULL, x, y);
+                DPIAware::Convert(NULL, width, height);
+
+                RECT focusZoneRect{ x, y, x + width, y + height };
                 AddZone(MakeZone(focusZoneRect));
             }
 

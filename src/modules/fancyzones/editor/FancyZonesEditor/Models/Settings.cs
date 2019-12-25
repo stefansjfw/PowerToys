@@ -221,6 +221,12 @@ namespace FancyZonesEditor
         }
         private static String _appliedZoneSetTmpFile;
 
+        public static String CustomZoneSetsTmpFile
+        {
+            get { return _customZoneSetsTmpFile; }
+        }
+        private static String _customZoneSetsTmpFile;
+
         // UpdateLayoutModels
         //  Update the five default layouts based on the new ZoneCount
         private void UpdateLayoutModels()
@@ -329,7 +335,7 @@ namespace FancyZonesEditor
             _dpi = 1;
 
             string[] args = Environment.GetCommandLineArgs();
-            if (args.Length == 12)
+            if (args.Length == 13)
             {
                 // 1 = unique key for per-monitor settings
                 // 2 = layoutid used to generate current layout (used to pick the default layout to show)
@@ -342,6 +348,7 @@ namespace FancyZonesEditor
                 // 9 = spacing value
                 // 10 = zoneCount value
                 // 11 = temp file for applied zone set
+                // 12 = FancyZones peristed data json file path
 
                 _uniqueKey = args[1];
                 _uniqueRegistryPath += "\\" + _uniqueKey;
@@ -374,6 +381,7 @@ namespace FancyZonesEditor
                 _zoneCount = int.Parse(args[10]);
 
                 _appliedZoneSetTmpFile = args[11];
+                _customZoneSetsTmpFile = args[12];
 
                 _workArea = new Rect(x, y, width, height);
 
@@ -428,13 +436,13 @@ namespace FancyZonesEditor
         private GridLayoutModel _priorityGridModel;
         private static CanvasLayoutModel _blankCustomModel;
 
-        private static readonly ushort c_focusModelId = 0xFFFF;
-        private static readonly ushort c_rowsModelId = 0xFFFE;
-        private static readonly ushort c_columnsModelId = 0xFFFD;
-        private static readonly ushort c_gridModelId = 0xFFFC;
-        private static readonly ushort c_priorityGridModelId = 0xFFFB;
-        private static readonly ushort c_blankCustomModelId = 0xFFFA;
-        private static readonly ushort c_lastPrefinedId = c_blankCustomModelId;
+        public const ushort c_focusModelId = 0xFFFF;
+        public const ushort c_rowsModelId = 0xFFFE;
+        public const ushort c_columnsModelId = 0xFFFD;
+        public const ushort c_gridModelId = 0xFFFC;
+        public const ushort c_priorityGridModelId = 0xFFFB;
+        public const ushort c_blankCustomModelId = 0xFFFA;
+        public const ushort c_lastPrefinedId = c_blankCustomModelId;
 
         // hard coded data for all the "Priority Grid" configurations that are unique to "Grid"
         private static byte[][] s_priorityData = new byte[][]

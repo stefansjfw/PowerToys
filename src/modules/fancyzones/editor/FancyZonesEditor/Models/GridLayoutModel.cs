@@ -24,6 +24,14 @@ namespace FancyZonesEditor.Models
                 Reload(data);
             }
         }
+        public GridLayoutModel(string uuid, string name, int rows, int cols, int[] rowPercents, int[] colsPercents, int[,] cellChildMap) : base(uuid, name)
+        {
+            _rows = rows;
+            _cols = cols;
+            _rowPercents = rowPercents;
+            _colPercents = colsPercents;
+            _cellChildMap = cellChildMap;
+        }
         // Rows - number of rows in the Grid
         public int Rows
         {
