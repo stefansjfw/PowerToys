@@ -191,33 +191,68 @@ namespace FancyZonesUnitTests
     TEST_CLASS(GridLayoutInfoUnitTests)
     {
     private:
-        GridLayoutInfo m_info{1, 2};
+        GridLayoutInfo m_info{3, 4};
         json::JsonObject m_gridJson = json::JsonObject();
         json::JsonArray m_rowsArray, m_columnsArray, m_cells;
 
+        void compareGridInfos(const GridLayoutInfo& expected, const GridLayoutInfo& actual)
+        {
+            Assert::AreEqual(expected.rows, actual.rows);
+            Assert::AreEqual(expected.columns, actual.columns);
+            Assert::AreEqual((size_t)expected.rows, actual.rowsPercents.size());
+            Assert::AreEqual((size_t)expected.columns, actual.columnsPercents.size());
+            Assert::AreEqual((size_t)expected.rows, actual.cellChildMap.size());
+
+            for (int i = 0; i < expected.rowsPercents.size(); i++)
+            {
+                Assert::AreEqual(expected.rowsPercents[i], actual.rowsPercents[i]);
+            }
+
+            for (int i = 0; i < expected.columnsPercents.size(); i++)
+            {
+                Assert::AreEqual(expected.columnsPercents[i], actual.columnsPercents[i]);
+            }
+
+            for (int i = 0; i < expected.cellChildMap.size(); i++)
+            {
+                Assert::AreEqual((size_t)expected.columns, expected.cellChildMap[i].size());
+                for (int j = 0; j < expected.cellChildMap[i].size(); j++)
+                {
+                    Assert::AreEqual(expected.cellChildMap[i][j], actual.cellChildMap[i][j]);
+                }
+            }
+        }
+
         TEST_METHOD_INITIALIZE(Init)
         {
-            for (int i = 0; i < MAX_ZONE_COUNT; i++)
+            for (int i = 0; i < m_info.rows; i++)
             {
                 int row = rand() % 100;
                 m_rowsArray.Append(json::JsonValue::CreateNumberValue(row));
-                m_info.rowsPercents[i] = row;
+                m_info.rowsPercents.push_back(row);
+            }
 
+            for (int i = 0; i < m_info.columns; i++)
+            {
                 int column = rand() % 100;
                 m_columnsArray.Append(json::JsonValue::CreateNumberValue(column));
-                m_info.columnsPercents[i] = column;
+                m_info.columnsPercents.push_back(column);
+            }
 
+            for (int i = 0; i < m_info.rows; i++)
+            {
                 json::JsonArray cellsArray;
-                for (int j = 0; j < MAX_ZONE_COUNT; j++)
+                m_info.cellChildMap.push_back({});
+                for (int j = 0; j < m_info.columns; j++)
                 {
                     int cell = rand() % 100;
-                    m_info.cellChildMap[i][j] = cell;
+                    m_info.cellChildMap[i].push_back(cell);
                     cellsArray.Append(json::JsonValue::CreateNumberValue(cell));
                 }
                 m_cells.Append(cellsArray);
             }
 
-            m_gridJson = json::JsonObject::Parse(L"{\"rows\": 1, \"columns\": 2}");
+            m_gridJson = json::JsonObject::Parse(L"{\"rows\": 3, \"columns\": 4}");
             m_gridJson.SetNamedValue(L"rows-percentage", m_rowsArray);
             m_gridJson.SetNamedValue(L"columns-percentage", m_columnsArray);
             m_gridJson.SetNamedValue(L"cell-child-map", m_cells);
@@ -229,7 +264,7 @@ namespace FancyZonesUnitTests
             m_cells.Clear();
             m_columnsArray.Clear();
             m_gridJson.Clear();
-            m_info = GridLayoutInfo{ 1, 2 };
+            m_info = GridLayoutInfo{ 3, 4 };
         }
 
     public:
@@ -249,24 +284,13 @@ namespace FancyZonesUnitTests
 
             auto actual = GridLayoutInfo::FromJson(json);
             Assert::IsTrue(actual.has_value());
-
-            Assert::AreEqual(expected.rows, actual->rows);
-            Assert::AreEqual(expected.columns, actual->columns);
-            for (int i = 0; i < MAX_ZONE_COUNT; i++)
-            {
-                Assert::AreEqual(expected.rowsPercents[i], actual->rowsPercents[i]);
-                Assert::AreEqual(expected.columnsPercents[i], actual->columnsPercents[i]);
-                for (int j = 0; j < MAX_ZONE_COUNT; j++)
-                {
-                    Assert::AreEqual(expected.cellChildMap[i][j], actual->cellChildMap[i][j]);
-                }
-            }
+            compareGridInfos(expected, *actual);
         }
 
         TEST_METHOD(FromJsonEmptyArray)
         {
-            json::JsonObject json = json::JsonObject::Parse(L"{\"rows\": 1, \"columns\": 2}");
-            GridLayoutInfo expected { 1, 2 };
+            json::JsonObject json = json::JsonObject::Parse(L"{\"rows\": 0, \"columns\": 0}");
+            GridLayoutInfo expected { 0, 0 };
             
             json.SetNamedValue(L"rows-percentage", json::JsonArray());
             json.SetNamedValue(L"columns-percentage", json::JsonArray());
@@ -274,96 +298,43 @@ namespace FancyZonesUnitTests
 
             auto actual = GridLayoutInfo::FromJson(json);
             Assert::IsTrue(actual.has_value());
-
-            Assert::AreEqual(expected.rows, actual->rows);
-            Assert::AreEqual(expected.columns, actual->columns);
-            for (int i = 0; i < MAX_ZONE_COUNT; i++)
-            {
-                Assert::AreEqual(expected.rowsPercents[i], actual->rowsPercents[i]);
-                Assert::AreEqual(expected.columnsPercents[i], actual->columnsPercents[i]);
-                for (int j = 0; j < MAX_ZONE_COUNT; j++)
-                {
-                    Assert::AreEqual(expected.cellChildMap[i][j], actual->cellChildMap[i][j]);
-                }
-            }
+            compareGridInfos(expected, *actual);
         }
 
         TEST_METHOD(FromJsonSmallerArray)
         {
-            json::JsonObject json = json::JsonObject(m_gridJson);
-            GridLayoutInfo expected = m_info;
+            GridLayoutInfo expected = m_info;   
+            expected.rowsPercents.pop_back();
+            expected.columnsPercents.pop_back();
+            expected.cellChildMap.pop_back();
+            expected.cellChildMap[0].pop_back();
+            json::JsonObject json = GridLayoutInfo::ToJson(expected);
 
             auto actual = GridLayoutInfo::FromJson(json);
-            Assert::IsTrue(actual.has_value());
-
-            Assert::AreEqual(expected.rows, actual->rows);
-            Assert::AreEqual(expected.columns, actual->columns);
-            for (int i = 0; i < MAX_ZONE_COUNT; i++)
-            {
-                Assert::AreEqual(expected.rowsPercents[i], actual->rowsPercents[i]);
-                Assert::AreEqual(expected.columnsPercents[i], actual->columnsPercents[i]);
-                for (int j = 0; j < MAX_ZONE_COUNT; j++)
-                {
-                    Assert::AreEqual(expected.cellChildMap[i][j], actual->cellChildMap[i][j]);
-                }
-            }
+            Assert::IsFalse(actual.has_value());
         }
 
         TEST_METHOD(FromJsonBiggerArray)
         {
-            json::JsonObject json = json::JsonObject::Parse(L"{\"rows\": 1, \"columns\": 2}");
-            GridLayoutInfo expected{ 1, 2 };
-
-            json::JsonArray rowsArray, columnsArray, cells;
-            for (int i = 0; i < MAX_ZONE_COUNT; i++)
-            {
-                rowsArray.Append(json::JsonValue::CreateNumberValue(1));
-                expected.rowsPercents[i] = 1;
-
-                columnsArray.Append(json::JsonValue::CreateNumberValue(1));
-                expected.columnsPercents[i] = 1;
-
-                json::JsonArray cellsArray;
-                for (int j = 0; j < MAX_ZONE_COUNT; j++)
-                {
-                    expected.cellChildMap[i][j] = 1;
-                    cellsArray.Append(json::JsonValue::CreateNumberValue(1));
-                }
-                cells.Append(cellsArray);
-            }
+            GridLayoutInfo expected = m_info;
 
             //extra
             for (int i = 0; i < 5; i++)
             {
-                rowsArray.Append(json::JsonValue::CreateNumberValue(2));
-                columnsArray.Append(json::JsonValue::CreateNumberValue(2));
+                expected.rowsPercents.push_back(rand() % 100);
+                expected.columnsPercents.push_back(rand() % 100);
+                expected.cellChildMap.push_back({});
                 
-                json::JsonArray cellsArray;
                 for (int j = 0; j < 5; j++)
                 {
-                    cellsArray.Append(json::JsonValue::CreateNumberValue(2));
+                    expected.cellChildMap[i].push_back(rand() % 100);
                 }
-                cells.Append(cellsArray);
             }
 
-            json.SetNamedValue(L"rows-percentage", rowsArray);
-            json.SetNamedValue(L"columns-percentage", columnsArray);
-            json.SetNamedValue(L"cell-child-map", cells);
+            auto json = GridLayoutInfo::ToJson(expected);
 
             auto actual = GridLayoutInfo::FromJson(json);
-            Assert::IsTrue(actual.has_value());
-
-            Assert::AreEqual(expected.rows, actual->rows);
-            Assert::AreEqual(expected.columns, actual->columns);
-            for (int i = 0; i < MAX_ZONE_COUNT; i++)
-            {
-                Assert::AreEqual(expected.rowsPercents[i], actual->rowsPercents[i]);
-                Assert::AreEqual(expected.columnsPercents[i], actual->columnsPercents[i]);
-                for (int j = 0; j < MAX_ZONE_COUNT; j++)
-                {
-                    Assert::AreEqual(expected.cellChildMap[i][j], actual->cellChildMap[i][j]);
-                }
-            }
+            Assert::IsFalse(actual.has_value());
         }
 
         TEST_METHOD(FromJsonMissingKeys)
@@ -411,7 +382,14 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(FromJsonGrid)
         {            
-            CustomZoneSetJSON expected{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{1, 2} } };
+            const auto grid = GridLayoutInfo{
+                .rows = 1,
+                .columns = 3,
+                .rowsPercents = { 10000 },
+                .columnsPercents = { 2500, 5000, 2500 },
+                .cellChildMap = { { 0, 1, 2 } }
+            };
+            CustomZoneSetJSON expected{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } };
 
             json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"name\": \"name\", \"type\": \"grid\"}");
             json.SetNamedValue(L"info", GridLayoutInfo::ToJson(std::get<GridLayoutInfo>(expected.data.info)));
@@ -1063,8 +1041,15 @@ namespace FancyZonesUnitTests
         TEST_METHOD(CustomZoneSetsParseSingle)
         {
             const std::wstring zoneUuid = L"uuid";
+            const auto grid = GridLayoutInfo{
+                .rows = 1,
+                .columns = 3,
+                .rowsPercents = { 10000 },
+                .columnsPercents = { 2500, 5000, 2500 },
+                .cellChildMap = { { 0, 1, 2 } }
+            };
             json::JsonObject json;
-            CustomZoneSetJSON expected{ zoneUuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } };
+            CustomZoneSetJSON expected{ zoneUuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } };
             json::JsonArray array;
             array.Append(CustomZoneSetJSON::ToJson(expected));
             json.SetNamedValue(L"custom-zone-sets", json::JsonValue::Parse(array.Stringify()));
@@ -1089,9 +1074,16 @@ namespace FancyZonesUnitTests
         {
             json::JsonObject json;
             json::JsonArray array;
-            array.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-1", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } }));
+            const auto grid = GridLayoutInfo{
+                .rows = 1,
+                .columns = 3,
+                .rowsPercents = { 10000 },
+                .columnsPercents = { 2500, 5000, 2500 },
+                .cellChildMap = { { 0, 1, 2 } }
+            };
+            array.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-1", CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } }));
             array.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-2", CustomZoneSetData{ L"name", CustomLayoutType::Canvas, CanvasLayoutInfo{ 1, 2 } } }));
-            array.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-3", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } }));
+            array.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-3", CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } }));
             array.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-4", CustomZoneSetData{ L"name", CustomLayoutType::Canvas, CanvasLayoutInfo{ 1, 2 } } }));
             json.SetNamedValue(L"custom-zone-sets", json::JsonValue::Parse(array.Stringify()));
 
@@ -1153,7 +1145,14 @@ namespace FancyZonesUnitTests
         TEST_METHOD(CustomZoneSetsSerializeSingle)
         {
             json::JsonArray expected;
-            expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON { L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } }));
+            const auto grid = GridLayoutInfo{
+                .rows = 1,
+                .columns = 3,
+                .rowsPercents = { 10000 },
+                .columnsPercents = { 2500, 5000, 2500 },
+                .cellChildMap = { { 0, 1, 2 } }
+            };
+            expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON { L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } }));
             json::JsonObject json;
             json.SetNamedValue(L"custom-zone-sets", json::JsonValue::Parse(expected.Stringify()));
 
@@ -1168,9 +1167,17 @@ namespace FancyZonesUnitTests
         {
             json::JsonObject json;
             json::JsonArray expected;
-            expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-1", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } }));
+            const auto grid = GridLayoutInfo{
+                .rows = 1,
+                .columns = 3,
+                .rowsPercents = { 10000 },
+                .columnsPercents = { 2500, 5000, 2500 },
+                .cellChildMap = { { 0, 1, 2 } }
+            };
+
+            expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-1", CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } }));
             expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-2", CustomZoneSetData{ L"name", CustomLayoutType::Canvas, CanvasLayoutInfo{ 1, 2 } } }));
-            expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-3", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } }));
+            expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-3", CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } }));
             expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-4", CustomZoneSetData{ L"name", CustomLayoutType::Canvas, CanvasLayoutInfo{ 1, 2 } } }));
             json.SetNamedValue(L"custom-zone-sets", json::JsonValue::Parse(expected.Stringify()));
 
@@ -1197,7 +1204,14 @@ namespace FancyZonesUnitTests
         TEST_METHOD(CustomZoneSetsReadTemp)
         {
             const std::wstring uuid = L"uuid";
-            CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } };
+            const auto grid = GridLayoutInfo{
+                .rows = 1,
+                .columns = 3,
+                .rowsPercents = { 10000 },
+                .columnsPercents = { 2500, 5000, 2500 },
+                .cellChildMap = { { 0, 1, 2 } }
+            };
+            CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } };
 
             FancyZonesData data;
             const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
@@ -1329,7 +1343,14 @@ namespace FancyZonesUnitTests
                 std::filesystem::remove(jsonPath);
             }
 
-            CustomZoneSetJSON zoneSets{ L"zone-set-uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } };
+            const auto grid = GridLayoutInfo{
+                .rows = 1,
+                .columns = 3,
+                .rowsPercents = { 10000 },
+                .columnsPercents = { 2500, 5000, 2500 },
+                .cellChildMap = { { 0, 1, 2 } }
+            };
+            CustomZoneSetJSON zoneSets{ L"zone-set-uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } };
             AppZoneHistoryJSON appZoneHistory{ L"app-path", AppZoneHistoryData{ L"zone-set-uuid", 54321 }};
             DeviceInfoJSON deviceInfo{ L"uuid", DeviceInfoData{ ZoneSetData{ L"uuid", ZoneSetLayoutType::Custom }, true, 16, 3 } };
             json::JsonArray zoneSetsArray, appZonesArray, deviceInfoArray;
