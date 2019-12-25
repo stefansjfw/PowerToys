@@ -24,9 +24,6 @@
     <ClCompile Include="Zone.Spec.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="RegistryHelpers.Spec.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Util.Spec.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
