@@ -235,7 +235,7 @@ namespace JSONHelpers
             auto zoneSetJson = json::from_file(tmpFilePath);
             if (zoneSetJson.has_value())
             {
-                auto deviceInfo = DeviceInfoJSON::FromJson(*zoneSetJson);
+                const auto deviceInfo = DeviceInfoJSON::FromJson(*zoneSetJson);
                 if (deviceInfo.has_value())
                 {
                     deviceInfoMap[uniqueID] = deviceInfo->data;
@@ -253,7 +253,7 @@ namespace JSONHelpers
             auto customZoneSetJson = json::from_file(tmpFilePath);
             if (customZoneSetJson.has_value())
             {
-                auto customZoneSet = CustomZoneSetJSON::FromJson(*customZoneSetJson);
+                const auto customZoneSet = CustomZoneSetJSON::FromJson(*customZoneSetJson);
                 if (customZoneSet.has_value())
                 {
                     customZoneSetsMap[uuid] = customZoneSet->data;
@@ -273,7 +273,7 @@ namespace JSONHelpers
             for (int i = 0; i < appLastZones.Size(); ++i)
             {
                 json::JsonObject appLastZone = appLastZones.GetObjectAt(i);
-                auto appZoneHistory = AppZoneHistoryJSON::FromJson(appLastZone);
+                const auto appZoneHistory = AppZoneHistoryJSON::FromJson(appLastZone);
                 if (appZoneHistory.has_value())
                 {
                     appZoneHistoryMap[appZoneHistory->appPath] = appZoneHistory->data;
@@ -313,7 +313,7 @@ namespace JSONHelpers
 
             for (int i = 0; i < devices.Size(); ++i)
             {
-                auto device = DeviceInfoJSON::DeviceInfoJSON::FromJson(devices.GetObjectAt(i));
+                const auto device = DeviceInfoJSON::DeviceInfoJSON::FromJson(devices.GetObjectAt(i));
                 if (device.has_value())
                 {
                     deviceInfoMap[device->deviceId] = device->data;
@@ -353,7 +353,7 @@ namespace JSONHelpers
 
             for (int i = 0; i < customZoneSets.Size(); ++i)
             {
-                auto zoneSet = CustomZoneSetJSON::FromJson(customZoneSets.GetObjectAt(i));
+                const auto zoneSet = CustomZoneSetJSON::FromJson(customZoneSets.GetObjectAt(i));
                 if (zoneSet.has_value())
                 {
                     customZoneSetsMap[zoneSet->uuid] = zoneSet->data;
@@ -704,7 +704,7 @@ namespace JSONHelpers
 
             result.deviceId = device.GetNamedString(L"device-id");
 
-            auto zoneSet = ZoneSetData::FromJson(device.GetNamedObject(L"active-zoneset"));
+            const auto zoneSet = ZoneSetData::FromJson(device.GetNamedObject(L"active-zoneset"));
             if (zoneSet.has_value())
             {
                 result.data.activeZoneSet = *zoneSet;
@@ -866,7 +866,7 @@ namespace JSONHelpers
             std::wstring zoneSetType = std::wstring{ customZoneSet.GetNamedString(L"type") };
             if (zoneSetType.compare(L"canvas") == 0)
             {
-                auto info = CanvasLayoutInfo::FromJson(infoJson);
+                const auto info = CanvasLayoutInfo::FromJson(infoJson);
                 if (info.has_value())
                 {
                     result.data.type = CustomLayoutType::Canvas;
@@ -879,7 +879,7 @@ namespace JSONHelpers
             }
             else if (zoneSetType.compare(L"grid") == 0)
             {
-                auto info = GridLayoutInfo::FromJson(infoJson);
+                const auto info = GridLayoutInfo::FromJson(infoJson);
                 if (info.has_value())
                 {
                     result.data.type = CustomLayoutType::Grid;
