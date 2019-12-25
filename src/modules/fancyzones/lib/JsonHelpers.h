@@ -63,9 +63,9 @@ namespace JSONHelpers
     {
         int rows;
         int columns;
-        int rowsPercents[MAX_ZONE_COUNT];
-        int columnsPercents[MAX_ZONE_COUNT];
-        int cellChildMap[MAX_ZONE_COUNT][MAX_ZONE_COUNT];
+        std::vector<int> rowsPercents;
+        std::vector<int> columnsPercents;
+        std::vector<std::vector<int>> cellChildMap;
 
         static json::JsonObject ToJson(const GridLayoutInfo& gridInfo);
         static std::optional<GridLayoutInfo> FromJson(const json::JsonObject& infoJson);

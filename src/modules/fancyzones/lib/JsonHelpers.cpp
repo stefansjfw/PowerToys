@@ -33,6 +33,28 @@ namespace
 
 namespace JSONHelpers
 {
+    json::JsonArray NumVecToJsonArray(const std::vector<int>& vec)
+    {
+        json::JsonArray arr;
+        for (const auto& val : vec)
+        {
+            arr.Append(json::JsonValue::CreateNumberValue(val));
+        }
+
+        return arr;
+    }
+
+    std::vector<int> JsonArrayToNumVec(const json::JsonArray& arr)
+    {
+        std::vector<int> vec;
+        for (const auto& val : arr)
+        {
+            vec.emplace_back(val.GetNumber());
+        }
+
+        return vec;
+    }
+
     int TypeToLayoutId(JSONHelpers::ZoneSetLayoutType layoutType)
     {
         switch (layoutType)
@@ -751,31 +773,13 @@ namespace JSONHelpers
         json::JsonObject infoJson;
         infoJson.SetNamedValue(L"rows", json::value(gridInfo.rows));
         infoJson.SetNamedValue(L"columns", json::value(gridInfo.columns));
-
-        json::JsonArray rowsPercentageJson;
-
-        for (int i = 0; i < gridInfo.rows; ++i)
-        {
-            rowsPercentageJson.Append(json::value(gridInfo.rowsPercents[i]));
-        }
-        infoJson.SetNamedValue(L"rows-percentage", rowsPercentageJson);
-
-        json::JsonArray columnPercentageJson;
-        for (int i = 0; i < gridInfo.columns; ++i)
-        {
-            columnPercentageJson.Append(json::value(gridInfo.columnsPercents[i]));
-        }
-        infoJson.SetNamedValue(L"columns-percentage", columnPercentageJson);
+        infoJson.SetNamedValue(L"rows-percentage", NumVecToJsonArray(gridInfo.rowsPercents));
+        infoJson.SetNamedValue(L"columns-percentage", NumVecToJsonArray(gridInfo.columnsPercents));
 
         json::JsonArray cellChildMapJson;
-        for (int i = 0; i < gridInfo.rows; ++i)
+        for (int i = 0; i < gridInfo.cellChildMap.size(); ++i)
         {
-            json::JsonArray cellChildMapRowJson;
-            for (int j = 0; j < gridInfo.columns; ++j)
-            {
-                cellChildMapRowJson.Append(json::value(gridInfo.cellChildMap[i][j]));
-            }
-            cellChildMapJson.Append(cellChildMapRowJson);
+            cellChildMapJson.Append(NumVecToJsonArray(gridInfo.cellChildMap[i]));
         }
         infoJson.SetNamedValue(L"cell-child-map", cellChildMapJson);
 
@@ -787,7 +791,7 @@ namespace JSONHelpers
         try
         {
             GridLayoutInfo info{};
-            
+
             info.rows = infoJson.GetNamedNumber(L"rows");
             info.columns = infoJson.GetNamedNumber(L"columns");
 
@@ -795,27 +799,21 @@ namespace JSONHelpers
             json::JsonArray columnsPercentage = infoJson.GetNamedArray(L"columns-percentage");
             json::JsonArray cellChildMap = infoJson.GetNamedArray(L"cell-child-map");
 
-            const uint32_t rowsSize = rowsPercentage.Size();
-            for (int i = 0; i < rowsSize && i < MAX_ZONE_COUNT; i++)
+            if (rowsPercentage.Size() != info.rows || columnsPercentage.Size() != info.columns || cellChildMap.Size() != info.rows)
             {
-                info.rowsPercents[i] = rowsPercentage.GetAt(i).GetNumber();
+                return std::nullopt;
             }
-            
-            const uint32_t columnsSize = columnsPercentage.Size();
-            for (int i = 0; i < columnsSize && i < MAX_ZONE_COUNT; i++)
+
+            info.rowsPercents = JsonArrayToNumVec(rowsPercentage);
+            info.columnsPercents = JsonArrayToNumVec(columnsPercentage);
+            for (const auto& cellsRow : cellChildMap)
             {
-                info.columnsPercents[i] = columnsPercentage.GetAt(i).GetNumber();
-            }
-            
-            const uint32_t cellsRowsSize = cellChildMap.Size();
-            for (int i = 0; i < cellsRowsSize && i < MAX_ZONE_COUNT; i++)
-            {
-                auto mapRow = cellChildMap.GetAt(i).GetArray();
-                const uint32_t cellsColumnsSize = mapRow.Size();
-                for (int j = 0; j < cellsColumnsSize && j < MAX_ZONE_COUNT; j++)
+                const auto cellsArray = cellsRow.GetArray();
+                if (cellsArray.Size() != info.columns)
                 {
-                    info.cellChildMap[i][j] = mapRow.GetAt(j).GetNumber();
+                    return std::nullopt;
                 }
+                info.cellChildMap.push_back(JsonArrayToNumVec(cellsArray));
             }
 
             return info;

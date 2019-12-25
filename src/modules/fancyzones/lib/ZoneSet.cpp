@@ -21,21 +21,21 @@ namespace
             .columns = 1,
             .rowsPercents = { 10000 },
             .columnsPercents = { 10000 },
-            .cellChildMap = { 0 } },
+            .cellChildMap = { { 0 } } },
         /* 2 */
         {
             .rows = 1,
             .columns = 2,
             .rowsPercents = { 10000 },
             .columnsPercents = { 6667, 3333 },
-            .cellChildMap = { 0, 1 } },
+            .cellChildMap = { { 0, 1 } } },
         /* 3 */
         {
             .rows = 1,
             .columns = 3,
             .rowsPercents = { 10000 },
             .columnsPercents = { 2500, 5000, 2500 },
-            .cellChildMap = { 0, 1, 2 } },
+            .cellChildMap = { { 0, 1, 2 } } },
         /* 4 */
         {
             .rows = 2,
