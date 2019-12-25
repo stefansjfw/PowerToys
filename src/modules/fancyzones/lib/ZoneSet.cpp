@@ -403,11 +403,16 @@ void ZoneSet::CalculateGridLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType 
 
     for (int row = 0; row < gridLayoutInfo.rows; row++)
     {
-        gridLayoutInfo.rowsPercents[row] = C_MULTIPLIER / gridLayoutInfo.rows;
+        gridLayoutInfo.rowsPercents.push_back(C_MULTIPLIER / gridLayoutInfo.rows);
     }
     for (int col = 0; col < gridLayoutInfo.columns; col++)
     {
-        gridLayoutInfo.columnsPercents[col] = C_MULTIPLIER / gridLayoutInfo.columns;
+        gridLayoutInfo.columnsPercents.push_back(C_MULTIPLIER / gridLayoutInfo.columns);
+    }
+
+    for (int i = 0; i < gridLayoutInfo.rows; ++i)
+    {
+        gridLayoutInfo.cellChildMap.push_back(std::vector<int>(gridLayoutInfo.columns));
     }
 
     int index = 0;
