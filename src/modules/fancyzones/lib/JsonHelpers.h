@@ -62,17 +62,32 @@ namespace JSONHelpers
     class GridLayoutInfo
     {
     public:
-        GridLayoutInfo(int rows = 0, int columns = 0);
-        GridLayoutInfo(int rows, int columns, const std::vector<int>& rowsPercents, const std::vector<int>& columnsPercents, const std::vector<std::vector<int>>& cellChildMap);
+        struct Minimal
+        {
+            int rows;
+            int columns;
+        };
+
+        struct Full
+        {
+            int rows;
+            int columns;
+            const std::vector<int>& rowsPercents;
+            const std::vector<int>& columnsPercents;
+            const std::vector<std::vector<int>>& cellChildMap;
+        };
+
+        GridLayoutInfo(const Minimal& info);
+        GridLayoutInfo(const Full& info);
         ~GridLayoutInfo() = default;
-        
+
         static json::JsonObject ToJson(const GridLayoutInfo& gridInfo);
         static std::optional<GridLayoutInfo> FromJson(const json::JsonObject& infoJson);
-                
+
         inline std::vector<int>& rowsPercents() { return m_rowsPercents; };
         inline std::vector<int>& columnsPercents() { return m_columnsPercents; };
         inline std::vector<std::vector<int>>& cellChildMap() { return m_cellChildMap; };
-        
+
         inline int rows() const { return m_rows; }
         inline int columns() const { return m_columns; }
 

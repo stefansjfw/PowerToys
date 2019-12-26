@@ -564,7 +564,7 @@ namespace JSONHelpers
                 {
                 case CustomLayoutType::Grid: {
                     int j = 5;
-                    GridLayoutInfo zoneSetInfo(data[j++], data[j++]);
+                    GridLayoutInfo zoneSetInfo(GridLayoutInfo::Minimal{ .rows = data[j++], .columns = data[j++] });
 
                     for (int row = 0; row < zoneSetInfo.rows(); row++)
                     {
@@ -764,9 +764,9 @@ namespace JSONHelpers
             return std::nullopt;
         }
     }
-
-    GridLayoutInfo::GridLayoutInfo(int rows, int columns) :
-        m_rows(rows), m_columns(columns)
+    
+    GridLayoutInfo::GridLayoutInfo(const Minimal& info) :
+        m_rows(info.rows), m_columns(info.columns)
     {
         m_rowsPercents.resize(m_rows, 0);
         m_columnsPercents.resize(m_columns, 0);
@@ -776,9 +776,9 @@ namespace JSONHelpers
             cellRow.resize(m_columns, 0);
         }
     }
-
-    GridLayoutInfo::GridLayoutInfo(int rows, int columns, const std::vector<int>& rowsPercents, const std::vector<int>& columnsPercents, const std::vector<std::vector<int>>& cellChildMap) :
-        m_rows(rows), m_columns(columns), m_rowsPercents(rowsPercents), m_columnsPercents(columnsPercents), m_cellChildMap(cellChildMap)
+    
+    GridLayoutInfo::GridLayoutInfo(const Full& info) :
+        m_rows(info.rows), m_columns(info.columns), m_rowsPercents(info.rowsPercents), m_columnsPercents(info.columnsPercents), m_cellChildMap(info.cellChildMap)
     {
         m_rowsPercents.resize(m_rows, 0);
         m_columnsPercents.resize(m_columns, 0);
@@ -788,7 +788,7 @@ namespace JSONHelpers
             cellRow.resize(m_columns, 0);
         }
     }
-
+    
     json::JsonObject GridLayoutInfo::ToJson(const GridLayoutInfo& gridInfo)
     {
         json::JsonObject infoJson;
@@ -811,7 +811,7 @@ namespace JSONHelpers
     {
         try
         {
-            GridLayoutInfo info{};
+            GridLayoutInfo info(GridLayoutInfo::Minimal{});
 
             info.m_rows = infoJson.GetNamedNumber(L"rows");
             info.m_columns = infoJson.GetNamedNumber(L"columns");

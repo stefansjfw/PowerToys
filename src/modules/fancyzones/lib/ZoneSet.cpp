@@ -14,32 +14,87 @@ namespace
     //  int cellChildMap[MAX_ZONE_COUNT][MAX_ZONE_COUNT];
     //};
 
-    auto l = JSONHelpers::GridLayoutInfo(1, 1);
-        // PriorityGrid layout is unique for zoneCount <= 11. For zoneCount > 11 PriorityGrid is same as Grid
-        JSONHelpers::GridLayoutInfo predefinedPriorityGridLayouts[11] = {
-            /* 1 */
-            JSONHelpers::GridLayoutInfo(1, 1, { 10000 }, { 10000 }, { { 0 } }),
-            /* 2 */
-            JSONHelpers::GridLayoutInfo(1, 2, { 10000 }, { 6667, 3333 }, { { 0, 1 } }),
-            /* 3 */
-            JSONHelpers::GridLayoutInfo(1, 3, { 10000 }, { 2500, 5000, 2500 }, { { 0, 1, 2 } }),
-            /* 4 */
-            JSONHelpers::GridLayoutInfo(2, 3, { 5000, 5000 }, { 2500, 5000, 2500 }, { { 0, 1, 2 }, { 0, 1, 3 } }),
-            /* 5 */
-            JSONHelpers::GridLayoutInfo(2, 3, { 5000, 5000 }, { 2500, 5000, 2500 }, { { 0, 1, 2 }, { 3, 1, 4 } }),
-            /* 6 */
-            JSONHelpers::GridLayoutInfo(3, 3, { 3333, 3334, 3333 }, { 2500, 5000, 2500 }, { { 0, 1, 2 }, { 0, 1, 3 }, { 4, 1, 5 } }),
-            /* 7 */
-            JSONHelpers::GridLayoutInfo(3, 3, { 3333, 3334, 3333 }, { 2500, 5000, 2500 }, { { 0, 1, 2 }, { 3, 1, 4 }, { 5, 1, 6 } }),
-            /* 8 */
-            JSONHelpers::GridLayoutInfo(3, 4, { 3333, 3334, 3333 }, { 2500, 2500, 2500, 2500 }, { { 0, 1, 2, 3 }, { 4, 1, 2, 5 }, { 6, 1, 2, 7 } }),
-            /* 9 */
-            JSONHelpers::GridLayoutInfo(3, 4, { 3333, 3334, 3333 }, { 2500, 2500, 2500, 2500 }, { { 0, 1, 2, 3 }, { 4, 1, 2, 5 }, { 6, 1, 7, 8 } }),
-            /* 10 */
-            JSONHelpers::GridLayoutInfo(3, 4, { 3333, 3334, 3333 }, { 2500, 2500, 2500, 2500 }, { { 0, 1, 2, 3 }, { 4, 1, 5, 6 }, { 7, 1, 8, 9 } }),
-            /* 11 */
-            JSONHelpers::GridLayoutInfo(3, 4, { 3333, 3334, 3333 }, { 2500, 2500, 2500, 2500 }, { { 0, 1, 2, 3 }, { 4, 1, 5, 6 }, { 7, 8, 9, 10 } })
-        };
+    auto l = JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Minimal{ .rows = 1, .columns = 1 });
+    // PriorityGrid layout is unique for zoneCount <= 11. For zoneCount > 11 PriorityGrid is same as Grid
+    JSONHelpers::GridLayoutInfo predefinedPriorityGridLayouts[11] = {
+        /* 1 */
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
+            .rows = 1,
+            .columns = 1,
+            .rowsPercents = { 10000 },
+            .columnsPercents = { 10000 },
+            .cellChildMap = { { 0 } } }),
+        /* 2 */
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
+            .rows = 1,
+            .columns = 2,
+            .rowsPercents = { 10000 },
+            .columnsPercents = { 6667, 3333 },
+            .cellChildMap = { { 0, 1 } } }),
+        /* 3 */
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
+            .rows = 1,
+            .columns = 3,
+            .rowsPercents = { 10000 },
+            .columnsPercents = { 2500, 5000, 2500 },
+            .cellChildMap = { { 0, 1, 2 } } }),
+        /* 4 */
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
+            .rows = 2,
+            .columns = 3,
+            .rowsPercents = { 5000, 5000 },
+            .columnsPercents = { 2500, 5000, 2500 },
+            .cellChildMap = { { 0, 1, 2 }, { 0, 1, 3 } } }),
+        /* 5 */
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
+            .rows = 2,
+            .columns = 3,
+            .rowsPercents = { 5000, 5000 },
+            .columnsPercents = { 2500, 5000, 2500 },
+            .cellChildMap = { { 0, 1, 2 }, { 3, 1, 4 } } }),
+        /* 6 */
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
+            .rows = 3,
+            .columns = 3,
+            .rowsPercents = { 3333, 3334, 3333 },
+            .columnsPercents = { 2500, 5000, 2500 },
+            .cellChildMap = { { 0, 1, 2 }, { 0, 1, 3 }, { 4, 1, 5 } } }),
+        /* 7 */
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
+            .rows = 3,
+            .columns = 3,
+            .rowsPercents = { 3333, 3334, 3333 },
+            .columnsPercents = { 2500, 5000, 2500 },
+            .cellChildMap = { { 0, 1, 2 }, { 3, 1, 4 }, { 5, 1, 6 } } }),
+        /* 8 */
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
+            .rows = 3,
+            .columns = 4,
+            .rowsPercents = { 3333, 3334, 3333 },
+            .columnsPercents = { 2500, 2500, 2500, 2500 },
+            .cellChildMap = { { 0, 1, 2, 3 }, { 4, 1, 2, 5 }, { 6, 1, 2, 7 } } }),
+        /* 9 */
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
+            .rows = 3,
+            .columns = 4,
+            .rowsPercents = { 3333, 3334, 3333 },
+            .columnsPercents = { 2500, 2500, 2500, 2500 },
+            .cellChildMap = { { 0, 1, 2, 3 }, { 4, 1, 2, 5 }, { 6, 1, 7, 8 } } }),
+        /* 10 */
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
+            .rows = 3,
+            .columns = 4,
+            .rowsPercents = { 3333, 3334, 3333 },
+            .columnsPercents = { 2500, 2500, 2500, 2500 },
+            .cellChildMap = { { 0, 1, 2, 3 }, { 4, 1, 5, 6 }, { 7, 1, 8, 9 } } }),
+        /* 11 */
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
+            .rows = 3,
+            .columns = 4,
+            .rowsPercents = { 3333, 3334, 3333 },
+            .columnsPercents = { 2500, 2500, 2500, 2500 },
+            .cellChildMap = { { 0, 1, 2, 3 }, { 4, 1, 5, 6 }, { 7, 8, 9, 10 } } }),
+    };
 }
 
 struct ZoneSet : winrt::implements<ZoneSet, IZoneSet>
@@ -346,7 +401,7 @@ void ZoneSet::CalculateGridLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType 
         columns++;
     }
 
-    JSONHelpers::GridLayoutInfo gridLayoutInfo(rows, columns);
+    JSONHelpers::GridLayoutInfo gridLayoutInfo(JSONHelpers::GridLayoutInfo::Minimal{ .rows = rows, .columns = columns });
 
     for (int row = 0; row < rows; row++)
     {
