@@ -49,12 +49,10 @@ namespace FancyZonesUnitTests
             iter.MoveNext();
         }
     }
-    
+
     TEST_CLASS(ZoneSetLayoutTypeUnitTest)
     {
-
-        TEST_METHOD(ZoneSetLayoutTypeToString)
-        {
+        TEST_METHOD(ZoneSetLayoutTypeToString){
             std::map<int, std::wstring> expectedMap = {
                 std::make_pair(-1, L"TypeToString_ERROR"),
                 std::make_pair(0, L"focus"),
@@ -191,62 +189,69 @@ namespace FancyZonesUnitTests
     TEST_CLASS(GridLayoutInfoUnitTests)
     {
     private:
-        GridLayoutInfo m_info{3, 4};
+        GridLayoutInfo m_info = GridLayoutInfo(GridLayoutInfo::Minimal{ .rows = 3, .columns = 4 });
         json::JsonObject m_gridJson = json::JsonObject();
         json::JsonArray m_rowsArray, m_columnsArray, m_cells;
 
+        void compareSizes(int expectedRows, int expectedColumns, const GridLayoutInfo& actual)
+        {
+            Assert::AreEqual(expectedRows, actual.rows());
+            Assert::AreEqual(expectedColumns, actual.columns());
+            Assert::AreEqual((size_t)expectedRows, actual.rowsPercents().size());
+            Assert::AreEqual((size_t)expectedColumns, actual.columnsPercents().size());
+            Assert::AreEqual((size_t)expectedRows, actual.cellChildMap().size());
+
+            for (int i = 0; i < expectedRows; i++)
+            {
+                Assert::AreEqual((size_t)expectedColumns, actual.cellChildMap()[i].size());
+            }
+        }
+
+        void compareVectors(const std::vector<int>& expected, const std::vector<int>& actual)
+        {
+            Assert::AreEqual(expected.size(), actual.size());
+            for (int i = 0; i < expected.size(); i++)
+            {
+                Assert::AreEqual(expected[i], actual[i]);
+            }
+        }
+
         void compareGridInfos(const GridLayoutInfo& expected, const GridLayoutInfo& actual)
         {
-            Assert::AreEqual(expected.rows, actual.rows);
-            Assert::AreEqual(expected.columns, actual.columns);
-            Assert::AreEqual((size_t)expected.rows, actual.rowsPercents.size());
-            Assert::AreEqual((size_t)expected.columns, actual.columnsPercents.size());
-            Assert::AreEqual((size_t)expected.rows, actual.cellChildMap.size());
+            compareSizes(expected.rows(), expected.columns(), actual);
 
-            for (int i = 0; i < expected.rowsPercents.size(); i++)
+            compareVectors(expected.rowsPercents(), actual.rowsPercents());
+            compareVectors(expected.columnsPercents(), actual.columnsPercents());
+            for (int i = 0; i < expected.cellChildMap().size(); i++)
             {
-                Assert::AreEqual(expected.rowsPercents[i], actual.rowsPercents[i]);
-            }
-
-            for (int i = 0; i < expected.columnsPercents.size(); i++)
-            {
-                Assert::AreEqual(expected.columnsPercents[i], actual.columnsPercents[i]);
-            }
-
-            for (int i = 0; i < expected.cellChildMap.size(); i++)
-            {
-                Assert::AreEqual((size_t)expected.columns, expected.cellChildMap[i].size());
-                for (int j = 0; j < expected.cellChildMap[i].size(); j++)
-                {
-                    Assert::AreEqual(expected.cellChildMap[i][j], actual.cellChildMap[i][j]);
-                }
+                compareVectors(expected.cellChildMap()[i], actual.cellChildMap()[i]);
             }
         }
 
         TEST_METHOD_INITIALIZE(Init)
         {
-            for (int i = 0; i < m_info.rows; i++)
+            m_info = GridLayoutInfo(GridLayoutInfo::Minimal{ .rows = 3, .columns = 4 });
+            for (int i = 0; i < m_info.rows(); i++)
             {
                 int row = rand() % 100;
                 m_rowsArray.Append(json::JsonValue::CreateNumberValue(row));
-                m_info.rowsPercents.push_back(row);
+                m_info.rowsPercents()[i] = row;
             }
 
-            for (int i = 0; i < m_info.columns; i++)
+            for (int i = 0; i < m_info.columns(); i++)
             {
                 int column = rand() % 100;
                 m_columnsArray.Append(json::JsonValue::CreateNumberValue(column));
-                m_info.columnsPercents.push_back(column);
+                m_info.columnsPercents()[i] = column;
             }
 
-            for (int i = 0; i < m_info.rows; i++)
+            for (int i = 0; i < m_info.rows(); i++)
             {
                 json::JsonArray cellsArray;
-                m_info.cellChildMap.push_back({});
-                for (int j = 0; j < m_info.columns; j++)
+                for (int j = 0; j < m_info.columns(); j++)
                 {
                     int cell = rand() % 100;
-                    m_info.cellChildMap[i].push_back(cell);
+                    m_info.cellChildMap()[i][j] = cell;
                     cellsArray.Append(json::JsonValue::CreateNumberValue(cell));
                 }
                 m_cells.Append(cellsArray);
@@ -264,15 +269,108 @@ namespace FancyZonesUnitTests
             m_cells.Clear();
             m_columnsArray.Clear();
             m_gridJson.Clear();
-            m_info = GridLayoutInfo{ 3, 4 };
+            m_info = GridLayoutInfo(GridLayoutInfo::Minimal{ .rows = 3, .columns = 4 });
         }
 
     public:
+        TEST_METHOD(CreationZero)
+        {
+            const int expectedRows = 0, expectedColumns = 0;
+            GridLayoutInfo info(GridLayoutInfo::Minimal{ .rows = expectedRows, .columns = expectedColumns });
+            compareSizes(expectedRows, expectedColumns, info);
+        }
+
+        TEST_METHOD(Creation)
+        {
+            const int expectedRows = 3, expectedColumns = 4;
+            const std::vector<int> expectedRowsPercents = { 0, 0, 0 };
+            const std::vector<int> expectedColumnsPercents = { 0, 0, 0, 0 };
+
+            GridLayoutInfo info(GridLayoutInfo::Minimal{ .rows = expectedRows, .columns = expectedColumns });
+            compareSizes(expectedRows, expectedColumns, info);
+
+            compareVectors(expectedRowsPercents, info.rowsPercents());
+            compareVectors(expectedColumnsPercents, info.columnsPercents());
+            for (int i = 0; i < info.cellChildMap().size(); i++)
+            {
+                compareVectors({ 0, 0, 0, 0 }, info.cellChildMap()[i]);
+            }
+        }
+
+        TEST_METHOD(CreationFull)
+        {
+            const int expectedRows = 3, expectedColumns = 4;
+            const std::vector<int> expectedRowsPercents = { 1, 2, 3 };
+            const std::vector<int> expectedColumnsPercents = { 4, 3, 2, 1 };
+            const std::vector<std::vector<int>> expectedCells = { expectedColumnsPercents, expectedColumnsPercents, expectedColumnsPercents };
+
+            GridLayoutInfo info(GridLayoutInfo::Full{ 
+                .rows = expectedRows, 
+                .columns = expectedColumns ,
+                .rowsPercents = expectedRowsPercents,
+                .columnsPercents = expectedColumnsPercents,
+                .cellChildMap = expectedCells });
+            compareSizes(expectedRows, expectedColumns, info);
+
+            compareVectors(expectedRowsPercents, info.rowsPercents());
+            compareVectors(expectedColumnsPercents, info.columnsPercents());
+            for (int i = 0; i < info.cellChildMap().size(); i++)
+            {
+                compareVectors(expectedCells[i], info.cellChildMap()[i]);
+            }
+        }
+
+        TEST_METHOD(CreationFullVectorsSmaller)
+        {
+            const int expectedRows = 3, expectedColumns = 4;
+            const std::vector<int> expectedRowsPercents = { 1, 2, 0 };
+            const std::vector<int> expectedColumnsPercents = { 4, 3, 0, 0 };
+            const std::vector<std::vector<int>> expectedCells = { { 0, 0, 0, 0 }, { 1, 0, 0, 0 }, { 1, 2, 0, 0 } };
+
+            GridLayoutInfo info(GridLayoutInfo::Full{
+                .rows = expectedRows,
+                .columns = expectedColumns,
+                .rowsPercents = { 1, 2 },
+                .columnsPercents = { 4, 3 },
+                .cellChildMap = { {}, { 1 }, { 1, 2 } } });
+            compareSizes(expectedRows, expectedColumns, info);
+
+            compareVectors(expectedRowsPercents, info.rowsPercents());
+            compareVectors(expectedColumnsPercents, info.columnsPercents());
+            for (int i = 0; i < info.cellChildMap().size(); i++)
+            {
+                compareVectors(expectedCells[i], info.cellChildMap()[i]);
+            }
+        }
+
+        TEST_METHOD(CreationFullVectorsBigger)
+        {
+            const int expectedRows = 3, expectedColumns = 4;
+            const std::vector<int> expectedRowsPercents = { 1, 2, 3 };
+            const std::vector<int> expectedColumnsPercents = { 4, 3, 2, 1 };
+            const std::vector<std::vector<int>> expectedCells = { expectedColumnsPercents, expectedColumnsPercents, expectedColumnsPercents };
+
+            GridLayoutInfo info(GridLayoutInfo::Full{
+                .rows = expectedRows,
+                .columns = expectedColumns,
+                .rowsPercents = { 1, 2, 3, 4, 5 },
+                .columnsPercents = { 4, 3, 2, 1, 0, -1 },
+                .cellChildMap = { { 4, 3, 2, 1, 0, -1 }, { 4, 3, 2, 1, 0, -1 }, { 4, 3, 2, 1, 0, -1 } } });
+            compareSizes(expectedRows, expectedColumns, info);
+
+            compareVectors(expectedRowsPercents, info.rowsPercents());
+            compareVectors(expectedColumnsPercents, info.columnsPercents());
+            for (int i = 0; i < info.cellChildMap().size(); i++)
+            {
+                compareVectors(expectedCells[i], info.cellChildMap()[i]);
+            }
+        }
+
         TEST_METHOD(ToJson)
         {
             json::JsonObject expected = json::JsonObject(m_gridJson);
             GridLayoutInfo info = m_info;
-                        
+
             auto actual = GridLayoutInfo::ToJson(info);
             compareJsonObjects(expected, actual);
         }
@@ -290,8 +388,8 @@ namespace FancyZonesUnitTests
         TEST_METHOD(FromJsonEmptyArray)
         {
             json::JsonObject json = json::JsonObject::Parse(L"{\"rows\": 0, \"columns\": 0}");
-            GridLayoutInfo expected { 0, 0 };
-            
+            GridLayoutInfo expected(GridLayoutInfo::Minimal{ 0, 0 });
+
             json.SetNamedValue(L"rows-percentage", json::JsonArray());
             json.SetNamedValue(L"columns-percentage", json::JsonArray());
             json.SetNamedValue(L"cell-child-map", json::JsonArray());
@@ -303,11 +401,11 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(FromJsonSmallerArray)
         {
-            GridLayoutInfo expected = m_info;   
-            expected.rowsPercents.pop_back();
-            expected.columnsPercents.pop_back();
-            expected.cellChildMap.pop_back();
-            expected.cellChildMap[0].pop_back();
+            GridLayoutInfo expected = m_info;
+            expected.rowsPercents().pop_back();
+            expected.columnsPercents().pop_back();
+            expected.cellChildMap().pop_back();
+            expected.cellChildMap()[0].pop_back();
             json::JsonObject json = GridLayoutInfo::ToJson(expected);
 
             auto actual = GridLayoutInfo::FromJson(json);
@@ -321,13 +419,13 @@ namespace FancyZonesUnitTests
             //extra
             for (int i = 0; i < 5; i++)
             {
-                expected.rowsPercents.push_back(rand() % 100);
-                expected.columnsPercents.push_back(rand() % 100);
-                expected.cellChildMap.push_back({});
-                
+                expected.rowsPercents().push_back(rand() % 100);
+                expected.columnsPercents().push_back(rand() % 100);
+                expected.cellChildMap().push_back({});
+
                 for (int j = 0; j < 5; j++)
                 {
-                    expected.cellChildMap[i].push_back(rand() % 100);
+                    expected.cellChildMap()[i].push_back(rand() % 100);
                 }
             }
 
@@ -355,12 +453,12 @@ namespace FancyZonesUnitTests
             }
         }
     };
-
+    
     TEST_CLASS(CustomZoneSetUnitTests)
     {
         TEST_METHOD(ToJsonGrid)
         {
-            CustomZoneSetJSON zoneSet{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{} } };
+            CustomZoneSetJSON zoneSet{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo(GridLayoutInfo::Minimal{}) } };
 
             json::JsonObject expected = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"name\": \"name\", \"type\": \"grid\"}");
             expected.SetNamedValue(L"info", GridLayoutInfo::ToJson(std::get<GridLayoutInfo>(zoneSet.data.info)));
@@ -381,14 +479,8 @@ namespace FancyZonesUnitTests
         }
 
         TEST_METHOD(FromJsonGrid)
-        {            
-            const auto grid = GridLayoutInfo{
-                .rows = 1,
-                .columns = 3,
-                .rowsPercents = { 10000 },
-                .columnsPercents = { 2500, 5000, 2500 },
-                .cellChildMap = { { 0, 1, 2 } }
-            };
+        {
+            const auto grid = GridLayoutInfo(GridLayoutInfo::Full{ 1, 3, { 10000 }, { 2500, 5000, 2500 }, { { 0, 1, 2 } } });
             CustomZoneSetJSON expected{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } };
 
             json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"name\": \"name\", \"type\": \"grid\"}");
@@ -403,14 +495,14 @@ namespace FancyZonesUnitTests
 
             auto expectedGrid = std::get<GridLayoutInfo>(expected.data.info);
             auto actualGrid = std::get<GridLayoutInfo>(actual->data.info);
-            Assert::AreEqual(expectedGrid.rows, actualGrid.rows);
-            Assert::AreEqual(expectedGrid.columns, actualGrid.columns);
+            Assert::AreEqual(expectedGrid.rows(), actualGrid.rows());
+            Assert::AreEqual(expectedGrid.columns(), actualGrid.columns());
         }
 
         TEST_METHOD(FromJsonCanvas)
         {
             CustomZoneSetJSON expected{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Canvas, CanvasLayoutInfo{ 2, 1 } } };
-            
+
             json::JsonObject json = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"name\": \"name\", \"type\": \"canvas\"}");
             json.SetNamedValue(L"info", CanvasLayoutInfo::ToJson(std::get<CanvasLayoutInfo>(expected.data.info)));
 
@@ -446,9 +538,8 @@ namespace FancyZonesUnitTests
         }
     };
 
-    TEST_CLASS(ZoneSetDataUnitTest)
-    {
-        TEST_METHOD(ToJsonCustom)
+    TEST_CLASS(ZoneSetDataUnitTest){
+        TEST_METHOD(ToJsonCustom) 
         {
             json::JsonObject expected = json::JsonObject::Parse(L"{\"uuid\": \"uuid\", \"type\": \"custom\"}");
             ZoneSetData data{ L"uuid", ZoneSetLayoutType::Custom };
@@ -609,6 +700,7 @@ namespace FancyZonesUnitTests
             Assert::AreEqual((int)expected.data.activeZoneSet.type, (int)actual->data.activeZoneSet.type, L"zone set type");
             Assert::AreEqual(expected.data.activeZoneSet.uuid.c_str(), actual->data.activeZoneSet.uuid.c_str(), L"zone set uuid");
         }
+    
         TEST_METHOD(FromJsonSpacingTrue)
         {
             DeviceInfoJSON expected = m_defaultDeviceInfo;
@@ -857,13 +949,13 @@ namespace FancyZonesUnitTests
         {
             FancyZonesData data;
             DeviceInfoJSON deviceInfo{ L"default_device_id", DeviceInfoData{ ZoneSetData{ L"uuid", ZoneSetLayoutType::Custom }, true, 16, 3 } };
-            
+
             const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
             data.SetDeviceInfoToTmpFile(deviceInfo, path);
-            
+
             bool actualFileExists = std::filesystem::exists(path);
             Assert::IsTrue(actualFileExists);
-            
+
             auto expectedData = DeviceInfoJSON::ToJson(deviceInfo);
             auto actualSavedData = json::from_file(path);
             std::filesystem::remove(path); //clean up before compare asserts
@@ -881,14 +973,14 @@ namespace FancyZonesUnitTests
             data.SetDeviceInfoToTmpFile(expected, path);
 
             data.GetDeviceInfoFromTmpFile(zoneUuid, path);
-            
+
             bool actualFileExists = std::filesystem::exists(path);
             if (actualFileExists)
             {
                 std::filesystem::remove(path); //clean up before compare asserts
             }
             Assert::IsFalse(actualFileExists);
-            
+
             auto devices = data.GetDeviceInfoMap();
             Assert::AreEqual((size_t)1, devices.size());
 
@@ -922,7 +1014,7 @@ namespace FancyZonesUnitTests
             Assert::IsTrue(actual.activeZoneSet.zoneCount.has_value());
             Assert::AreEqual(*expected.activeZoneSet.zoneCount, *actual.activeZoneSet.zoneCount);
         }
-    
+
         TEST_METHOD(AppZoneHistoryParseSingle)
         {
             const std::wstring appPath = L"appPath";
@@ -1041,13 +1133,13 @@ namespace FancyZonesUnitTests
         TEST_METHOD(CustomZoneSetsParseSingle)
         {
             const std::wstring zoneUuid = L"uuid";
-            const auto grid = GridLayoutInfo{
+            GridLayoutInfo grid(GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
                 .rows = 1,
                 .columns = 3,
                 .rowsPercents = { 10000 },
                 .columnsPercents = { 2500, 5000, 2500 },
-                .cellChildMap = { { 0, 1, 2 } }
-            };
+                .cellChildMap = { { 0, 1, 2 } } }));
+
             json::JsonObject json;
             CustomZoneSetJSON expected{ zoneUuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } };
             json::JsonArray array;
@@ -1066,21 +1158,20 @@ namespace FancyZonesUnitTests
 
             auto expectedGrid = std::get<GridLayoutInfo>(expected.data.info);
             auto actualGrid = std::get<GridLayoutInfo>(actual.info);
-            Assert::AreEqual(expectedGrid.rows, actualGrid.rows);
-            Assert::AreEqual(expectedGrid.columns, actualGrid.columns);
+            Assert::AreEqual(expectedGrid.rows(), actualGrid.rows());
+            Assert::AreEqual(expectedGrid.columns(), actualGrid.columns());
         }
 
         TEST_METHOD(CustomZoneSetsParseMany)
         {
             json::JsonObject json;
             json::JsonArray array;
-            const auto grid = GridLayoutInfo{
+            const GridLayoutInfo grid(GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
                 .rows = 1,
                 .columns = 3,
                 .rowsPercents = { 10000 },
                 .columnsPercents = { 2500, 5000, 2500 },
-                .cellChildMap = { { 0, 1, 2 } }
-            };
+                .cellChildMap = { { 0, 1, 2 } } }));
             array.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-1", CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } }));
             array.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-2", CustomZoneSetData{ L"name", CustomLayoutType::Canvas, CanvasLayoutInfo{ 1, 2 } } }));
             array.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-3", CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } }));
@@ -1105,8 +1196,8 @@ namespace FancyZonesUnitTests
                 {
                     auto expectedInfo = std::get<GridLayoutInfo>(expected->data.info);
                     auto actualInfo = std::get<GridLayoutInfo>(actual.info);
-                    Assert::AreEqual(expectedInfo.rows, actualInfo.rows, L"grid rows");
-                    Assert::AreEqual(expectedInfo.columns, actualInfo.columns, L"grid columns");
+                    Assert::AreEqual(expectedInfo.rows(), actualInfo.rows(), L"grid rows");
+                    Assert::AreEqual(expectedInfo.columns(), actualInfo.columns(), L"grid columns");
                 }
                 else
                 {
@@ -1115,7 +1206,6 @@ namespace FancyZonesUnitTests
                     Assert::AreEqual(expectedInfo.referenceWidth, actualInfo.referenceWidth, L"canvas width");
                     Assert::AreEqual(expectedInfo.referenceHeight, actualInfo.referenceHeight, L"canvas height");
                 }
-                
 
                 iter.MoveNext();
             }
@@ -1133,7 +1223,7 @@ namespace FancyZonesUnitTests
         TEST_METHOD(CustomZoneSetsParseInvalid)
         {
             json::JsonObject json;
-            CustomZoneSetJSON expected{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } };
+            CustomZoneSetJSON expected{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo(GridLayoutInfo::Minimal{ 1, 2 }) } };
             json.SetNamedValue(L"custom-zone-sets", json::JsonValue::Parse(CustomZoneSetJSON::ToJson(expected).Stringify()));
 
             FancyZonesData data;
@@ -1145,14 +1235,13 @@ namespace FancyZonesUnitTests
         TEST_METHOD(CustomZoneSetsSerializeSingle)
         {
             json::JsonArray expected;
-            const auto grid = GridLayoutInfo{
+            const GridLayoutInfo grid(GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
                 .rows = 1,
                 .columns = 3,
                 .rowsPercents = { 10000 },
                 .columnsPercents = { 2500, 5000, 2500 },
-                .cellChildMap = { { 0, 1, 2 } }
-            };
-            expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON { L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } }));
+                .cellChildMap = { { 0, 1, 2 } } }));
+            expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } }));
             json::JsonObject json;
             json.SetNamedValue(L"custom-zone-sets", json::JsonValue::Parse(expected.Stringify()));
 
@@ -1167,13 +1256,12 @@ namespace FancyZonesUnitTests
         {
             json::JsonObject json;
             json::JsonArray expected;
-            const auto grid = GridLayoutInfo{
+            const GridLayoutInfo grid(GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
                 .rows = 1,
                 .columns = 3,
                 .rowsPercents = { 10000 },
                 .columnsPercents = { 2500, 5000, 2500 },
-                .cellChildMap = { { 0, 1, 2 } }
-            };
+                .cellChildMap = { { 0, 1, 2 } } }));
 
             expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-1", CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } }));
             expected.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ L"zone-uuid-2", CustomZoneSetData{ L"name", CustomLayoutType::Canvas, CanvasLayoutInfo{ 1, 2 } } }));
@@ -1200,17 +1288,16 @@ namespace FancyZonesUnitTests
             auto actual = data.SerializeCustomZoneSets();
             compareJsonArrays(expected, actual);
         }
-    
+
         TEST_METHOD(CustomZoneSetsReadTemp)
         {
             const std::wstring uuid = L"uuid";
-            const auto grid = GridLayoutInfo{
+            const GridLayoutInfo grid(GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
                 .rows = 1,
                 .columns = 3,
                 .rowsPercents = { 10000 },
                 .columnsPercents = { 2500, 5000, 2500 },
-                .cellChildMap = { { 0, 1, 2 } }
-            };
+                .cellChildMap = { { 0, 1, 2 } } }));
             CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } };
 
             FancyZonesData data;
@@ -1234,8 +1321,8 @@ namespace FancyZonesUnitTests
             Assert::AreEqual(expected.data.name.c_str(), actual.name.c_str());
             auto expectedGrid = std::get<GridLayoutInfo>(expected.data.info);
             auto actualGrid = std::get<GridLayoutInfo>(actual.info);
-            Assert::AreEqual(expectedGrid.rows, actualGrid.rows);
-            Assert::AreEqual(expectedGrid.columns, actualGrid.columns);
+            Assert::AreEqual(expectedGrid.rows(), actualGrid.rows());
+            Assert::AreEqual(expectedGrid.columns(), actualGrid.columns());
         }
 
         TEST_METHOD(CustomZoneSetsReadTempUnexsisted)
@@ -1253,7 +1340,7 @@ namespace FancyZonesUnitTests
         TEST_METHOD(CustomZoneSetsReadTempMissedUuid)
         {
             const std::wstring uuid = L"uuid";
-            CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo{ 1, 2 } } };
+            CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, GridLayoutInfo(GridLayoutInfo::Minimal{ 1, 2 }) } };
             FancyZonesData data;
 
             const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
@@ -1343,15 +1430,14 @@ namespace FancyZonesUnitTests
                 std::filesystem::remove(jsonPath);
             }
 
-            const auto grid = GridLayoutInfo{
+            const GridLayoutInfo grid(GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
                 .rows = 1,
                 .columns = 3,
                 .rowsPercents = { 10000 },
                 .columnsPercents = { 2500, 5000, 2500 },
-                .cellChildMap = { { 0, 1, 2 } }
-            };
+                .cellChildMap = { { 0, 1, 2 } } }));
             CustomZoneSetJSON zoneSets{ L"zone-set-uuid", CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } };
-            AppZoneHistoryJSON appZoneHistory{ L"app-path", AppZoneHistoryData{ L"zone-set-uuid", 54321 }};
+            AppZoneHistoryJSON appZoneHistory{ L"app-path", AppZoneHistoryData{ L"zone-set-uuid", 54321 } };
             DeviceInfoJSON deviceInfo{ L"uuid", DeviceInfoData{ ZoneSetData{ L"uuid", ZoneSetLayoutType::Custom }, true, 16, 3 } };
             json::JsonArray zoneSetsArray, appZonesArray, deviceInfoArray;
             zoneSetsArray.Append(CustomZoneSetJSON::ToJson(zoneSets));
@@ -1389,7 +1475,6 @@ namespace FancyZonesUnitTests
             {
                 std::filesystem::remove(jsonPath);
             }
-
 
             data.LoadFancyZonesData();
             bool actual = std::filesystem::exists(jsonPath);

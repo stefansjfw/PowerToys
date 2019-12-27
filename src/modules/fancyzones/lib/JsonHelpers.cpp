@@ -563,27 +563,24 @@ namespace JSONHelpers
                 switch (zoneSetData.type)
                 {
                 case CustomLayoutType::Grid: {
-                    GridLayoutInfo zoneSetInfo;
                     int j = 5;
+                    GridLayoutInfo zoneSetInfo(GridLayoutInfo::Minimal{ .rows = data[j++], .columns = data[j++] });
 
-                    zoneSetInfo.rows = data[j++];
-                    zoneSetInfo.columns = data[j++];
-
-                    for (int row = 0; row < zoneSetInfo.rows; row++)
+                    for (int row = 0; row < zoneSetInfo.rows(); row++)
                     {
-                        zoneSetInfo.rowsPercents[row] = data[j++] * 256 + data[j++];
+                        zoneSetInfo.rowsPercents()[row] = data[j++] * 256 + data[j++];
                     }
 
-                    for (int col = 0; col < zoneSetInfo.columns; col++)
+                    for (int col = 0; col < zoneSetInfo.columns(); col++)
                     {
-                        zoneSetInfo.columnsPercents[col] = data[j++] * 256 + data[j++];
+                        zoneSetInfo.columnsPercents()[col] = data[j++] * 256 + data[j++];
                     }
 
-                    for (int row = 0; row < zoneSetInfo.rows; row++)
+                    for (int row = 0; row < zoneSetInfo.rows(); row++)
                     {
-                        for (int col = 0; col < zoneSetInfo.columns; col++)
+                        for (int col = 0; col < zoneSetInfo.columns(); col++)
                         {
-                            zoneSetInfo.cellChildMap[row][col] = data[j++];
+                            zoneSetInfo.cellChildMap()[row][col] = data[j++];
                         }
                     }
                     zoneSetData.info = zoneSetInfo;
@@ -767,19 +764,43 @@ namespace JSONHelpers
             return std::nullopt;
         }
     }
-
+    
+    GridLayoutInfo::GridLayoutInfo(const Minimal& info) :
+        m_rows(info.rows), m_columns(info.columns)
+    {
+        m_rowsPercents.resize(m_rows, 0);
+        m_columnsPercents.resize(m_columns, 0);
+        m_cellChildMap.resize(m_rows, {});
+        for (auto& cellRow : m_cellChildMap)
+        {
+            cellRow.resize(m_columns, 0);
+        }
+    }
+    
+    GridLayoutInfo::GridLayoutInfo(const Full& info) :
+        m_rows(info.rows), m_columns(info.columns), m_rowsPercents(info.rowsPercents), m_columnsPercents(info.columnsPercents), m_cellChildMap(info.cellChildMap)
+    {
+        m_rowsPercents.resize(m_rows, 0);
+        m_columnsPercents.resize(m_columns, 0);
+        m_cellChildMap.resize(m_rows, {});
+        for (auto& cellRow : m_cellChildMap)
+        {
+            cellRow.resize(m_columns, 0);
+        }
+    }
+    
     json::JsonObject GridLayoutInfo::ToJson(const GridLayoutInfo& gridInfo)
     {
         json::JsonObject infoJson;
-        infoJson.SetNamedValue(L"rows", json::value(gridInfo.rows));
-        infoJson.SetNamedValue(L"columns", json::value(gridInfo.columns));
-        infoJson.SetNamedValue(L"rows-percentage", NumVecToJsonArray(gridInfo.rowsPercents));
-        infoJson.SetNamedValue(L"columns-percentage", NumVecToJsonArray(gridInfo.columnsPercents));
+        infoJson.SetNamedValue(L"rows", json::value(gridInfo.m_rows));
+        infoJson.SetNamedValue(L"columns", json::value(gridInfo.m_columns));
+        infoJson.SetNamedValue(L"rows-percentage", NumVecToJsonArray(gridInfo.m_rowsPercents));
+        infoJson.SetNamedValue(L"columns-percentage", NumVecToJsonArray(gridInfo.m_columnsPercents));
 
         json::JsonArray cellChildMapJson;
-        for (int i = 0; i < gridInfo.cellChildMap.size(); ++i)
+        for (int i = 0; i < gridInfo.m_cellChildMap.size(); ++i)
         {
-            cellChildMapJson.Append(NumVecToJsonArray(gridInfo.cellChildMap[i]));
+            cellChildMapJson.Append(NumVecToJsonArray(gridInfo.m_cellChildMap[i]));
         }
         infoJson.SetNamedValue(L"cell-child-map", cellChildMapJson);
 
@@ -790,30 +811,30 @@ namespace JSONHelpers
     {
         try
         {
-            GridLayoutInfo info{};
+            GridLayoutInfo info(GridLayoutInfo::Minimal{});
 
-            info.rows = infoJson.GetNamedNumber(L"rows");
-            info.columns = infoJson.GetNamedNumber(L"columns");
+            info.m_rows = infoJson.GetNamedNumber(L"rows");
+            info.m_columns = infoJson.GetNamedNumber(L"columns");
 
             json::JsonArray rowsPercentage = infoJson.GetNamedArray(L"rows-percentage");
             json::JsonArray columnsPercentage = infoJson.GetNamedArray(L"columns-percentage");
             json::JsonArray cellChildMap = infoJson.GetNamedArray(L"cell-child-map");
 
-            if (rowsPercentage.Size() != info.rows || columnsPercentage.Size() != info.columns || cellChildMap.Size() != info.rows)
+            if (rowsPercentage.Size() != info.m_rows || columnsPercentage.Size() != info.m_columns || cellChildMap.Size() != info.m_rows)
             {
                 return std::nullopt;
             }
 
-            info.rowsPercents = JsonArrayToNumVec(rowsPercentage);
-            info.columnsPercents = JsonArrayToNumVec(columnsPercentage);
+            info.m_rowsPercents = JsonArrayToNumVec(rowsPercentage);
+            info.m_columnsPercents = JsonArrayToNumVec(columnsPercentage);
             for (const auto& cellsRow : cellChildMap)
             {
                 const auto cellsArray = cellsRow.GetArray();
-                if (cellsArray.Size() != info.columns)
+                if (cellsArray.Size() != info.m_columns)
                 {
                     return std::nullopt;
                 }
-                info.cellChildMap.push_back(JsonArrayToNumVec(cellsArray));
+                info.cellChildMap().push_back(JsonArrayToNumVec(cellsArray));
             }
 
             return info;

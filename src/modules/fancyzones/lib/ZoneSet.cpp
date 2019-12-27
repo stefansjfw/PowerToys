@@ -1,5 +1,6 @@
 #include "pch.h"
 #include <common/dpi_aware.h>
+#include <lib/JsonHelpers.h>
 
 namespace
 {
@@ -13,85 +14,86 @@ namespace
     //  int cellChildMap[MAX_ZONE_COUNT][MAX_ZONE_COUNT];
     //};
 
+    auto l = JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Minimal{ .rows = 1, .columns = 1 });
     // PriorityGrid layout is unique for zoneCount <= 11. For zoneCount > 11 PriorityGrid is same as Grid
     JSONHelpers::GridLayoutInfo predefinedPriorityGridLayouts[11] = {
         /* 1 */
-        {
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
             .rows = 1,
             .columns = 1,
             .rowsPercents = { 10000 },
             .columnsPercents = { 10000 },
-            .cellChildMap = { { 0 } } },
+            .cellChildMap = { { 0 } } }),
         /* 2 */
-        {
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
             .rows = 1,
             .columns = 2,
             .rowsPercents = { 10000 },
             .columnsPercents = { 6667, 3333 },
-            .cellChildMap = { { 0, 1 } } },
+            .cellChildMap = { { 0, 1 } } }),
         /* 3 */
-        {
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
             .rows = 1,
             .columns = 3,
             .rowsPercents = { 10000 },
             .columnsPercents = { 2500, 5000, 2500 },
-            .cellChildMap = { { 0, 1, 2 } } },
+            .cellChildMap = { { 0, 1, 2 } } }),
         /* 4 */
-        {
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
             .rows = 2,
             .columns = 3,
             .rowsPercents = { 5000, 5000 },
             .columnsPercents = { 2500, 5000, 2500 },
-            .cellChildMap = { { 0, 1, 2 }, { 0, 1, 3 } } },
+            .cellChildMap = { { 0, 1, 2 }, { 0, 1, 3 } } }),
         /* 5 */
-        {
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
             .rows = 2,
             .columns = 3,
             .rowsPercents = { 5000, 5000 },
             .columnsPercents = { 2500, 5000, 2500 },
-            .cellChildMap = { { 0, 1, 2 }, { 3, 1, 4 } } },
+            .cellChildMap = { { 0, 1, 2 }, { 3, 1, 4 } } }),
         /* 6 */
-        {
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
             .rows = 3,
             .columns = 3,
             .rowsPercents = { 3333, 3334, 3333 },
             .columnsPercents = { 2500, 5000, 2500 },
-            .cellChildMap = { { 0, 1, 2 }, { 0, 1, 3 }, { 4, 1, 5 } } },
+            .cellChildMap = { { 0, 1, 2 }, { 0, 1, 3 }, { 4, 1, 5 } } }),
         /* 7 */
-        {
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
             .rows = 3,
             .columns = 3,
             .rowsPercents = { 3333, 3334, 3333 },
             .columnsPercents = { 2500, 5000, 2500 },
-            .cellChildMap = { { 0, 1, 2 }, { 3, 1, 4 }, { 5, 1, 6 } } },
+            .cellChildMap = { { 0, 1, 2 }, { 3, 1, 4 }, { 5, 1, 6 } } }),
         /* 8 */
-        {
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
             .rows = 3,
             .columns = 4,
             .rowsPercents = { 3333, 3334, 3333 },
             .columnsPercents = { 2500, 2500, 2500, 2500 },
-            .cellChildMap = { { 0, 1, 2, 3 }, { 4, 1, 2, 5 }, { 6, 1, 2, 7 } } },
+            .cellChildMap = { { 0, 1, 2, 3 }, { 4, 1, 2, 5 }, { 6, 1, 2, 7 } } }),
         /* 9 */
-        {
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
             .rows = 3,
             .columns = 4,
             .rowsPercents = { 3333, 3334, 3333 },
             .columnsPercents = { 2500, 2500, 2500, 2500 },
-            .cellChildMap = { { 0, 1, 2, 3 }, { 4, 1, 2, 5 }, { 6, 1, 7, 8 } } },
+            .cellChildMap = { { 0, 1, 2, 3 }, { 4, 1, 2, 5 }, { 6, 1, 7, 8 } } }),
         /* 10 */
-        {
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
             .rows = 3,
             .columns = 4,
             .rowsPercents = { 3333, 3334, 3333 },
             .columnsPercents = { 2500, 2500, 2500, 2500 },
-            .cellChildMap = { { 0, 1, 2, 3 }, { 4, 1, 5, 6 }, { 7, 1, 8, 9 } } },
+            .cellChildMap = { { 0, 1, 2, 3 }, { 4, 1, 5, 6 }, { 7, 1, 8, 9 } } }),
         /* 11 */
-        {
+        JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
             .rows = 3,
             .columns = 4,
             .rowsPercents = { 3333, 3334, 3333 },
             .columnsPercents = { 2500, 2500, 2500, 2500 },
-            .cellChildMap = { { 0, 1, 2, 3 }, { 4, 1, 5, 6 }, { 7, 8, 9, 10 } } }
+            .cellChildMap = { { 0, 1, 2, 3 }, { 4, 1, 5, 6 }, { 7, 8, 9, 10 } } }),
     };
 }
 
@@ -383,44 +385,44 @@ void ZoneSet::CalculateGridLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType 
         return;
     }
 
-    JSONHelpers::GridLayoutInfo gridLayoutInfo;
-    gridLayoutInfo.rows = 1;
-    gridLayoutInfo.columns = 1;
-    while (zoneCount / gridLayoutInfo.rows >= gridLayoutInfo.rows)
+    int rows = 1, columns = 1;
+    while (zoneCount / rows >= rows)
     {
-        gridLayoutInfo.rows++;
+        rows++;
     }
-    gridLayoutInfo.rows--;
-    gridLayoutInfo.columns = zoneCount / gridLayoutInfo.rows;
-    if (zoneCount % gridLayoutInfo.rows == 0)
+    rows--;
+    columns = zoneCount / rows;
+    if (zoneCount % rows == 0)
     {
         // even grid
     }
     else
     {
-        gridLayoutInfo.columns++;
+        columns++;
     }
 
-    for (int row = 0; row < gridLayoutInfo.rows; row++)
+    JSONHelpers::GridLayoutInfo gridLayoutInfo(JSONHelpers::GridLayoutInfo::Minimal{ .rows = rows, .columns = columns });
+
+    for (int row = 0; row < rows; row++)
     {
-        gridLayoutInfo.rowsPercents.push_back(C_MULTIPLIER / gridLayoutInfo.rows);
+        gridLayoutInfo.rowsPercents()[row] = C_MULTIPLIER / rows;
     }
-    for (int col = 0; col < gridLayoutInfo.columns; col++)
+    for (int col = 0; col < columns; col++)
     {
-        gridLayoutInfo.columnsPercents.push_back(C_MULTIPLIER / gridLayoutInfo.columns);
+        gridLayoutInfo.columnsPercents()[col] = C_MULTIPLIER / columns;
     }
 
-    for (int i = 0; i < gridLayoutInfo.rows; ++i)
+    for (int i = 0; i < rows; ++i)
     {
-        gridLayoutInfo.cellChildMap.push_back(std::vector<int>(gridLayoutInfo.columns));
+        gridLayoutInfo.cellChildMap()[i] = std::vector<int>(columns);
     }
 
     int index = 0;
-    for (int col = gridLayoutInfo.columns - 1; col >= 0; col--)
+    for (int col = columns - 1; col >= 0; col--)
     {
-        for (int row = gridLayoutInfo.rows - 1; row >= 0; row--)
+        for (int row = rows - 1; row >= 0; row--)
         {
-            gridLayoutInfo.cellChildMap[row][col] = index++;
+            gridLayoutInfo.cellChildMap()[row][col] = index++;
             if (index == zoneCount)
             {
                 index--;
@@ -458,7 +460,6 @@ void ZoneSet::CalculateCustomLayout(Rect workArea, const std::wstring& customZon
                 RECT focusZoneRect{ x, y, x + width, y + height };
                 AddZone(MakeZone(focusZoneRect));
             }
-
         }
         else if (zoneSet.type == JSONHelpers::CustomLayoutType::Grid)
         {
@@ -471,8 +472,8 @@ void ZoneSet::CalculateGridZones(Rect workArea, JSONHelpers::GridLayoutInfo grid
 {
     int gutter = spacing;
 
-    LONG totalWidth = static_cast<LONG>(workArea.width()) - (gutter * 2) - (spacing * (gridLayoutInfo.columns - 1));
-    LONG totalHeight = static_cast<LONG>(workArea.height()) - (gutter * 2) - (spacing * (gridLayoutInfo.rows - 1));
+    LONG totalWidth = static_cast<LONG>(workArea.width()) - (gutter * 2) - (spacing * (gridLayoutInfo.columns() - 1));
+    LONG totalHeight = static_cast<LONG>(workArea.height()) - (gutter * 2) - (spacing * (gridLayoutInfo.rows() - 1));
     struct Info
     {
         LONG Extent;
@@ -483,41 +484,41 @@ void ZoneSet::CalculateGridZones(Rect workArea, JSONHelpers::GridLayoutInfo grid
     Info columnInfo[JSONHelpers::MAX_ZONE_COUNT];
 
     LONG top = gutter;
-    for (int row = 0; row < gridLayoutInfo.rows; row++)
+    for (int row = 0; row < gridLayoutInfo.rows(); row++)
     {
         rowInfo[row].Start = top;
-        rowInfo[row].Extent = totalHeight * gridLayoutInfo.rowsPercents[row] / C_MULTIPLIER;
+        rowInfo[row].Extent = totalHeight * gridLayoutInfo.rowsPercents()[row] / C_MULTIPLIER;
         rowInfo[row].End = rowInfo[row].Start + rowInfo[row].Extent;
         top += rowInfo[row].Extent + spacing;
     }
 
     LONG left = gutter;
-    for (int col = 0; col < gridLayoutInfo.columns; col++)
+    for (int col = 0; col < gridLayoutInfo.columns(); col++)
     {
         columnInfo[col].Start = left;
-        columnInfo[col].Extent = totalWidth * gridLayoutInfo.columnsPercents[col] / C_MULTIPLIER;
+        columnInfo[col].Extent = totalWidth * gridLayoutInfo.columnsPercents()[col] / C_MULTIPLIER;
         columnInfo[col].End = columnInfo[col].Start + columnInfo[col].Extent;
         left += columnInfo[col].Extent + spacing;
     }
 
-    for (int row = 0; row < gridLayoutInfo.rows; row++)
+    for (int row = 0; row < gridLayoutInfo.rows(); row++)
     {
-        for (int col = 0; col < gridLayoutInfo.columns; col++)
+        for (int col = 0; col < gridLayoutInfo.columns(); col++)
         {
-            int i = gridLayoutInfo.cellChildMap[row][col];
-            if (((row == 0) || (gridLayoutInfo.cellChildMap[row - 1][col] != i)) &&
-                ((col == 0) || (gridLayoutInfo.cellChildMap[row][col - 1] != i)))
+            int i = gridLayoutInfo.cellChildMap()[row][col];
+            if (((row == 0) || (gridLayoutInfo.cellChildMap()[row - 1][col] != i)) &&
+                ((col == 0) || (gridLayoutInfo.cellChildMap()[row][col - 1] != i)))
             {
                 left = columnInfo[col].Start;
                 top = rowInfo[row].Start;
 
                 int maxRow = row;
-                while (((maxRow + 1) < gridLayoutInfo.rows) && (gridLayoutInfo.cellChildMap[maxRow + 1][col] == i))
+                while (((maxRow + 1) < gridLayoutInfo.rows()) && (gridLayoutInfo.cellChildMap()[maxRow + 1][col] == i))
                 {
                     maxRow++;
                 }
                 int maxCol = col;
-                while (((maxCol + 1) < gridLayoutInfo.columns) && (gridLayoutInfo.cellChildMap[row][maxCol + 1] == i))
+                while (((maxCol + 1) < gridLayoutInfo.columns()) && (gridLayoutInfo.cellChildMap()[row][maxCol + 1] == i))
                 {
                     maxCol++;
                 }

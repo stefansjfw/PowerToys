@@ -59,16 +59,48 @@ namespace JSONHelpers
         static std::optional<CanvasLayoutInfo> FromJson(const json::JsonObject& infoJson);
     };
 
-    struct GridLayoutInfo
+    class GridLayoutInfo
     {
-        int rows;
-        int columns;
-        std::vector<int> rowsPercents;
-        std::vector<int> columnsPercents;
-        std::vector<std::vector<int>> cellChildMap;
+    public:
+        struct Minimal
+        {
+            int rows;
+            int columns;
+        };
+
+        struct Full
+        {
+            int rows;
+            int columns;
+            const std::vector<int>& rowsPercents;
+            const std::vector<int>& columnsPercents;
+            const std::vector<std::vector<int>>& cellChildMap;
+        };
+
+        GridLayoutInfo(const Minimal& info);
+        GridLayoutInfo(const Full& info);
+        ~GridLayoutInfo() = default;
 
         static json::JsonObject ToJson(const GridLayoutInfo& gridInfo);
         static std::optional<GridLayoutInfo> FromJson(const json::JsonObject& infoJson);
+
+        inline std::vector<int>& rowsPercents() { return m_rowsPercents; };
+        inline std::vector<int>& columnsPercents() { return m_columnsPercents; };
+        inline std::vector<std::vector<int>>& cellChildMap() { return m_cellChildMap; };
+
+        inline int rows() const { return m_rows; }
+        inline int columns() const { return m_columns; }
+
+        inline const std::vector<int>& rowsPercents() const { return m_rowsPercents; };
+        inline const std::vector<int>& columnsPercents() const { return m_columnsPercents; };
+        inline const std::vector<std::vector<int>>& cellChildMap() const { return m_cellChildMap; };
+
+    private:
+        int m_rows;
+        int m_columns;
+        std::vector<int> m_rowsPercents;
+        std::vector<int> m_columnsPercents;
+        std::vector<std::vector<int>> m_cellChildMap;
     };
 
     struct CustomZoneSetData
