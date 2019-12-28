@@ -1,39 +1,61 @@
-﻿using System;
-using System.Collections;
+﻿// Copyright (c) Microsoft Corporation
+// The Microsoft Corporation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Converters;
-using System.Windows.Documents;
 
 namespace FancyZonesEditor.Models
 {
-    // CanvasLayoutModel 
+    // CanvasLayoutModel
     //  Free form Layout Model, which specifies independent zone rects
     public class CanvasLayoutModel : LayoutModel
     {
-        public CanvasLayoutModel(string name, ushort id, int referenceWidth, int referenceHeight) : base(name, id)
+        public CanvasLayoutModel(string uuid, string name, int referenceWidth, int referenceHeight, IList<Int32Rect> zones) : base(uuid, name)
+        {
+            _referenceWidth = referenceWidth;
+            _referenceHeight = referenceHeight;
+            Zones = zones;
+        }
+        
+        public CanvasLayoutModel(string name, ushort id, int referenceWidth, int referenceHeight)
+        : base(name, id)
         {
             // Initialize Reference Size
             _referenceWidth = referenceWidth;
             _referenceHeight = referenceHeight;
         }
-        public CanvasLayoutModel(Guid guid, string name) : base(guid.ToString(), name) { }
-        public CanvasLayoutModel(string uuid, string name, int referenceWidth, int referenceHeight, IList<Int32Rect> zones) : base(uuid, name)
+
+        public CanvasLayoutModel(Guid guid, string name) : base(guid.ToString(), name)
         {
-            _referenceWidth = referenceWidth;
-            _referenceHeight = referenceHeight;
-            _zones = zones;
+        }
+
+        public CanvasLayoutModel(string name, ushort id)
+            : base(name, id)
+        {
+        }
+
+        public CanvasLayoutModel(string name)
+            : base(name)
+        {
+        }
+
+        public CanvasLayoutModel()
+            : base()
+        {
         }
 
         // ReferenceWidth - the reference width for the layout rect that all Zones are relative to
         public int ReferenceWidth
         {
-            get { return _referenceWidth; }
+            get
+            {
+                return _referenceWidth;
+            }
+
             set
             {
                 if (_referenceWidth != value)
@@ -43,12 +65,17 @@ namespace FancyZonesEditor.Models
                 }
             }
         }
+
         private int _referenceWidth;
 
         // ReferenceHeight - the reference height for the layout rect that all Zones are relative to
         public int ReferenceHeight
         {
-            get { return _referenceHeight; }
+            get
+            {
+                return _referenceHeight;
+            }
+
             set
             {
                 if (_referenceHeight != value)
@@ -58,11 +85,11 @@ namespace FancyZonesEditor.Models
                 }
             }
         }
+
         private int _referenceHeight;
 
         // Zones - the list of all zones in this layout, described as independent rectangles
-        public IList<Int32Rect> Zones { get { return _zones; } }
-        private IList<Int32Rect> _zones = new List<Int32Rect>();
+        public IList<Int32Rect> Zones { get; } = new List<Int32Rect>();
 
         // RemoveZoneAt
         //  Removes the specified index from the Zones list, and fires a property changed notification for the Zones property
@@ -85,18 +112,18 @@ namespace FancyZonesEditor.Models
             // Initialize this CanvasLayoutModel based on the given persistence data
             // Skip version (2 bytes), id (2 bytes), and type (1 bytes)
             int i = 5;
-            _referenceWidth = data[i++] * 256 + data[i++];
-            _referenceHeight = data[i++] * 256 + data[i++];
+            _referenceWidth = (data[i++] * 256) + data[i++];
+            _referenceHeight = (data[i++] * 256) + data[i++];
 
             int count = data[i++];
 
             while (count-- > 0)
             {
-                _zones.Add(new Int32Rect(
-                    data[i++] * 256 + data[i++],
-                    data[i++] * 256 + data[i++],
-                    data[i++] * 256 + data[i++],
-                    data[i++] * 256 + data[i++]));
+                Zones.Add(new Int32Rect(
+                    (data[i++] * 256) + data[i++],
+                    (data[i++] * 256) + data[i++],
+                    (data[i++] * 256) + data[i++],
+                    (data[i++] * 256) + data[i++]));
             }
         }
 
@@ -105,11 +132,13 @@ namespace FancyZonesEditor.Models
         //  Clones the data from this CanvasLayoutModel to a new CanvasLayoutModel
         public override LayoutModel Clone()
         {
-            CanvasLayoutModel layout = new CanvasLayoutModel(Guid, Name);
-            layout.ReferenceHeight = ReferenceHeight;
-            layout.ReferenceWidth = ReferenceWidth;
+            CanvasLayoutModel layout = new CanvasLayoutModel(Name)
+            {
+                ReferenceHeight = ReferenceHeight,
+                ReferenceWidth = ReferenceWidth,
+            };
 
-            foreach(Int32Rect zone in Zones)
+            foreach (Int32Rect zone in Zones)
             {
                 layout.Zones.Add(zone);
             }
@@ -139,7 +168,7 @@ namespace FancyZonesEditor.Models
                 writer.WriteNumber("ref-height", _referenceHeight);
 
                 writer.WriteStartArray("zones");
-                foreach (Int32Rect rect in _zones)
+                foreach (Int32Rect rect in Zones)
                 {
                     writer.WriteStartObject();
                     writer.WriteNumber("X", rect.X);
@@ -157,7 +186,5 @@ namespace FancyZonesEditor.Models
             }
             outputStream.Close();
         }
-
-        private static ushort c_latestVersion = 0;
     }
 }

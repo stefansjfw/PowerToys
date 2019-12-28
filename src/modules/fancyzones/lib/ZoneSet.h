@@ -2,6 +2,7 @@
 
 #include "Zone.h"
 #include "JsonHelpers.h"
+#include "util.h"
 
 
 interface __declspec(uuid("{E4839EB7-669D-49CF-84A9-71A2DFD851A3}")) IZoneSet : public IUnknown
@@ -46,9 +47,9 @@ struct ZoneSetConfig
     }
 
     GUID Id{};
-    WORD LayoutId{}; //TODO(stefan) UNNEEDED?
+    WORD LayoutId{};
     HMONITOR Monitor{};
-    PCWSTR ResolutionKey{}; //TODO(stefan) THIS WILL BE UNNEEDED WHEN REGSTRY LOGIC IS DEPRECATED. STILL NEEDED NOW FOR BACKWARD COMPATIBILITY
+    PCWSTR ResolutionKey{};
 };
 
 winrt::com_ptr<IZoneSet> MakeZoneSet(ZoneSetConfig const& config) noexcept;

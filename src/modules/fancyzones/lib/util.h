@@ -1,5 +1,7 @@
 #pragma once
 
+#include <dwmapi.h>
+
 struct Rect
 {
     Rect() {}

@@ -5,11 +5,10 @@
 #include <interface/lowlevel_keyboard_event_data.h>
 #include <interface/win_hook_event_data.h>
 #include <lib/ZoneSet.h>
-#include <lib/RegistryHelpers.h>
-#include <lib/JsonHelpers.h>
-#include <filesystem>
-#include <algorithm>
-#include <variant>
+
+#include <lib/trace.h>
+#include <lib/Settings.h>
+#include <lib/FancyZones.h>
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 

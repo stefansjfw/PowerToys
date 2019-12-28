@@ -1,6 +1,7 @@
 #include "pch.h"
+
+#include "lib/ZoneSet.h"
 #include <common/dpi_aware.h>
-#include <lib/JsonHelpers.h>
 
 namespace
 {
@@ -96,6 +97,9 @@ namespace
             .cellChildMap = { { 0, 1, 2, 3 }, { 4, 1, 5, 6 }, { 7, 8, 9, 10 } } }),
     };
 }
+
+#include "lib/ZoneSet.h"
+#include "lib/RegistryHelpers.h"
 
 struct ZoneSet : winrt::implements<ZoneSet, IZoneSet>
 {

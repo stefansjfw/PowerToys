@@ -1,5 +1,12 @@
 #include "pch.h"
+
+#include <common/common.h>
 #include <common/dpi_aware.h>
+
+#include "ZoneWindow.h"
+#include "trace.h"
+#include "util.h"
+#include "RegistryHelpers.h"
 
 #include <ShellScalingApi.h>
 
@@ -372,7 +379,6 @@ void ZoneWindow::InitializeId(PCWSTR deviceId, PCWSTR virtualDesktopId) noexcept
 void ZoneWindow::LoadSettings() noexcept
 {
     JSONHelpers::FancyZonesDataInstance().GetDeviceInfoFromTmpFile(m_uniqueId, m_activeZoneSetPath);
-    //JSONHelpers::FancyZonesDataInstance().GetAppliedZoneSetFromTmpFile(m_appliedZoneSetPath);
     const WCHAR* activeZoneSetStr = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap()[m_uniqueId].activeZoneSet.uuid.c_str();
 
     CLSIDFromString(activeZoneSetStr, &m_activeZoneSetId);
@@ -380,7 +386,6 @@ void ZoneWindow::LoadSettings() noexcept
 
 void ZoneWindow::InitializeZoneSets(MONITORINFO const& mi) noexcept
 {
-    //LoadZoneSetsFromRegistry();
     CalculateZoneSet();
 
     if (!m_activeZoneSet)

@@ -2,7 +2,15 @@
 #include "common/dpi_aware.h"
 #include "common/on_thread_executor.h"
 
+#include "FancyZones.h"
+#include "lib/Settings.h"
+#include "lib/ZoneWindow.h"
+#include "lib/RegistryHelpers.h"
+#include "lib/JsonHelpers.h"
+#include "trace.h"
+
 #include <functional>
+#include <common/common.h>
 
 namespace std
 {
@@ -34,28 +42,16 @@ public:
     Destroy() noexcept;
 
     // IFancyZonesCallback
-    IFACEMETHODIMP_(bool)
-    InMoveSize() noexcept
-    {
-        std::shared_lock readLock(m_lock);
-        return m_inMoveSize;
-    }
-    IFACEMETHODIMP_(void)
-    MoveSizeStart(HWND window, HMONITOR monitor, POINT const& ptScreen) noexcept;
-    IFACEMETHODIMP_(void)
-    MoveSizeUpdate(HMONITOR monitor, POINT const& ptScreen) noexcept;
-    IFACEMETHODIMP_(void)
-    MoveSizeEnd(HWND window, POINT const& ptScreen) noexcept;
-    IFACEMETHODIMP_(void)
-    VirtualDesktopChanged() noexcept;
-    IFACEMETHODIMP_(void)
-    WindowCreated(HWND window) noexcept;
-    IFACEMETHODIMP_(bool)
-    OnKeyDown(PKBDLLHOOKSTRUCT info) noexcept;
-    IFACEMETHODIMP_(void)
-    ToggleEditor() noexcept;
-    IFACEMETHODIMP_(void)
-    SettingsChanged() noexcept;
+    IFACEMETHODIMP_(bool) InMoveSize() noexcept { std::shared_lock readLock(m_lock); return m_inMoveSize; }
+    IFACEMETHODIMP_(void) MoveSizeStart(HWND window, HMONITOR monitor, POINT const& ptScreen) noexcept;
+    IFACEMETHODIMP_(void) MoveSizeUpdate(HMONITOR monitor, POINT const& ptScreen) noexcept;
+    IFACEMETHODIMP_(void) MoveSizeEnd(HWND window, POINT const& ptScreen) noexcept;
+    IFACEMETHODIMP_(void) VirtualDesktopChanged() noexcept;
+    IFACEMETHODIMP_(void) VirtualDesktopInitialize() noexcept;
+    IFACEMETHODIMP_(void) WindowCreated(HWND window) noexcept;
+    IFACEMETHODIMP_(bool) OnKeyDown(PKBDLLHOOKSTRUCT info) noexcept;
+    IFACEMETHODIMP_(void) ToggleEditor() noexcept;
+    IFACEMETHODIMP_(void) SettingsChanged() noexcept;
 
     // IZoneWindowHost
     IFACEMETHODIMP_(void)
@@ -145,6 +141,7 @@ private:
     OnThreadExecutor m_virtualDesktopTrackerThread;
 
     static UINT WM_PRIV_VDCHANGED; // Message to get back on to the UI thread when virtual desktop changes
+    static UINT WM_PRIV_VDINIT; // Message to get back to the UI thread when FancyZones are initialized
     static UINT WM_PRIV_EDITOR; // Message to get back on to the UI thread when the editor exits
 
     // Did we terminate the editor or was it closed cleanly?
@@ -156,6 +153,7 @@ private:
 };
 
 UINT FancyZones::WM_PRIV_VDCHANGED = RegisterWindowMessage(L"{128c2cb0-6bdf-493e-abbe-f8705e04aa95}");
+UINT FancyZones::WM_PRIV_VDINIT = RegisterWindowMessage(L"{469818a8-00fa-4069-b867-a1da484fcd9a}");
 UINT FancyZones::WM_PRIV_EDITOR = RegisterWindowMessage(L"{87543824-7080-4e91-9d9c-0404642fc7b6}");
 
 // IFancyZones
@@ -179,7 +177,7 @@ FancyZones::Run() noexcept
 
     RegisterHotKey(m_window, 1, m_settings->GetSettings().editorHotkey.get_modifiers(), m_settings->GetSettings().editorHotkey.get_code());
 
-    VirtualDesktopChanged();
+    VirtualDesktopInitialize();
 
     m_dpiUnawareThread.submit(OnThreadExecutor::task_t{ [] {
                           SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE);
@@ -252,8 +250,13 @@ FancyZones::VirtualDesktopChanged() noexcept
 }
 
 // IFancyZonesCallback
-IFACEMETHODIMP_(void)
-FancyZones::WindowCreated(HWND window) noexcept
+IFACEMETHODIMP_(void) FancyZones::VirtualDesktopInitialize() noexcept
+{
+    PostMessage(m_window, WM_PRIV_VDINIT, 0, 0);
+}
+
+// IFancyZonesCallback
+IFACEMETHODIMP_(void) FancyZones::WindowCreated(HWND window) noexcept
 {
     if (m_settings->GetSettings().appLastZone_moveWindows)
     {
@@ -502,6 +505,10 @@ LRESULT FancyZones::WndProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
         {
             OnDisplayChange(DisplayChangeType::VirtualDesktop);
         }
+        else if (message == WM_PRIV_VDINIT)
+        {
+            OnDisplayChange(DisplayChangeType::Initialization);
+        }
         else if (message == WM_PRIV_EDITOR)
         {
             if (lparam == static_cast<LPARAM>(EditorExitKind::Exit))
@@ -528,7 +535,8 @@ LRESULT FancyZones::WndProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
 
 void FancyZones::OnDisplayChange(DisplayChangeType changeType) noexcept
 {
-    if (changeType == DisplayChangeType::VirtualDesktop)
+    if (changeType == DisplayChangeType::VirtualDesktop ||
+        changeType == DisplayChangeType::Initialization)
     {
         // Explorer persists this value to the registry on a per session basis but only after
         // the first virtual desktop switch happens. If the user hasn't switched virtual desktops in this session
@@ -883,9 +891,8 @@ void FancyZones::HandleVirtualDesktopUpdates(HANDLE fancyZonesDestroyedEvent) no
         const int guidSize = sizeof(GUID);
         std::unordered_map<GUID, bool> temp;
         temp.reserve(bufferCapacity / guidSize);
-        for (int i = 0; i < bufferCapacity; i += guidSize)
-        {
-            GUID* guid = reinterpret_cast<GUID*>(buffer.get() + i);
+        for (size_t i = 0; i < bufferCapacity; i += guidSize) {
+            GUID *guid = reinterpret_cast<GUID*>(buffer.get() + i);
             temp[*guid] = true;
         }
         std::unique_lock writeLock(m_lock);

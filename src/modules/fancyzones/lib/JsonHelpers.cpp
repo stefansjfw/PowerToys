@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "JsonHelpers.h"
+#include "RegistryHelpers.h"
+#include "ZoneSet.h"
 
 #include <shlwapi.h>
 #include <filesystem>
