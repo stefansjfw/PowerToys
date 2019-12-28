@@ -263,15 +263,15 @@ namespace FancyZonesEditor
         }
         private static String _appliedZoneSetTmpFile;
 
-        public static string WorkAreaKey { get; private set; }
-
-        public static float Dpi { get; private set; }
-
         public static String CustomZoneSetsTmpFile
         {
             get { return _customZoneSetsTmpFile; }
         }
         private static String _customZoneSetsTmpFile;
+
+        public static string WorkAreaKey { get; private set; }
+
+        public static float Dpi { get; private set; }
 
         // UpdateLayoutModels
         //  Update the five default layouts based on the new ZoneCount

@@ -564,7 +564,8 @@ namespace JSONHelpers
                 std::wstring uuid = std::to_wstring(data[3] * 256 + data[4]);
                 switch (zoneSetData.type)
                 {
-                case CustomLayoutType::Grid: {
+                case CustomLayoutType::Grid:
+                {
                     int j = 5;
                     GridLayoutInfo zoneSetInfo(GridLayoutInfo::Minimal{ .rows = data[j++], .columns = data[j++] });
 
@@ -588,7 +589,8 @@ namespace JSONHelpers
                     zoneSetData.info = zoneSetInfo;
                     break;
                 }
-                case CustomLayoutType::Canvas: {
+                case CustomLayoutType::Canvas:
+                {
                     CanvasLayoutInfo info;
 
                     int j = 5;
@@ -766,9 +768,10 @@ namespace JSONHelpers
             return std::nullopt;
         }
     }
-    
+
     GridLayoutInfo::GridLayoutInfo(const Minimal& info) :
-        m_rows(info.rows), m_columns(info.columns)
+        m_rows(info.rows),
+        m_columns(info.columns)
     {
         m_rowsPercents.resize(m_rows, 0);
         m_columnsPercents.resize(m_columns, 0);
@@ -778,9 +781,13 @@ namespace JSONHelpers
             cellRow.resize(m_columns, 0);
         }
     }
-    
+
     GridLayoutInfo::GridLayoutInfo(const Full& info) :
-        m_rows(info.rows), m_columns(info.columns), m_rowsPercents(info.rowsPercents), m_columnsPercents(info.columnsPercents), m_cellChildMap(info.cellChildMap)
+        m_rows(info.rows),
+        m_columns(info.columns),
+        m_rowsPercents(info.rowsPercents),
+        m_columnsPercents(info.columnsPercents),
+        m_cellChildMap(info.cellChildMap)
     {
         m_rowsPercents.resize(m_rows, 0);
         m_columnsPercents.resize(m_columns, 0);
@@ -790,7 +797,7 @@ namespace JSONHelpers
             cellRow.resize(m_columns, 0);
         }
     }
-    
+
     json::JsonObject GridLayoutInfo::ToJson(const GridLayoutInfo& gridInfo)
     {
         json::JsonObject infoJson;
@@ -855,7 +862,8 @@ namespace JSONHelpers
         result.SetNamedValue(L"name", json::value(customZoneSet.data.name));
         switch (customZoneSet.data.type)
         {
-        case CustomLayoutType::Canvas: {
+        case CustomLayoutType::Canvas:
+        {
             result.SetNamedValue(L"type", json::value(L"canvas"));
 
             CanvasLayoutInfo info = std::get<CanvasLayoutInfo>(customZoneSet.data.info);
@@ -863,7 +871,8 @@ namespace JSONHelpers
 
             break;
         }
-        case CustomLayoutType::Grid: {
+        case CustomLayoutType::Grid:
+        {
             result.SetNamedValue(L"type", json::value(L"grid"));
 
             GridLayoutInfo gridInfo = std::get<GridLayoutInfo>(customZoneSet.data.info);

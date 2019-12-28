@@ -125,6 +125,7 @@ namespace FancyZonesEditor.Models
             if (i != -1)
             {
                 _customModels.RemoveAt(i);
+                _deletedCustomModels.Add(Guid.ToString().ToUpper());
             }
         }
 
@@ -198,13 +199,15 @@ namespace FancyZonesEditor.Models
         }
 
         private static ObservableCollection<LayoutModel> _customModels = null;
+        private static List<string> _deletedCustomModels = new List<string>();
 
         private static ushort _maxId = 0;
 
         // Callbacks that the base LayoutModel makes to derived types
         protected abstract void PersistData();
+
         public abstract LayoutModel Clone();
-        
+
         public void Persist(System.Windows.Int32Rect[] zones)
         {
             PersistData();
@@ -212,7 +215,7 @@ namespace FancyZonesEditor.Models
         }
 
         public void Apply(System.Windows.Int32Rect[] zones)
-        { 
+        {
             int zoneCount = zones.Length;
             FileStream outputStream = File.Open(Settings.ActiveZoneSetTmpFile, FileMode.Create);
             var writer = new Utf8JsonWriter(outputStream, options: default);
@@ -245,10 +248,12 @@ namespace FancyZonesEditor.Models
                     custom = true;
                     break;
             }
+
             if (!custom)
             {
                 writer.WriteNumber("zone-count", zoneCount);
             }
+
             writer.WriteEndObject();
 
             writer.WriteBoolean("editor-show-spacing", Settings._settingsToPersist.ShowSpacing);
