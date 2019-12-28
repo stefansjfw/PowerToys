@@ -67,7 +67,7 @@ namespace FancyZonesEditor
         {
             WindowLayout window = new WindowLayout();
             window.Show();
-            Close();
+            Hide();
         }
 
         private void LayoutItem_Click(object sender, MouseButtonEventArgs e)
@@ -96,7 +96,7 @@ namespace FancyZonesEditor
 
             model.IsSelected = false;
             _editing = true;
-            Close();
+            Hide();
 
             bool isPredefinedLayout = Settings.IsPredefinedLayout(model);
 
