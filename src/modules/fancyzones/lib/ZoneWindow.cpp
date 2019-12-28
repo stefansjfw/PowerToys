@@ -382,6 +382,8 @@ void ZoneWindow::LoadSettings() noexcept
     const WCHAR* activeZoneSetStr = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap()[m_uniqueId].activeZoneSet.uuid.c_str();
 
     CLSIDFromString(activeZoneSetStr, &m_activeZoneSetId);
+
+    JSONHelpers::FancyZonesDataInstance().GetDeletedCustomZoneSetsFromTmpFile(m_customZoneSetsPath);
 }
 
 void ZoneWindow::InitializeZoneSets(MONITORINFO const& mi) noexcept

@@ -266,6 +266,24 @@ namespace JSONHelpers
         }
     }
 
+    void FancyZonesData::GetDeletedCustomZoneSetsFromTmpFile(const std::wstring& tmpFilePath)
+    {
+        if (std::filesystem::exists(tmpFilePath))
+        {
+            auto deletedZoneSetsJson = json::from_file(tmpFilePath);
+            if (deletedZoneSetsJson->HasKey(L"deleted-custom-zone-sets"))
+            {
+                auto deletedCustomZoneSets = deletedZoneSetsJson->GetNamedArray(L"deleted-custom-zone-sets");
+                for (auto zoneSet : deletedCustomZoneSets)
+                {
+                    std::wstring uuid = L"{" + std::wstring{ zoneSet.GetString() } + L"}";
+                    customZoneSetsMap.erase(std::wstring{ uuid });
+                }
+            }
+            DeleteFileW(tmpFilePath.c_str());
+        }
+    }
+
     bool FancyZonesData::ParseAppZoneHistory(const json::JsonObject& fancyZonesDataJSON)
     {
         try

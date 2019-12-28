@@ -165,6 +165,7 @@ namespace FancyZonesEditor
 
         private void OnClosing(object sender, EventArgs e)
         {
+            LayoutModel.SerializeDeletedCustomZoneSets();
             if (!_editing)
             {
                 EditorOverlay.Current.Close();

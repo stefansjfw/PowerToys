@@ -129,6 +129,23 @@ namespace FancyZonesEditor.Models
             }
         }
 
+        public static void SerializeDeletedCustomZoneSets()
+        {
+            FileStream outputStream = File.Open(Settings.CustomZoneSetsTmpFile, FileMode.Create);
+            var writer = new Utf8JsonWriter(outputStream, options: default);
+            writer.WriteStartObject();
+            writer.WriteStartArray("deleted-custom-zone-sets");
+            foreach (string zoneSet in _deletedCustomModels)
+            {
+                writer.WriteStringValue(zoneSet);
+            }
+
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+            writer.Flush();
+            outputStream.Close();
+        }
+
         // Loads all the Layouts persisted under the Layouts key in the registry
         public static ObservableCollection<LayoutModel> LoadCustomModels()
         {

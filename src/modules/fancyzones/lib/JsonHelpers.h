@@ -211,6 +211,7 @@ namespace JSONHelpers
         void GetDeviceInfoFromTmpFile(const std::wstring& uniqueID, const std::wstring& tmpFilePath);
 
         void GetCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath, const std::wstring& uuid);
+        void GetDeletedCustomZoneSetsFromTmpFile(const std::wstring& tmpFilePath);
 
         bool ParseAppZoneHistory(const json::JsonObject& fancyZonesDataJSON);
         json::JsonArray SerializeAppZoneHistory() const;
