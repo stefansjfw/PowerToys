@@ -123,7 +123,7 @@ namespace JSONHelpers
     struct ZoneSetData
     {
         TZoneUUID uuid;
-        ZoneSetLayoutType type; // TODO(stefan): Change this to string in JSON so user can understand it
+        ZoneSetLayoutType type;
         std::optional<int> zoneCount;
 
         static json::JsonObject ToJson(const ZoneSetData& zoneSet);
@@ -227,8 +227,8 @@ namespace JSONHelpers
     private:
         void TmpMigrateAppliedZoneSetsFromRegistry(TAppliedZoneSetsMap& appliedZoneSetMap);
         void MigrateAppZoneHistoryFromRegistry(); //TODO(stefan): If uuid is needed here, it needs to be resolved here some how
-        void MigrateDeviceInfoFromRegistry();
-        void MigrateCustomZoneSetsFromRegistry();
+        void MigrateDeviceInfoFromRegistry(const TAppliedZoneSetsMap& appliedZoneSets);
+        void MigrateCustomZoneSetsFromRegistry(TAppliedZoneSetsMap& appliedZoneSets);
 
         std::unordered_map<TAppPath, AppZoneHistoryData> appZoneHistoryMap{};
         TDeviceInfosMap deviceInfoMap{};
