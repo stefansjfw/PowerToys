@@ -626,18 +626,25 @@ namespace JSONHelpers
                     CanvasLayoutInfo info;
 
                     int j = 5;
-                    info.referenceWidth = data[j++] * 256 + data[j++];
-                    info.referenceHeight = data[j++] * 256 + data[j++];
+                    info.referenceWidth = data[j] * 256 + data[j + 1];
+                    j += 2;
+                    info.referenceHeight = data[j] * 256 + data[j + 1];
+                    j += 2;
 
                     int count = data[j++];
                     info.zones.reserve(count);
                     while (count-- > 0)
                     {
+                        int x = data[j] * 256 + data[j + 1];
+                        j += 2;
+                        int y = data[j] * 256 + data[j + 1];
+                        j += 2;
+                        int width = data[j] * 256 + data[j + 1];
+                        j += 2;
+                        int height = data[j] * 256 + data[j + 1];
+                        j += 2;
                         info.zones.push_back(CanvasLayoutInfo::Rect{
-                            data[j++] * 256 + data[j++],
-                            data[j++] * 256 + data[j++],
-                            data[j++] * 256 + data[j++],
-                            data[j++] * 256 + data[j++] });
+                            x, y, width, height });
                     }
                     zoneSetData.info = info;
                     break;
