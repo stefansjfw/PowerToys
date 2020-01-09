@@ -204,14 +204,15 @@ namespace JSONHelpers
             }
             else
             {
-                appZoneHistoryMap[TAppPath{ appPath }] = AppZoneHistoryData{ L"NESTO_NESTO", static_cast<int>(zoneIndex) }; //TODO(stefan)
+                //TODO(stefan) provide correct uuid in the future
+                appZoneHistoryMap[TAppPath{ appPath }] = AppZoneHistoryData{ L"", static_cast<int>(zoneIndex) };
             }
             return true;
         }
         return false;
     }
 
-    void FancyZonesData::SetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& uuid /*TODO(stefan): deviceId instead of uniqueId in the future*/)
+    void FancyZonesData::SetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& uuid)
     {
         if (!uuid.empty() && deviceInfoMap.find(uniqueID) != deviceInfoMap.end())
         {
@@ -229,7 +230,9 @@ namespace JSONHelpers
     {
         if (!deviceInfoMap.contains(uniqueID))
         {
-            deviceInfoMap[uniqueID] = DeviceInfoData{ ZoneSetData{ L"", ZoneSetLayoutType::Grid, 1 }, true, 16, 3 }; // TODO(stefan): Update default zoneset. Creates entry in map when ZoneWindow is created
+            // Creates entry in map when ZoneWindow is created
+            // TODO(stefan): provide valid uuid
+            deviceInfoMap[uniqueID] = DeviceInfoData{ ZoneSetData{ L"", ZoneSetLayoutType::Grid, 1 }, true, 16, 3 };
         }
 
         if (std::filesystem::exists(tmpFilePath))
@@ -482,7 +485,8 @@ namespace JSONHelpers
                         }
                         else
                         {
-                            appliedZoneSetData.uuid = std::to_wstring(data.LayoutId); // TODO(stefan): Check this out! If active zoneset is custom one!
+                            // uuid is changed later to actual uuid when migrating custom zone sets
+                            appliedZoneSetData.uuid = std::to_wstring(data.LayoutId);
                         }
                         appliedZoneSetsMap[value] = appliedZoneSetData;
                         dataSize = sizeof(data);
@@ -517,7 +521,7 @@ namespace JSONHelpers
                 DWORD i = 0;
                 while (RegEnumValueW(hkey, i++, value, &valueLength, nullptr, nullptr, reinterpret_cast<BYTE*>(&zoneIndex), &dataSize) == ERROR_SUCCESS)
                 {
-                    appZoneHistoryMap[std::wstring{ value }] = AppZoneHistoryData{ L"NEST_NEST", static_cast<int>(zoneIndex) }; //TODO(stefan)
+                    appZoneHistoryMap[std::wstring{ value }] = AppZoneHistoryData{ L"", static_cast<int>(zoneIndex) }; //TODO(stefan) provide correct uuid in the future
 
                     valueLength = ARRAYSIZE(value);
                     dataSize = sizeof(zoneIndex);
@@ -570,8 +574,6 @@ namespace JSONHelpers
                 zoneSetData.type = static_cast<CustomLayoutType>(data[2]);
                 // int version =  data[0] * 256 + data[1]; - Not used anymore
 
-                //TODO(stefan): We need this layoutID for migration. It's unique for custom zone sets.
-                //Should we use this for id or just for migration (won't be present in .json file!) and generate UUID
                 std::wstring uuid = std::to_wstring(data[3] * 256 + data[4]);
                 auto it = std::find_if(appliedZoneSetsMap.begin(), appliedZoneSetsMap.end(), [uuid](std::pair<TZoneUUID, ZoneSetData> zoneSetMap) {
                     return zoneSetMap.second.uuid.compare(uuid) == 0;
