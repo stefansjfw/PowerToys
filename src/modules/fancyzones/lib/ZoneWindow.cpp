@@ -378,8 +378,14 @@ void ZoneWindow::InitializeId(PCWSTR deviceId, PCWSTR virtualDesktopId) noexcept
 
 void ZoneWindow::LoadSettings() noexcept
 {
+    auto& deviceInfoMap = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap();
+    if (!deviceInfoMap.contains(m_uniqueId))
+    {
+        JSONHelpers::FancyZonesDataInstance().MigrateDeviceInfoFromRegistry(m_uniqueId);
+    }
+  
     JSONHelpers::FancyZonesDataInstance().GetDeviceInfoFromTmpFile(m_uniqueId, m_activeZoneSetPath);
-    const WCHAR* activeZoneSetStr = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap()[m_uniqueId].activeZoneSet.uuid.c_str();
+    const WCHAR* activeZoneSetStr = deviceInfoMap[m_uniqueId].activeZoneSet.uuid.c_str();
 
     CLSIDFromString(activeZoneSetStr, &m_activeZoneSetId);
 

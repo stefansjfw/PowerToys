@@ -166,6 +166,7 @@ namespace JSONHelpers
     using TDeviceInfosMap = std::unordered_map<TZoneUUID, DeviceInfoData>;
     using TCustomZoneSetsMap = std::unordered_map<TZoneUUID, CustomZoneSetData>;
     using TAppliedZoneSetsMap = std::unordered_map<TZoneUUID, ZoneSetData>;
+    using TAppZoneHistoryMap = std::unordered_map<TAppPath, AppZoneHistoryData>;
 
     static const std::wstring FANCY_ZONES_DATA_FILE = L"PersistFancyZones.json";
 
@@ -224,13 +225,15 @@ namespace JSONHelpers
         void LoadFancyZonesData();
         void SaveFancyZonesData() const;
 
-    private:
-        void TmpMigrateAppliedZoneSetsFromRegistry(TAppliedZoneSetsMap& appliedZoneSetMap);
-        void MigrateAppZoneHistoryFromRegistry(); //TODO(stefan): If uuid is needed here, it needs to be resolved here some how
-        void MigrateDeviceInfoFromRegistry(const TAppliedZoneSetsMap& appliedZoneSets);
-        void MigrateCustomZoneSetsFromRegistry(TAppliedZoneSetsMap& appliedZoneSets);
+        void MigrateDeviceInfoFromRegistry(const std::wstring& deviceId);
 
-        std::unordered_map<TAppPath, AppZoneHistoryData> appZoneHistoryMap{};
+    private:
+        void TmpMigrateAppliedZoneSetsFromRegistry();
+        void MigrateAppZoneHistoryFromRegistry(); //TODO(stefan): If uuid is needed here, it needs to be resolved here some how
+        void MigrateCustomZoneSetsFromRegistry();
+
+        TAppliedZoneSetsMap appliedZoneSetsMap{};
+        TAppZoneHistoryMap appZoneHistoryMap{};
         TDeviceInfosMap deviceInfoMap{};
         TCustomZoneSetsMap customZoneSetsMap{};
 

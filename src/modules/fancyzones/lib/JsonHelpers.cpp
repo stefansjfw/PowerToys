@@ -229,7 +229,7 @@ namespace JSONHelpers
     {
         if (!deviceInfoMap.contains(uniqueID))
         {
-            deviceInfoMap[uniqueID] = DeviceInfoData{ ZoneSetData{ L"", ZoneSetLayoutType::Grid, 0 }, true, 16, 3 }; // Creates entry in map when ZoneWindow is created
+            deviceInfoMap[uniqueID] = DeviceInfoData{ ZoneSetData{ L"", ZoneSetLayoutType::Grid, 1 }, true, 16, 3 }; // TODO(stefan): Update default zoneset. Creates entry in map when ZoneWindow is created
         }
 
         if (std::filesystem::exists(tmpFilePath))
@@ -415,12 +415,12 @@ namespace JSONHelpers
 
         if (!std::filesystem::exists(jsonFilePath))
         {
-            TAppliedZoneSetsMap appliedZoneSets;
-            TmpMigrateAppliedZoneSetsFromRegistry(appliedZoneSets);
+            TmpMigrateAppliedZoneSetsFromRegistry();
 
-            MigrateCustomZoneSetsFromRegistry(appliedZoneSets); // Custom zone sets have to be migrated before applied zone sets!
+            // Custom zone sets have to be migrated before applied zone sets!
+            MigrateCustomZoneSetsFromRegistry();
             MigrateAppZoneHistoryFromRegistry();
-            MigrateDeviceInfoFromRegistry(appliedZoneSets);
+            //MigrateDeviceInfoFromRegistry(appliedZoneSets);
 
             SaveFancyZonesData();
         }
@@ -445,7 +445,7 @@ namespace JSONHelpers
         json::to_file(jsonFilePath, root);
     }
 
-    void FancyZonesData::TmpMigrateAppliedZoneSetsFromRegistry(TAppliedZoneSetsMap& appliedZoneSetMap)
+    void FancyZonesData::TmpMigrateAppliedZoneSetsFromRegistry()
     {
         std::wregex ex(L"^[0-9]{3,4}_[0-9]{3,4}$");
 
@@ -484,7 +484,7 @@ namespace JSONHelpers
                         {
                             appliedZoneSetData.uuid = std::to_wstring(data.LayoutId); // TODO(stefan): Check this out! If active zoneset is custom one!
                         }
-                        appliedZoneSetMap[value] = appliedZoneSetData;
+                        appliedZoneSetsMap[value] = appliedZoneSetData;
                         dataSize = sizeof(data);
                         valueLength = ARRAYSIZE(value);
                     }
@@ -526,45 +526,32 @@ namespace JSONHelpers
         }
     }
 
-    void FancyZonesData::MigrateDeviceInfoFromRegistry(const TAppliedZoneSetsMap& appliedZoneSets)
+    void FancyZonesData::MigrateDeviceInfoFromRegistry(const std::wstring& deviceId)
     {
         wchar_t key[256];
-        StringCchPrintf(key, ARRAYSIZE(key), L"%s", RegistryHelpers::REG_SETTINGS);
+        StringCchPrintf(key, ARRAYSIZE(key), L"%s\\%s", RegistryHelpers::REG_SETTINGS, deviceId.c_str());
         HKEY hkey;
-        if (RegOpenKeyExW(HKEY_CURRENT_USER, key, 0, KEY_ALL_ACCESS, &hkey) == ERROR_SUCCESS)
+
+        wchar_t activeZoneSetId[256];
+        activeZoneSetId[0] = '\0';
+        DWORD bufferSize = sizeof(activeZoneSetId);
+        DWORD showSpacing = 1;
+        DWORD spacing = 16;
+        DWORD zoneCount = 3;
+        DWORD size = sizeof(DWORD);
+
+        SHRegGetUSValueW(key, L"ActiveZoneSetId", nullptr, &activeZoneSetId, &bufferSize, FALSE, nullptr, 0);
+        SHRegGetUSValueW(key, L"ShowSpacing", nullptr, &showSpacing, &size, FALSE, nullptr, 0);
+        SHRegGetUSValueW(key, L"Spacing", nullptr, &spacing, &size, FALSE, nullptr, 0);
+        SHRegGetUSValueW(key, L"ZoneCount", nullptr, &zoneCount, &size, FALSE, nullptr, 0);
+        
+        if (appliedZoneSetsMap.contains(std::wstring{ activeZoneSetId }))
         {
-            wchar_t value[256]{};
-            DWORD valueLength = ARRAYSIZE(value);
-            DWORD i = 0;
-            while (RegEnumKeyW(hkey, i++, value, valueLength) == ERROR_SUCCESS)
-            {
-                std::wstring uniqueID{ value };
-                if (uniqueID.find(L"0000-0000-0000") != std::wstring::npos)
-                { //TODO(stefan): This is ugly!! Hope Andrey will resolve this with deviceID
-                    wchar_t activeZoneSetId[256];
-                    activeZoneSetId[0] = '\0';
-                    DWORD bufferSize = sizeof(activeZoneSetId);
-                    DWORD showSpacing = 1;
-                    DWORD spacing = 16;
-                    DWORD zoneCount = 3;
-                    DWORD size = sizeof(DWORD);
-
-                    wchar_t key[256]{};
-                    StringCchPrintf(key, ARRAYSIZE(key), L"%s\\%s", RegistryHelpers::REG_SETTINGS, value);
-                    SHRegGetUSValueW(key, L"ActiveZoneSetId", nullptr, &activeZoneSetId, &bufferSize, FALSE, nullptr, 0);
-                    SHRegGetUSValueW(key, L"ShowSpacing", nullptr, &showSpacing, &size, FALSE, nullptr, 0);
-                    SHRegGetUSValueW(key, L"Spacing", nullptr, &spacing, &size, FALSE, nullptr, 0);
-                    SHRegGetUSValueW(key, L"ZoneCount", nullptr, &zoneCount, &size, FALSE, nullptr, 0);
-
-                    deviceInfoMap[uniqueID] = DeviceInfoData{ appliedZoneSets.at(std::wstring{ activeZoneSetId }), static_cast<bool>(showSpacing), static_cast<int>(spacing), static_cast<int>(zoneCount) };
-
-                    valueLength = ARRAYSIZE(value);
-                }
-            }
+            deviceInfoMap[deviceId] = DeviceInfoData{ appliedZoneSetsMap.at(std::wstring{ activeZoneSetId }), static_cast<bool>(showSpacing), static_cast<int>(spacing), static_cast<int>(zoneCount) };        
         }
     }
 
-    void FancyZonesData::MigrateCustomZoneSetsFromRegistry(TAppliedZoneSetsMap& appliedZoneSets)
+    void FancyZonesData::MigrateCustomZoneSetsFromRegistry()
     {
         wchar_t key[256];
         StringCchPrintf(key, ARRAYSIZE(key), L"%s\\%s", RegistryHelpers::REG_SETTINGS, L"Layouts");
@@ -586,11 +573,11 @@ namespace JSONHelpers
                 //TODO(stefan): We need this layoutID for migration. It's unique for custom zone sets.
                 //Should we use this for id or just for migration (won't be present in .json file!) and generate UUID
                 std::wstring uuid = std::to_wstring(data[3] * 256 + data[4]);
-                auto it = std::find_if(appliedZoneSets.begin(), appliedZoneSets.end(), [uuid](std::pair <TZoneUUID, ZoneSetData> zoneSetMap) {
+                auto it = std::find_if(appliedZoneSetsMap.begin(), appliedZoneSetsMap.end(), [uuid](std::pair<TZoneUUID, ZoneSetData> zoneSetMap) {
                     return zoneSetMap.second.uuid.compare(uuid) == 0;
                 });
 
-                if (it != appliedZoneSets.end())
+                if (it != appliedZoneSetsMap.end())
                 {
                     it->second.uuid = uuid = it->first;
                 }
