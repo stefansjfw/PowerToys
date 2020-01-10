@@ -39,33 +39,5 @@ namespace Mocks
         return reinterpret_cast<HINSTANCE>(++s_nextInstance);
     }
 
-    class HwndCreator
-    {
-    public:
-        HwndCreator(const std::wstring& title = L"");
-
-        ~HwndCreator();
-
-        HWND operator()(HINSTANCE hInst);
-
-        void setHwnd(HWND val);
-        void setCondition(bool cond);
-
-        inline HINSTANCE getHInstance() const { return m_hInst; }
-        inline const std::wstring& getTitle() const { return m_windowTitle; }
-        inline const std::wstring& getWindowClassName() const { return m_windowClassName; }
-
-    private:
-        std::wstring m_windowTitle;
-        std::wstring m_windowClassName;
-
-        std::mutex m_mutex;
-        std::condition_variable m_conditionVar;
-        bool m_conditionFlag;
-        HANDLE m_thread;
-
-        HINSTANCE m_hInst;
-        HWND m_hWnd;
-    };
+    HWND WindowCreate(HINSTANCE hInst);
 }
-

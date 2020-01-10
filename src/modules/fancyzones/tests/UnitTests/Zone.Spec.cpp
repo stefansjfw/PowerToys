@@ -16,8 +16,8 @@ namespace FancyZonesUnitTests
 
         HWND addWindow(const winrt::com_ptr<IZone>& zone, bool stamp)
         {
-            HWND window = Mocks::HwndCreator()(m_hInst);
-            HWND zoneWindow = Mocks::HwndCreator()(m_hInst);
+            HWND window = Mocks::WindowCreate(m_hInst);
+            HWND zoneWindow = Mocks::WindowCreate(m_hInst);
             zone->AddWindowToZone(window, zoneWindow, stamp);
 
             return window;
@@ -87,10 +87,10 @@ namespace FancyZonesUnitTests
         {
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
 
-            HWND zoneWindow = Mocks::HwndCreator()(m_hInst);
+            HWND zoneWindow = Mocks::WindowCreate(m_hInst);
             for (int i = 0; i < 10; i++)
             {
-                HWND window = Mocks::HwndCreator()(m_hInst);
+                HWND window = Mocks::WindowCreate(m_hInst);
                 zone->AddWindowToZone(window, zoneWindow, i % 2 == 0);
             }
 
@@ -101,10 +101,10 @@ namespace FancyZonesUnitTests
         {
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
 
-            HWND window = Mocks::HwndCreator()(m_hInst);
+            HWND window = Mocks::WindowCreate(m_hInst);
             for (int i = 0; i < 10; i++)
             {
-                HWND zoneWindow = Mocks::HwndCreator()(m_hInst);
+                HWND zoneWindow = Mocks::WindowCreate(m_hInst);
                 zone->AddWindowToZone(window, zoneWindow, i % 2 == 0);
             }
 
@@ -122,7 +122,7 @@ namespace FancyZonesUnitTests
         TEST_METHOD(ContainsWindowEmpty)
         {
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
-            HWND newWindow = Mocks::HwndCreator()(m_hInst);
+            HWND newWindow = Mocks::WindowCreate(m_hInst);
             Assert::IsFalse(zone->ContainsWindow(newWindow));
         }
 
@@ -131,7 +131,7 @@ namespace FancyZonesUnitTests
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
             addMany(zone);
 
-            HWND newWindow = Mocks::HwndCreator()(m_hInst);
+            HWND newWindow = Mocks::WindowCreate(m_hInst);
             Assert::IsFalse(zone->ContainsWindow(newWindow));
         }
 
@@ -155,11 +155,11 @@ namespace FancyZonesUnitTests
         {
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
 
-            HWND zoneWindow = Mocks::HwndCreator()(m_hInst);
+            HWND zoneWindow = Mocks::WindowCreate(m_hInst);
             std::vector<HWND> windowVec{};
             for (int i = 0; i < 10; i++)
             {
-                HWND window = Mocks::HwndCreator()(m_hInst);
+                HWND window = Mocks::WindowCreate(m_hInst);
                 windowVec.push_back(window);
                 zone->AddWindowToZone(window, zoneWindow, i % 2 == 0);
             }
@@ -174,11 +174,11 @@ namespace FancyZonesUnitTests
         {
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
 
-            HWND window = Mocks::HwndCreator()(m_hInst);
+            HWND window = Mocks::WindowCreate(m_hInst);
             std::vector<HWND> windowVec{};
             for (int i = 0; i < 10; i++)
             {
-                HWND zoneWindow = Mocks::HwndCreator()(m_hInst);
+                HWND zoneWindow = Mocks::WindowCreate(m_hInst);
                 windowVec.push_back(window);
                 zone->AddWindowToZone(window, zoneWindow, i % 2 == 0);
             }
@@ -211,7 +211,7 @@ namespace FancyZonesUnitTests
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
 
             HWND window = nullptr;
-            HWND zoneWindow = Mocks::HwndCreator()(m_hInst);
+            HWND zoneWindow = Mocks::WindowCreate(m_hInst);
             zone->AddWindowToZone(window, zoneWindow, true);
 
             Assert::IsFalse(zone->IsEmpty());
@@ -222,7 +222,7 @@ namespace FancyZonesUnitTests
         {
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
 
-            HWND window = Mocks::HwndCreator()(m_hInst);
+            HWND window = Mocks::WindowCreate(m_hInst);
             HWND zoneWindow = nullptr;
             zone->AddWindowToZone(window, zoneWindow, true);
 
@@ -234,8 +234,8 @@ namespace FancyZonesUnitTests
         {
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
 
-            HWND zoneWindow = Mocks::HwndCreator()(m_hInst);
-            HWND window = Mocks::HwndCreator()(m_hInst);
+            HWND zoneWindow = Mocks::WindowCreate(m_hInst);
+            HWND window = Mocks::WindowCreate(m_hInst);
             for (int i = 0; i < 10; i++)
             {
                 zone->AddWindowToZone(window, zoneWindow, i % 2 == 0);
@@ -262,9 +262,9 @@ namespace FancyZonesUnitTests
         TEST_METHOD(RemoveWindowRestoreSizeTrue)
         {
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
-            HWND newWindow = Mocks::HwndCreator()(m_hInst);
+            HWND newWindow = Mocks::WindowCreate(m_hInst);
 
-            zone->AddWindowToZone(newWindow, Mocks::HwndCreator()(m_hInst), true);
+            zone->AddWindowToZone(newWindow, Mocks::WindowCreate(m_hInst), true);
             Assert::IsFalse(zone->IsEmpty());
             Assert::IsTrue(zone->ContainsWindow(newWindow));
 
@@ -276,9 +276,9 @@ namespace FancyZonesUnitTests
         TEST_METHOD(RemoveWindowRestoreSizeFalse)
         {
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
-            HWND newWindow = Mocks::HwndCreator()(m_hInst);
+            HWND newWindow = Mocks::WindowCreate(m_hInst);
 
-            zone->AddWindowToZone(newWindow, Mocks::HwndCreator()(m_hInst), true);
+            zone->AddWindowToZone(newWindow, Mocks::WindowCreate(m_hInst), true);
             Assert::IsFalse(zone->IsEmpty());
             Assert::IsTrue(zone->ContainsWindow(newWindow));
 
@@ -290,7 +290,7 @@ namespace FancyZonesUnitTests
         TEST_METHOD(RemoveInvalidWindowRestoreSizeTrue)
         {
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
-            HWND newWindow = Mocks::HwndCreator()(m_hInst);
+            HWND newWindow = Mocks::WindowCreate(m_hInst);
             zone->RemoveWindowFromZone(newWindow, true);
 
             Assert::IsTrue(zone->IsEmpty());
@@ -300,7 +300,7 @@ namespace FancyZonesUnitTests
         TEST_METHOD(RemoveInvalidWindowRestoreSizeFalse)
         {
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
-            HWND newWindow = Mocks::HwndCreator()(m_hInst);
+            HWND newWindow = Mocks::WindowCreate(m_hInst);
             zone->RemoveWindowFromZone(newWindow, false);
 
             Assert::IsTrue(zone->IsEmpty());
@@ -312,7 +312,7 @@ namespace FancyZonesUnitTests
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
             HWND newWindow = nullptr;
 
-            zone->AddWindowToZone(newWindow, Mocks::HwndCreator()(m_hInst), true);
+            zone->AddWindowToZone(newWindow, Mocks::WindowCreate(m_hInst), true);
             Assert::IsFalse(zone->IsEmpty());
             Assert::IsTrue(zone->ContainsWindow(newWindow));
 
@@ -326,7 +326,7 @@ namespace FancyZonesUnitTests
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
             HWND newWindow = nullptr;
 
-            zone->AddWindowToZone(newWindow, Mocks::HwndCreator()(m_hInst), true);
+            zone->AddWindowToZone(newWindow, Mocks::WindowCreate(m_hInst), true);
             Assert::IsFalse(zone->IsEmpty());
             Assert::IsTrue(zone->ContainsWindow(newWindow));
 
@@ -358,8 +358,8 @@ namespace FancyZonesUnitTests
         {
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
 
-            HWND zoneWindow = Mocks::HwndCreator()(m_hInst);
-            HWND window = Mocks::HwndCreator()(m_hInst);
+            HWND zoneWindow = Mocks::WindowCreate(m_hInst);
+            HWND window = Mocks::WindowCreate(m_hInst);
             for (int i = 0; i < 10; i++)
             {
                 zone->AddWindowToZone(window, zoneWindow, i % 2 == 0);
@@ -375,8 +375,8 @@ namespace FancyZonesUnitTests
         {
             winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect);
 
-            HWND zoneWindow = Mocks::HwndCreator()(m_hInst);
-            HWND window = Mocks::HwndCreator()(m_hInst);
+            HWND zoneWindow = Mocks::WindowCreate(m_hInst);
+            HWND window = Mocks::WindowCreate(m_hInst);
             for (int i = 0; i < 10; i++)
             {
                 zone->AddWindowToZone(window, zoneWindow, i % 2 == 0);
