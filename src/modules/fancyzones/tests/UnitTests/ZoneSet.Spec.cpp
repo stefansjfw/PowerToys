@@ -80,6 +80,7 @@ namespace FancyZonesUnitTests
             auto zones = set->GetZones();
             Assert::AreEqual((size_t)0, zones.size());
         }
+
         TEST_METHOD(AddOne)
         {
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(*m_config);
@@ -134,6 +135,105 @@ namespace FancyZonesUnitTests
                 compareZones(zone, zones[i]);
                 Assert::AreEqual(i + 1, zones[i]->Id());
             }
+        }
+
+        TEST_METHOD(ZoneFromPointEmpty)
+        {
+            winrt::com_ptr<IZoneSet> set = MakeZoneSet(*m_config);
+            auto actual = set->ZoneFromPoint(POINT{ 0, 0 });
+            Assert::IsTrue(nullptr == actual);
+        }
+
+        TEST_METHOD(ZoneFromPointInner)
+        {
+            winrt::com_ptr<IZoneSet> set = MakeZoneSet(*m_config);
+            const int left = 0, top = 0, right = 100, bottom = 100;
+            winrt::com_ptr<IZone> expected = MakeZone({ left, top, right, bottom });
+            set->AddZone(expected);
+
+            for (int i = left + 1; i < right; i++)
+            {
+                for (int j = top + 1; j < bottom; j++)
+                {
+                    auto actual = set->ZoneFromPoint(POINT{ i, j });
+                    Assert::IsTrue(actual != nullptr);
+                    compareZones(expected, actual);
+                }
+            }
+        }
+
+        TEST_METHOD(ZoneFromPointBorder)
+        {
+            winrt::com_ptr<IZoneSet> set = MakeZoneSet(*m_config);
+            const int left = 0, top = 0, right = 100, bottom = 100;
+            winrt::com_ptr<IZone> expected = MakeZone({ left, top, right, bottom });
+            set->AddZone(expected);
+
+            for (int i = left; i < right; i++)
+            {
+                auto actual = set->ZoneFromPoint(POINT{ i, top });
+                Assert::IsTrue(actual != nullptr);
+                compareZones(expected, actual);
+            }
+
+            for (int i = top; i < bottom; i++)
+            {
+                auto actual = set->ZoneFromPoint(POINT{ left, i });
+                Assert::IsTrue(actual != nullptr);
+                compareZones(expected, actual);
+            }
+
+            //bottom and right borders considered to be outside
+            for (int i = left; i < right; i++)
+            {
+                auto actual = set->ZoneFromPoint(POINT{ i, bottom });
+                Assert::IsTrue(nullptr == actual);
+            }
+
+            for (int i = top; i < bottom; i++)
+            {
+                auto actual = set->ZoneFromPoint(POINT{ right, i });
+                Assert::IsTrue(nullptr == actual);
+            }
+        }
+
+        TEST_METHOD(ZoneFromPointOuter)
+        {
+            winrt::com_ptr<IZoneSet> set = MakeZoneSet(*m_config);
+            const int left = 0, top = 0, right = 100, bottom = 100;
+            winrt::com_ptr<IZone> zone = MakeZone({ left, top, right, bottom });
+            set->AddZone(zone);
+
+            auto actual = set->ZoneFromPoint(POINT{ 101, 101 });
+            Assert::IsTrue(actual == nullptr);
+        }
+
+        TEST_METHOD(ZoneFromPointOverlapping)
+        {
+            winrt::com_ptr<IZoneSet> set = MakeZoneSet(*m_config);
+
+            winrt::com_ptr<IZone> zone1 = MakeZone({ 0, 0, 100, 100 });
+            set->AddZone(zone1);
+            winrt::com_ptr<IZone> zone2 = MakeZone({ 10, 10, 90, 90 });
+            set->AddZone(zone2);
+            winrt::com_ptr<IZone> zone3 = MakeZone({ 10, 10, 150, 150 });
+            set->AddZone(zone3);
+            winrt::com_ptr<IZone> zone4 = MakeZone({ 10, 10, 50, 50 });
+            set->AddZone(zone4);
+
+            auto actual = set->ZoneFromPoint(POINT{ 50, 50 });
+            Assert::IsTrue(actual != nullptr);
+            compareZones(zone2, actual);
+        }
+
+        TEST_METHOD(ZoneFromPointWithNotNormalizedRect)
+        {
+            winrt::com_ptr<IZoneSet> set = MakeZoneSet(*m_config);
+            winrt::com_ptr<IZone> zone = MakeZone({ 100, 100, 0, 0 });
+            set->AddZone(zone);
+
+            auto actual = set->ZoneFromPoint(POINT{ 50, 50 });
+            Assert::IsTrue(actual == nullptr);
         }
 
         TEST_METHOD(TestMoveWindowIntoZoneByIndex)
