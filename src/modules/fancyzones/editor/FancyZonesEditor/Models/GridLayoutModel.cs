@@ -175,41 +175,6 @@ namespace FancyZonesEditor.Models
         //  Returns the state of this GridLayoutModel in persisted format
         protected override void PersistData()
         {
-            int rows = Rows;
-            int cols = Columns;
-
-            int[,] cellChildMap;
-
-            if (FreeZones.Count == 0)
-            {
-                // no unused indices -- so we can just use the _cellChildMap as is
-                cellChildMap = CellChildMap;
-            }
-            else
-            {
-                // compress cellChildMap to not have gaps for unused child indices;
-                List<int> mapping = new List<int>();
-
-                cellChildMap = new int[rows, cols];
-
-                for (int row = 0; row < rows; row++)
-                {
-                    for (int col = 0; col < cols; col++)
-                    {
-                        int source = CellChildMap[row, col];
-
-                        int index = mapping.IndexOf(source);
-                        if (index == -1)
-                        {
-                            index = mapping.Count;
-                            mapping.Add(source);
-                        }
-
-                        cellChildMap[row, col] = index;
-                    }
-                }
-            }
-
             FileStream outputStream = File.Open(Settings.AppliedZoneSetTmpFile, FileMode.Create);
             using (var writer = new Utf8JsonWriter(outputStream, options: default))
             {
@@ -218,12 +183,11 @@ namespace FancyZonesEditor.Models
                 writer.WriteString("name", Name);
 
                 writer.WriteString("type", "grid");
-                
+
                 writer.WriteStartObject("info");
-                
-                writer.WriteNumber("rows", rows);
-                writer.WriteNumber("columns", cols);
-                
+
+                writer.WriteNumber("rows", Rows);
+                writer.WriteNumber("columns", Columns);
 
                 writer.WriteStartArray("rows-percentage");
                 for (int row = 0; row < Rows; row++)
