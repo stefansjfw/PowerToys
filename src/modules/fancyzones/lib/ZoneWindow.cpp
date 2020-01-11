@@ -137,7 +137,6 @@ private:
     std::wstring m_activeZoneSetPath;
     std::wstring m_appliedZoneSetPath;
     std::wstring m_customZoneSetsPath;
-    GUID m_activeZoneSetId{};
     std::vector<winrt::com_ptr<IZoneSet>> m_zoneSets;
     winrt::com_ptr<IZone> m_highlightZone;
     WPARAM m_keyLast{};
@@ -386,8 +385,6 @@ void ZoneWindow::LoadSettings() noexcept
   
     JSONHelpers::FancyZonesDataInstance().GetDeviceInfoFromTmpFile(m_uniqueId, m_activeZoneSetPath);
     const WCHAR* activeZoneSetStr = deviceInfoMap[m_uniqueId].activeZoneSet.uuid.c_str();
-
-    CLSIDFromString(activeZoneSetStr, &m_activeZoneSetId);
 
     JSONHelpers::FancyZonesDataInstance().GetDeletedCustomZoneSetsFromTmpFile(m_customZoneSetsPath);
 }
