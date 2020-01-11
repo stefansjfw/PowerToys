@@ -263,10 +263,9 @@ IFACEMETHODIMP_(void) FancyZones::WindowCreated(HWND window) noexcept
         auto processPath = get_process_path(window);
         if (!processPath.empty())
         {
-            INT zoneIndex = -1;
-            bool hasHistory = JSONHelpers::FancyZonesDataInstance().GetAppLastZone(window, processPath.data(), &zoneIndex);
+            INT zoneIndex = JSONHelpers::FancyZonesDataInstance().GetAppLastZone(window, processPath.data(), &zoneIndex);
 
-            if (hasHistory && (zoneIndex != -1))
+            if (zoneIndex != -1)
             {
                 MoveWindowIntoZoneByIndex(window, zoneIndex);
             }

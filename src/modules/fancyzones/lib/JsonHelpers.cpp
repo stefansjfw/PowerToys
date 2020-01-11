@@ -177,7 +177,7 @@ namespace JSONHelpers
         }
     }
 
-    bool FancyZonesData::GetAppLastZone(HWND window, PCWSTR appPath, _Out_ PINT iZoneIndex) const
+    int FancyZonesData::GetAppLastZone(HWND window, PCWSTR appPath, _Out_ PINT iZoneIndex) const
     {
         *iZoneIndex = -1;
 
@@ -187,10 +187,9 @@ namespace JSONHelpers
             if (appZoneHistoryMap.contains(path))
             {
                 *iZoneIndex = appZoneHistoryMap.at(path).zoneIndex;
-                return true;
             }
         }
-        return false;
+        return *iZoneIndex;
     }
 
     // Pass -1 for the zoneIndex to delete the entry from the map
