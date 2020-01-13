@@ -234,6 +234,9 @@ ZoneSet::MoveWindowIntoZoneByIndex(HWND window, HWND windowZone, int index) noex
 IFACEMETHODIMP_(void)
 ZoneSet::MoveWindowIntoZoneByDirection(HWND window, HWND windowZone, DWORD vkCode) noexcept
 {
+    if (m_zones.empty())
+        return;
+
     winrt::com_ptr<IZone> oldZone;
     winrt::com_ptr<IZone> newZone;
 
