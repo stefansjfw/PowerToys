@@ -379,6 +379,109 @@ namespace FancyZonesUnitTests
             Assert::IsFalse(zone2->ContainsWindow(window));
             Assert::IsFalse(zone3->ContainsWindow(window));
         }
+
+        TEST_METHOD(MoveSizeEndEmpty)
+        {
+            m_set->MoveSizeEnd(Mocks::Window(), Mocks::Window(), POINT{ 0, 0 });
+        }
+
+        TEST_METHOD(MoveSizeEndOuterPoint)
+        {
+            winrt::com_ptr<IZone> zone1 = MakeZone({ 0, 0, 100, 100 });
+            m_set->AddZone(zone1);
+
+            auto window = Mocks::Window();
+            m_set->MoveSizeEnd(window, Mocks::Window(), POINT{ 101, 101 });
+
+            Assert::IsFalse(zone1->ContainsWindow(window));
+        }
+
+        TEST_METHOD(MoveSizeEndInnerPoint)
+        {
+            winrt::com_ptr<IZone> zone1 = MakeZone({ 0, 0, 100, 100 });
+            m_set->AddZone(zone1);
+
+            auto window = Mocks::Window();
+            m_set->MoveSizeEnd(window, Mocks::Window(), POINT{ 50, 50 });
+
+            Assert::IsTrue(zone1->ContainsWindow(window));
+        }
+
+        TEST_METHOD(MoveSizeEndInnerPointOverlappingZones)
+        {
+            winrt::com_ptr<IZone> zone1 = MakeZone({ 0, 0, 100, 100 });
+            winrt::com_ptr<IZone> zone2 = MakeZone({ 10, 10, 90, 90 });
+            m_set->AddZone(zone1);
+            m_set->AddZone(zone2);
+
+            auto window = Mocks::Window();
+            m_set->MoveSizeEnd(window, Mocks::Window(), POINT{ 50, 50 });
+
+            Assert::IsFalse(zone1->ContainsWindow(window));
+            Assert::IsTrue(zone2->ContainsWindow(window));
+        }
+
+        TEST_METHOD(MoveSizeEndDropAddWindow)
+        {
+            const auto window = Mocks::Window();
+            const auto zoneWindow = Mocks::Window();
+
+            winrt::com_ptr<IZone> zone1 = MakeZone({ 0, 0, 100, 100 });
+            winrt::com_ptr<IZone> zone2 = MakeZone({ 10, 10, 90, 90 });
+
+            zone1->AddWindowToZone(window, zoneWindow, false);
+
+            m_set->AddZone(zone1);
+            m_set->AddZone(zone2);
+
+            m_set->MoveSizeEnd(window, Mocks::Window(), POINT{ 50, 50 });
+
+            Assert::IsFalse(zone1->ContainsWindow(window));
+            Assert::IsTrue(zone2->ContainsWindow(window));
+        }
+
+        TEST_METHOD(MoveSizeEndDropAddWindowToSameZone)
+        {
+            const auto window = Mocks::Window();
+            const auto zoneWindow = Mocks::Window();
+
+            winrt::com_ptr<IZone> zone1 = MakeZone({ 0, 0, 100, 100 });
+            winrt::com_ptr<IZone> zone2 = MakeZone({ 10, 10, 90, 90 });
+
+            zone2->AddWindowToZone(window, zoneWindow, false);
+
+            m_set->AddZone(zone1);
+            m_set->AddZone(zone2);
+                        
+            m_set->MoveSizeEnd(window, Mocks::Window(), POINT{ 50, 50 });
+
+            Assert::IsFalse(zone1->ContainsWindow(window));
+            Assert::IsTrue(zone2->ContainsWindow(window));
+        }
+
+        TEST_METHOD(MoveSizeEndSeveralZonesWithSameWindow)
+        {
+            const auto window = Mocks::Window();
+            const auto zoneWindow = Mocks::Window();
+
+            winrt::com_ptr<IZone> zone1 = MakeZone({ 0, 0, 100, 100 });
+            winrt::com_ptr<IZone> zone2 = MakeZone({ 10, 10, 90, 90 });
+            winrt::com_ptr<IZone> zone3 = MakeZone({ 20, 20, 80, 80 });
+
+            zone1->AddWindowToZone(window, zoneWindow, false);
+            zone2->AddWindowToZone(window, zoneWindow, false);
+            zone3->AddWindowToZone(window, zoneWindow, false);
+
+            m_set->AddZone(zone1);
+            m_set->AddZone(zone2);
+            m_set->AddZone(zone3);
+
+            m_set->MoveSizeEnd(window, Mocks::Window(), POINT{ 50, 50 });
+
+            Assert::IsFalse(zone1->ContainsWindow(window));
+            Assert::IsTrue(zone2->ContainsWindow(window));
+            Assert::IsTrue(zone3->ContainsWindow(window));
+        }
     };
 
     // MoveWindowIntoZoneByDirection is complicated enough to warrant it's own test class
