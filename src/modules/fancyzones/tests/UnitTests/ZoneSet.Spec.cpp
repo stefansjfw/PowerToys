@@ -402,7 +402,24 @@ namespace FancyZonesUnitTests
             m_set->AddZone(m_zone2);
             m_set->AddZone(m_zone3);
         }
-        TEST_METHOD(MoveWindowIntoZoneByDirectionRightNoZones)
+
+        TEST_METHOD(EmptyZonesLeft)
+        {
+            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn");
+            auto set = MakeZoneSet(config);
+
+            set->MoveWindowIntoZoneByDirection(Mocks::Window(), Mocks::Window(), VK_LEFT);
+        }
+
+        TEST_METHOD(EmptyZonesRight)
+        {
+            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn");
+            auto set = MakeZoneSet(config);
+
+            set->MoveWindowIntoZoneByDirection(Mocks::Window(), Mocks::Window(), VK_RIGHT);
+        }
+
+        TEST_METHOD(MoveRightNoZones)
         {
             HWND window = Mocks::Window();
             m_set->MoveWindowIntoZoneByDirection(window, Mocks::Window(), VK_RIGHT);
@@ -411,10 +428,56 @@ namespace FancyZonesUnitTests
             Assert::IsFalse(m_zone3->ContainsWindow(window));
         }
 
-        TEST_METHOD(MoveWindowIntoZoneByDirectionLeftNoZones)
+        TEST_METHOD(MoveLeftNoZones)
         {
             HWND window = Mocks::Window();
             m_set->MoveWindowIntoZoneByDirection(window, Mocks::Window(), VK_LEFT);
+            Assert::IsFalse(m_zone1->ContainsWindow(window));
+            Assert::IsFalse(m_zone2->ContainsWindow(window));
+            Assert::IsTrue(m_zone3->ContainsWindow(window));
+        }
+
+        TEST_METHOD(MoveRightTwice)
+        {
+            HWND window = Mocks::Window();
+            m_set->MoveWindowIntoZoneByDirection(window, Mocks::Window(), VK_RIGHT);
+            m_set->MoveWindowIntoZoneByDirection(window, Mocks::Window(), VK_RIGHT);
+            Assert::IsFalse(m_zone1->ContainsWindow(window));
+            Assert::IsTrue(m_zone2->ContainsWindow(window));
+            Assert::IsFalse(m_zone3->ContainsWindow(window));
+        }
+
+        TEST_METHOD(MoveLeftTwice)
+        {
+            HWND window = Mocks::Window();
+            m_set->MoveWindowIntoZoneByDirection(window, Mocks::Window(), VK_LEFT);
+            m_set->MoveWindowIntoZoneByDirection(window, Mocks::Window(), VK_LEFT);
+            Assert::IsFalse(m_zone1->ContainsWindow(window));
+            Assert::IsTrue(m_zone2->ContainsWindow(window));
+            Assert::IsFalse(m_zone3->ContainsWindow(window));
+        }
+
+        TEST_METHOD(MoveRightMoreThanZonesCount)
+        {
+            HWND window = Mocks::Window();
+            for (int i = 0; i <= m_set->GetZones().size(); i++)
+            {
+                m_set->MoveWindowIntoZoneByDirection(window, Mocks::Window(), VK_RIGHT);
+            }
+
+            Assert::IsTrue(m_zone1->ContainsWindow(window));
+            Assert::IsFalse(m_zone2->ContainsWindow(window));
+            Assert::IsFalse(m_zone3->ContainsWindow(window));
+        }
+
+        TEST_METHOD(MoveLeftMoreThanZonesCount)
+        {
+            HWND window = Mocks::Window();
+            for (int i = 0; i <= m_set->GetZones().size(); i++)
+            {
+                m_set->MoveWindowIntoZoneByDirection(window, Mocks::Window(), VK_LEFT);
+            }
+
             Assert::IsFalse(m_zone1->ContainsWindow(window));
             Assert::IsFalse(m_zone2->ContainsWindow(window));
             Assert::IsTrue(m_zone3->ContainsWindow(window));
@@ -468,6 +531,23 @@ namespace FancyZonesUnitTests
             Assert::IsFalse(m_zone1->ContainsWindow(window));
             Assert::IsFalse(m_zone2->ContainsWindow(window));
             Assert::IsTrue(m_zone3->ContainsWindow(window));
+        }
+
+        TEST_METHOD(MoveSecondWindowIntoSameZone)
+        {
+            HWND window1 = Mocks::Window();
+            m_zone1->AddWindowToZone(window1, Mocks::Window(), false /*stampZone*/);
+
+            HWND window2 = Mocks::Window();
+            m_set->MoveWindowIntoZoneByDirection(window2, Mocks::Window(), VK_RIGHT);
+
+            Assert::IsTrue(m_zone1->ContainsWindow(window1));
+            Assert::IsFalse(m_zone2->ContainsWindow(window1));
+            Assert::IsFalse(m_zone3->ContainsWindow(window1));
+
+            Assert::IsTrue(m_zone1->ContainsWindow(window2));
+            Assert::IsFalse(m_zone2->ContainsWindow(window2));
+            Assert::IsFalse(m_zone3->ContainsWindow(window2));
         }
     };
 }
