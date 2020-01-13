@@ -452,7 +452,7 @@ namespace FancyZonesUnitTests
 
             m_set->AddZone(zone1);
             m_set->AddZone(zone2);
-                        
+
             m_set->MoveSizeEnd(window, Mocks::Window(), POINT{ 50, 50 });
 
             Assert::IsFalse(zone1->ContainsWindow(window));
@@ -755,6 +755,220 @@ namespace FancyZonesUnitTests
             Assert::IsTrue(m_zone1->ContainsWindow(window2));
             Assert::IsFalse(m_zone2->ContainsWindow(window2));
             Assert::IsFalse(m_zone3->ContainsWindow(window2));
+        }
+    };
+
+    TEST_CLASS(ZoneSetCalculateZonesUnitTests)
+    {
+        GUID m_id;
+        const WORD m_layoutId = 0xFFFF;
+        const PCWSTR m_resolutionKey = L"WorkAreaIn";
+        winrt::com_ptr<IZoneSet> m_set;
+
+        HMONITOR m_monitor;
+        MONITORINFO m_monitorInfo;
+
+        TEST_METHOD_INITIALIZE(Init)
+        {
+            auto hres = CoCreateGuid(&m_id);
+            Assert::AreEqual(S_OK, hres);
+
+            m_monitor = MonitorFromPoint(POINT{ 0, 0 }, MONITOR_DEFAULTTOPRIMARY);
+
+            m_monitorInfo.cbSize = sizeof(m_monitorInfo);
+            Assert::AreNotEqual(0, GetMonitorInfoW(m_monitor, &m_monitorInfo));
+
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, m_layoutId, m_monitor, m_resolutionKey);
+            m_set = MakeZoneSet(m_config);
+        }
+
+        void checkZones(const winrt::com_ptr<IZoneSet>& set, size_t expectedCount)
+        {
+            auto zones = set->GetZones();
+            Assert::AreEqual(expectedCount, zones.size());
+
+            for (const auto& zone : zones)
+            {
+                Assert::IsTrue(zone->IsEmpty());
+
+                const auto& zoneRect = zone->GetZoneRect();
+                Assert::IsTrue(zoneRect.left >= 0, L"left border is less than zero");
+                Assert::IsTrue(zoneRect.top >= 0, L"top border is less than zero");
+
+                Assert::IsTrue(zoneRect.left < zoneRect.right, L"rect.left >= rect.right");
+                Assert::IsTrue(zoneRect.top < zoneRect.bottom, L"rect.top >= rect.bottom");
+
+                Assert::IsTrue(zoneRect.right <= m_monitorInfo.rcWork.right, L"right border is bigger than monitor work space");
+                Assert::IsTrue(zoneRect.bottom <= m_monitorInfo.rcWork.bottom, L"bottom border is bigger than monitor work space");
+            }
+        }
+
+    public:
+        TEST_METHOD(ValidValues)
+        {
+            const int spacing = 10;
+            const int zoneCount = 10;
+
+            for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
+            {
+                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
+
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                auto set = MakeZoneSet(m_config);
+
+                auto result = set->CalculateZones(m_monitorInfo, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                Assert::IsTrue(result);
+
+                checkZones(set, zoneCount);
+            }
+        }
+        TEST_METHOD(InvalidMonitorInfo)
+        {
+            const int spacing = 10;
+            const int zoneCount = 10;
+
+            for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
+            {
+                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
+
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                auto set = MakeZoneSet(m_config);
+
+                MONITORINFO info{};
+                auto result = set->CalculateZones(info, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                Assert::IsFalse(result);
+            }
+        }
+
+        TEST_METHOD(ZeroSpacing)
+        {
+            const int spacing = 0;
+            const int zoneCount = 10;
+
+            for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
+            {
+                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
+
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                auto set = MakeZoneSet(m_config);
+
+                auto result = set->CalculateZones(m_monitorInfo, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                Assert::IsTrue(result);
+                checkZones(set, zoneCount);
+            }
+        }
+
+        TEST_METHOD(NegativeSpacing)
+        {
+            const int spacing = -1;
+            const int zoneCount = 10;
+
+            for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
+            {
+                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
+
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                auto set = MakeZoneSet(m_config);
+
+                auto result = set->CalculateZones(m_monitorInfo, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                if (type == static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus))
+                {
+                    //Focus doesn't depends on spacing
+                    Assert::IsTrue(result);
+                }
+                else
+                {
+                    Assert::IsFalse(result);
+                }
+            }
+        }
+
+        TEST_METHOD(HorizontallyBigSpacing)
+        {
+            const int spacing = m_monitorInfo.rcWork.right;
+            const int zoneCount = 10;
+
+            for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
+            {
+                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
+
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                auto set = MakeZoneSet(m_config);
+
+                auto result = set->CalculateZones(m_monitorInfo, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                if (type == static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus))
+                {
+                    //Focus doesn't depends on spacing
+                    Assert::IsTrue(result);
+                }
+                else
+                {
+                    Assert::IsFalse(result);
+                }
+            }
+        }
+
+        TEST_METHOD(VerticallyBigSpacing)
+        {
+            const int spacing = m_monitorInfo.rcWork.bottom;
+            const int zoneCount = 10;
+
+            for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
+            {
+                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
+
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                auto set = MakeZoneSet(m_config);
+
+                auto result = set->CalculateZones(m_monitorInfo, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                Logger::WriteMessage(std::to_wstring(type).c_str());
+                if (type == static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus))
+                {
+                    //Focus doesn't depends on spacing
+                    Assert::IsTrue(result);
+                }
+                else
+                {
+                    Assert::IsFalse(result);
+                }
+            }
+        }
+
+        TEST_METHOD(ZeroZoneCount)
+        {
+            const int spacing = 10;
+            const int zoneCount = 0;
+
+            for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
+            {
+                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
+
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                auto set = MakeZoneSet(m_config);
+
+                auto result = set->CalculateZones(m_monitorInfo, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                Assert::IsFalse(result);
+            }
+        }
+
+        TEST_METHOD(BigZoneCount)
+        {
+            const int spacing = 1;
+            const LONG zoneCount = m_monitorInfo.rcWork.right * m_monitorInfo.rcWork.bottom;
+
+            for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
+            {
+                const int spacing = 10;
+                const int zoneCount = 100;
+                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
+
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                auto set = MakeZoneSet(m_config);
+
+                auto result = set->CalculateZones(m_monitorInfo, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                Assert::IsTrue(result);
+                checkZones(set, zoneCount);
+            }
         }
     };
 }
