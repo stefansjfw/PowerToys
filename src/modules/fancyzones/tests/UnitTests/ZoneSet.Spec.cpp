@@ -341,6 +341,44 @@ namespace FancyZonesUnitTests
             Assert::IsFalse(zone2->ContainsWindow(window));
             Assert::IsFalse(zone3->ContainsWindow(window));
         }
+
+        TEST_METHOD(MoveWindowIntoZoneByIndexSeveralTimesSameWindow)
+        {
+            // Add a couple of zones.
+            winrt::com_ptr<IZone> zone1 = MakeZone({ 0, 0, 100, 100 });
+            winrt::com_ptr<IZone> zone2 = MakeZone({ 1, 1, 101, 101 });
+            winrt::com_ptr<IZone> zone3 = MakeZone({ 2, 2, 102, 102 });
+            m_set->AddZone(zone1);
+            m_set->AddZone(zone2);
+            m_set->AddZone(zone3);
+
+            HWND window = Mocks::Window();
+            m_set->MoveWindowIntoZoneByIndex(window, Mocks::Window(), 0);
+            m_set->MoveWindowIntoZoneByIndex(window, Mocks::Window(), 1);
+            m_set->MoveWindowIntoZoneByIndex(window, Mocks::Window(), 2);
+            Assert::IsTrue(zone1->ContainsWindow(window));
+            Assert::IsTrue(zone2->ContainsWindow(window));
+            Assert::IsTrue(zone3->ContainsWindow(window));
+        }
+
+        TEST_METHOD(MoveWindowIntoZoneByIndexSeveralTimesSameIndex)
+        {
+            // Add a couple of zones.
+            winrt::com_ptr<IZone> zone1 = MakeZone({ 0, 0, 100, 100 });
+            winrt::com_ptr<IZone> zone2 = MakeZone({ 1, 1, 101, 101 });
+            winrt::com_ptr<IZone> zone3 = MakeZone({ 2, 2, 102, 102 });
+            m_set->AddZone(zone1);
+            m_set->AddZone(zone2);
+            m_set->AddZone(zone3);
+
+            HWND window = Mocks::Window();
+            m_set->MoveWindowIntoZoneByIndex(window, Mocks::Window(), 0);
+            m_set->MoveWindowIntoZoneByIndex(window, Mocks::Window(), 0);
+            m_set->MoveWindowIntoZoneByIndex(window, Mocks::Window(), 0);
+            Assert::IsTrue(zone1->ContainsWindow(window));
+            Assert::IsFalse(zone2->ContainsWindow(window));
+            Assert::IsFalse(zone3->ContainsWindow(window));
+        }
     };
 
     // MoveWindowIntoZoneByDirection is complicated enough to warrant it's own test class
