@@ -452,7 +452,7 @@ void ZoneSet::CalculateCustomLayout(Rect workArea, const std::wstring& customZon
         JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetFromTmpFile(customZoneSetFilePath, guuidStr.get());
         const auto& zoneSet = JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetsMap()[guuidStr.get()];
 
-        if (zoneSet.type == JSONHelpers::CustomLayoutType::Canvas)
+        if (zoneSet.type == JSONHelpers::CustomLayoutType::Canvas && std::holds_alternative<JSONHelpers::CanvasLayoutInfo>(zoneSet.info))
         {
             const auto& zoneSetInfo = std::get<JSONHelpers::CanvasLayoutInfo>(zoneSet.info);
             for (const auto& zone : zoneSetInfo.zones)
@@ -468,9 +468,10 @@ void ZoneSet::CalculateCustomLayout(Rect workArea, const std::wstring& customZon
                 AddZone(MakeZone(focusZoneRect));
             }
         }
-        else if (zoneSet.type == JSONHelpers::CustomLayoutType::Grid)
+        else if (zoneSet.type == JSONHelpers::CustomLayoutType::Grid && std::holds_alternative<JSONHelpers::GridLayoutInfo>(zoneSet.info))
         {
-            CalculateGridZones(workArea, std::get<JSONHelpers::GridLayoutInfo>(zoneSet.info), spacing);
+            const auto& info = std::get<JSONHelpers::GridLayoutInfo>(zoneSet.info);
+            CalculateGridZones(workArea, info, spacing);
         }
     }
 }
