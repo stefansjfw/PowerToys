@@ -242,8 +242,8 @@ ZoneSet::MoveWindowIntoZoneByDirection(HWND window, HWND windowZone, DWORD vkCod
     if (m_zones.empty())
         return;
 
-    winrt::com_ptr<IZone> oldZone;
-    winrt::com_ptr<IZone> newZone;
+    winrt::com_ptr<IZone> oldZone = nullptr;
+    winrt::com_ptr<IZone> newZone = nullptr;
 
     auto iter = std::find(m_zones.begin(), m_zones.end(), ZoneFromWindow(window));
     if (iter == m_zones.end())
