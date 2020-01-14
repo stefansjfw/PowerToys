@@ -177,19 +177,19 @@ namespace JSONHelpers
         }
     }
 
-    int FancyZonesData::GetAppLastZone(HWND window, PCWSTR appPath, _Out_ PINT iZoneIndex) const
+    int FancyZonesData::GetAppLastZone(HWND window, PCWSTR appPath) const
     {
-        *iZoneIndex = -1;
+        int iZoneIndex = -1;
 
         if (auto monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONULL))
         {
             TAppPath path{ appPath };
             if (appZoneHistoryMap.contains(path))
             {
-                *iZoneIndex = appZoneHistoryMap.at(path).zoneIndex;
+                iZoneIndex = appZoneHistoryMap.at(path).zoneIndex;
             }
         }
-        return *iZoneIndex;
+        return iZoneIndex;
     }
 
     // Pass -1 for the zoneIndex to delete the entry from the map

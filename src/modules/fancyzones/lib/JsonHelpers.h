@@ -203,7 +203,7 @@ namespace JSONHelpers
             return appZoneHistoryMap;
         }
 
-        int GetAppLastZone(HWND window, PCWSTR appPath, _Out_ PINT iZoneIndex) const;
+        int GetAppLastZone(HWND window, PCWSTR appPath) const;
         bool SetAppLastZone(HWND window, PCWSTR appPath, DWORD zoneIndex); //TODO(stefan): Missing zone uuid (pass as arg)
 
         void SetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& uuid);
