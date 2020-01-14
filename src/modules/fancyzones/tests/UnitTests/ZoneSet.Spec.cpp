@@ -306,7 +306,6 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(MoveWindowIntoZoneByIndex)
         {
-            // Add a couple of zones.
             winrt::com_ptr<IZone> zone1 = MakeZone({ 0, 0, 100, 100 });
             winrt::com_ptr<IZone> zone2 = MakeZone({ 0, 0, 100, 100 });
             winrt::com_ptr<IZone> zone3 = MakeZone({ 0, 0, 100, 100 });
@@ -323,14 +322,12 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(MoveWindowIntoZoneByIndexWithNoZones)
         {
-            // Add a couple of zones.
             HWND window = Mocks::Window();
             m_set->MoveWindowIntoZoneByIndex(window, Mocks::Window(), 0);
         }
 
         TEST_METHOD(MoveWindowIntoZoneByIndexWithInvalidIndex)
         {
-            // Add a couple of zones.
             winrt::com_ptr<IZone> zone1 = MakeZone({ 0, 0, 100, 100 });
             winrt::com_ptr<IZone> zone2 = MakeZone({ 0, 0, 100, 100 });
             winrt::com_ptr<IZone> zone3 = MakeZone({ 0, 0, 100, 100 });
@@ -357,10 +354,18 @@ namespace FancyZonesUnitTests
 
             HWND window = Mocks::Window();
             m_set->MoveWindowIntoZoneByIndex(window, Mocks::Window(), 0);
-            m_set->MoveWindowIntoZoneByIndex(window, Mocks::Window(), 1);
-            m_set->MoveWindowIntoZoneByIndex(window, Mocks::Window(), 2);
             Assert::IsTrue(zone1->ContainsWindow(window));
+            Assert::IsFalse(zone2->ContainsWindow(window));
+            Assert::IsFalse(zone3->ContainsWindow(window));
+
+            m_set->MoveWindowIntoZoneByIndex(window, Mocks::Window(), 1);
+            Assert::IsFalse(zone1->ContainsWindow(window));
             Assert::IsTrue(zone2->ContainsWindow(window));
+            Assert::IsFalse(zone3->ContainsWindow(window));
+
+            m_set->MoveWindowIntoZoneByIndex(window, Mocks::Window(), 2);
+            Assert::IsFalse(zone1->ContainsWindow(window));
+            Assert::IsFalse(zone2->ContainsWindow(window));
             Assert::IsTrue(zone3->ContainsWindow(window));
         }
 

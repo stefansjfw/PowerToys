@@ -222,6 +222,11 @@ ZoneSet::MoveWindowIntoZoneByIndex(HWND window, HWND windowZone, int index) noex
         index = 0;
     }
 
+    while (auto zoneDrop = ZoneFromWindow(window))
+    {
+        zoneDrop->RemoveWindowFromZone(window, !IsZoomed(window));
+    }
+
     if (index < m_zones.size())
     {
         if (auto zone = m_zones.at(index))
@@ -278,7 +283,7 @@ ZoneSet::MoveWindowIntoZoneByDirection(HWND window, HWND windowZone, DWORD vkCod
 IFACEMETHODIMP_(void)
 ZoneSet::MoveWindowIntoZoneByPoint(HWND window, HWND zoneWindow, POINT ptClient) noexcept
 {
-    if (auto zoneDrop = ZoneFromWindow(window))
+    while (auto zoneDrop = ZoneFromWindow(window))
     {
         zoneDrop->RemoveWindowFromZone(window, !IsZoomed(window));
     }
