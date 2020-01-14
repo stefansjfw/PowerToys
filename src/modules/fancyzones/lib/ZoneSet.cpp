@@ -498,12 +498,20 @@ bool ZoneSet::CalculateCustomLayout(Rect workArea, const std::wstring& customZon
                 int y = zone.y;
                 int width = zone.width;
                 int height = zone.height;
+
+                if (x < 0 || y < 0 || width < 0 || height < 0)
+                {
+                    return false;
+                }
+
                 DPIAware::Convert(NULL, x, y);
                 DPIAware::Convert(NULL, width, height);
 
                 RECT focusZoneRect{ x, y, x + width, y + height };
                 AddZone(MakeZone(focusZoneRect));
             }
+
+            return true;
         }
         else if (zoneSet.type == JSONHelpers::CustomLayoutType::Grid && std::holds_alternative<JSONHelpers::GridLayoutInfo>(zoneSet.info))
         {
