@@ -131,7 +131,7 @@ public:
     IFACEMETHODIMP_(void)
     MoveWindowIntoZoneByDirection(HWND window, HWND zoneWindow, DWORD vkCode) noexcept;
     IFACEMETHODIMP_(void)
-    MoveSizeEnd(HWND window, HWND zoneWindow, POINT ptClient) noexcept;
+    MoveWindowIntoZoneByPoint(HWND window, HWND zoneWindow, POINT ptClient) noexcept;
     IFACEMETHODIMP_(bool)
     CalculateZones(MONITORINFO monitorInfo, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing, const std::wstring& customZoneSetFilePath) noexcept;
 
@@ -276,7 +276,7 @@ ZoneSet::MoveWindowIntoZoneByDirection(HWND window, HWND windowZone, DWORD vkCod
 }
 
 IFACEMETHODIMP_(void)
-ZoneSet::MoveSizeEnd(HWND window, HWND zoneWindow, POINT ptClient) noexcept
+ZoneSet::MoveWindowIntoZoneByPoint(HWND window, HWND zoneWindow, POINT ptClient) noexcept
 {
     if (auto zoneDrop = ZoneFromWindow(window))
     {

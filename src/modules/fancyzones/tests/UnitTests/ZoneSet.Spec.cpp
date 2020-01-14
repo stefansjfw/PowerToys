@@ -383,34 +383,34 @@ namespace FancyZonesUnitTests
             Assert::IsFalse(zone3->ContainsWindow(window));
         }
 
-        TEST_METHOD(MoveSizeEndEmpty)
+        TEST_METHOD(MoveWindowIntoZoneByPointEmpty)
         {
-            m_set->MoveSizeEnd(Mocks::Window(), Mocks::Window(), POINT{ 0, 0 });
+            m_set->MoveWindowIntoZoneByPoint(Mocks::Window(), Mocks::Window(), POINT{ 0, 0 });
         }
 
-        TEST_METHOD(MoveSizeEndOuterPoint)
+        TEST_METHOD(MoveWindowIntoZoneByPointOuterPoint)
         {
             winrt::com_ptr<IZone> zone1 = MakeZone({ 0, 0, 100, 100 });
             m_set->AddZone(zone1);
 
             auto window = Mocks::Window();
-            m_set->MoveSizeEnd(window, Mocks::Window(), POINT{ 101, 101 });
+            m_set->MoveWindowIntoZoneByPoint(window, Mocks::Window(), POINT{ 101, 101 });
 
             Assert::IsFalse(zone1->ContainsWindow(window));
         }
 
-        TEST_METHOD(MoveSizeEndInnerPoint)
+        TEST_METHOD(MoveWindowIntoZoneByPointInnerPoint)
         {
             winrt::com_ptr<IZone> zone1 = MakeZone({ 0, 0, 100, 100 });
             m_set->AddZone(zone1);
 
             auto window = Mocks::Window();
-            m_set->MoveSizeEnd(window, Mocks::Window(), POINT{ 50, 50 });
+            m_set->MoveWindowIntoZoneByPoint(window, Mocks::Window(), POINT{ 50, 50 });
 
             Assert::IsTrue(zone1->ContainsWindow(window));
         }
 
-        TEST_METHOD(MoveSizeEndInnerPointOverlappingZones)
+        TEST_METHOD(MoveWindowIntoZoneByPointInnerPointOverlappingZones)
         {
             winrt::com_ptr<IZone> zone1 = MakeZone({ 0, 0, 100, 100 });
             winrt::com_ptr<IZone> zone2 = MakeZone({ 10, 10, 90, 90 });
@@ -418,13 +418,13 @@ namespace FancyZonesUnitTests
             m_set->AddZone(zone2);
 
             auto window = Mocks::Window();
-            m_set->MoveSizeEnd(window, Mocks::Window(), POINT{ 50, 50 });
+            m_set->MoveWindowIntoZoneByPoint(window, Mocks::Window(), POINT{ 50, 50 });
 
             Assert::IsFalse(zone1->ContainsWindow(window));
             Assert::IsTrue(zone2->ContainsWindow(window));
         }
 
-        TEST_METHOD(MoveSizeEndDropAddWindow)
+        TEST_METHOD(MoveWindowIntoZoneByPointDropAddWindow)
         {
             const auto window = Mocks::Window();
             const auto zoneWindow = Mocks::Window();
@@ -437,13 +437,13 @@ namespace FancyZonesUnitTests
             m_set->AddZone(zone1);
             m_set->AddZone(zone2);
 
-            m_set->MoveSizeEnd(window, Mocks::Window(), POINT{ 50, 50 });
+            m_set->MoveWindowIntoZoneByPoint(window, Mocks::Window(), POINT{ 50, 50 });
 
             Assert::IsFalse(zone1->ContainsWindow(window));
             Assert::IsTrue(zone2->ContainsWindow(window));
         }
 
-        TEST_METHOD(MoveSizeEndDropAddWindowToSameZone)
+        TEST_METHOD(MoveWindowIntoZoneByPointDropAddWindowToSameZone)
         {
             const auto window = Mocks::Window();
             const auto zoneWindow = Mocks::Window();
@@ -456,13 +456,13 @@ namespace FancyZonesUnitTests
             m_set->AddZone(zone1);
             m_set->AddZone(zone2);
 
-            m_set->MoveSizeEnd(window, Mocks::Window(), POINT{ 50, 50 });
+            m_set->MoveWindowIntoZoneByPoint(window, Mocks::Window(), POINT{ 50, 50 });
 
             Assert::IsFalse(zone1->ContainsWindow(window));
             Assert::IsTrue(zone2->ContainsWindow(window));
         }
 
-        TEST_METHOD(MoveSizeEndSeveralZonesWithSameWindow)
+        TEST_METHOD(MoveWindowIntoZoneByPointSeveralZonesWithSameWindow)
         {
             const auto window = Mocks::Window();
             const auto zoneWindow = Mocks::Window();
@@ -479,10 +479,10 @@ namespace FancyZonesUnitTests
             m_set->AddZone(zone2);
             m_set->AddZone(zone3);
 
-            m_set->MoveSizeEnd(window, Mocks::Window(), POINT{ 50, 50 });
+            m_set->MoveWindowIntoZoneByPoint(window, Mocks::Window(), POINT{ 50, 50 });
 
             Assert::IsFalse(zone1->ContainsWindow(window));
-            Assert::IsTrue(zone2->ContainsWindow(window));
+            Assert::IsFalse(zone2->ContainsWindow(window));
             Assert::IsTrue(zone3->ContainsWindow(window));
         }
     };
