@@ -1,7 +1,10 @@
 #include "pch.h"
 #include "lib\ZoneSet.h"
 
+#include <filesystem>
+
 #include "Util.h"
+#include <common/settings_helpers.h>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -768,6 +771,8 @@ namespace FancyZonesUnitTests
         HMONITOR m_monitor;
         MONITORINFO m_monitorInfo;
 
+        const std::wstring m_path = PTSettingsHelper::get_module_save_folder_location(L"FancyZones") + L"\\" + std::wstring(L"testzones.json");
+
         TEST_METHOD_INITIALIZE(Init)
         {
             auto hres = CoCreateGuid(&m_id);
@@ -780,6 +785,11 @@ namespace FancyZonesUnitTests
 
             ZoneSetConfig m_config = ZoneSetConfig(m_id, m_layoutId, m_monitor, m_resolutionKey);
             m_set = MakeZoneSet(m_config);
+        }
+
+        TEST_METHOD_CLEANUP(Cleanup)
+        {
+            std::filesystem::remove(m_path);
         }
 
         void checkZones(const winrt::com_ptr<IZoneSet>& set, size_t expectedCount)
@@ -969,6 +979,171 @@ namespace FancyZonesUnitTests
                 Assert::IsTrue(result);
                 checkZones(set, zoneCount);
             }
+        }
+
+        TEST_METHOD(CustomZonesFromUnexistedFile)
+        {
+            const int spacing = 10;
+            const int zoneCount = 0;
+            const auto type = JSONHelpers::ZoneSetLayoutType::Custom;
+            const auto id = JSONHelpers::TypeToLayoutId(type);
+
+            //be sure that file does not exist
+            if (std::filesystem::exists(m_path))
+            {
+                std::filesystem::remove(m_path);
+            }
+
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+            auto set = MakeZoneSet(m_config);
+
+            auto result = set->CalculateZones(m_monitorInfo, type, zoneCount, spacing, m_path);
+            Assert::IsFalse(result);
+        }
+
+        TEST_METHOD(CustomZoneFromEmptyFile)
+        {
+            const int spacing = 10;
+            const int zoneCount = 0;
+            const auto type = JSONHelpers::ZoneSetLayoutType::Custom;
+            const auto id = JSONHelpers::TypeToLayoutId(type);
+
+            Assert::IsTrue(std::filesystem::create_directories(m_path));
+            Assert::IsTrue(std::filesystem::exists(m_path));
+
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+            auto set = MakeZoneSet(m_config);
+
+            auto result = set->CalculateZones(m_monitorInfo, type, zoneCount, spacing, m_path);
+            Assert::IsFalse(result);
+        }
+
+        TEST_METHOD(CustomZoneFromInvalidCanvasLayoutInfo)
+        {
+            using namespace JSONHelpers;
+
+            const auto type = JSONHelpers::ZoneSetLayoutType::Custom;
+            const auto id = JSONHelpers::TypeToLayoutId(type);
+
+            const std::wstring uuid = L"uuid";
+            const CanvasLayoutInfo info{ -1, 100, { CanvasLayoutInfo::Rect{ -10, -10, 100, 100 }, CanvasLayoutInfo::Rect{ 50, 50, 150, 150 } } };
+            CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Canvas, info } };
+            json::to_file(m_path, CustomZoneSetJSON::ToJson(expected));
+            Assert::IsTrue(std::filesystem::exists(m_path));
+
+            const int spacing = 10;
+            const int zoneCount = info.zones.size();
+
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+            auto set = MakeZoneSet(m_config);
+
+            auto result = set->CalculateZones(m_monitorInfo, type, zoneCount, spacing, m_path);
+            Assert::IsFalse(result);
+        }
+
+        TEST_METHOD(CustomZoneFromInvalidGridLayoutInfo)
+        {
+            using namespace JSONHelpers;
+
+            const auto type = JSONHelpers::ZoneSetLayoutType::Custom;
+            const auto id = JSONHelpers::TypeToLayoutId(type);
+
+            const std::wstring uuid = L"uuid";
+            const GridLayoutInfo grid(GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
+                .rows = 1,
+                .columns = 3,
+                .rowsPercents = { -100 }, //rows percents are negative
+                .columnsPercents = { 2500, 2500 }, //column percents count is invalid
+                .cellChildMap = { { 0, 1, 2 } } }));
+            CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } };
+            json::to_file(m_path, CustomZoneSetJSON::ToJson(expected));
+            Assert::IsTrue(std::filesystem::exists(m_path));
+
+            const int spacing = 0;
+            const int zoneCount = grid.rows() * grid.columns();
+
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+            auto set = MakeZoneSet(m_config);
+
+            auto result = set->CalculateZones(m_monitorInfo, type, zoneCount, spacing, m_path);
+            Assert::IsFalse(result);
+        }
+        TEST_METHOD(CustomZoneFromValidCanvasLayoutInfo)
+        {
+            using namespace JSONHelpers;
+
+            const auto type = JSONHelpers::ZoneSetLayoutType::Custom;
+            const auto id = JSONHelpers::TypeToLayoutId(type);
+
+            const std::wstring uuid = L"uuid";
+            const CanvasLayoutInfo info{ 123, 321, { CanvasLayoutInfo::Rect{ 0, 0, 100, 100 }, CanvasLayoutInfo::Rect{ 50, 50, 150, 150 } } };
+            CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Canvas, info } };
+            json::to_file(m_path, CustomZoneSetJSON::ToJson(expected));
+            Assert::IsTrue(std::filesystem::exists(m_path));
+
+            const int spacing = 10;
+            const int zoneCount = info.zones.size();
+
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+            auto set = MakeZoneSet(m_config);
+
+            auto result = set->CalculateZones(m_monitorInfo, type, zoneCount, spacing, m_path);
+            Assert::IsTrue(result);
+            checkZones(set, zoneCount);
+        }
+
+        TEST_METHOD(CustomZoneFromValidGridFullLayoutInfo)
+        {
+            using namespace JSONHelpers;
+
+            const auto type = JSONHelpers::ZoneSetLayoutType::Custom;
+            const auto id = JSONHelpers::TypeToLayoutId(type);
+
+            const std::wstring uuid = L"uuid";
+            const GridLayoutInfo grid(GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
+                .rows = 1,
+                .columns = 3,
+                .rowsPercents = { 10000 },
+                .columnsPercents = { 2500, 5000, 2500 },
+                .cellChildMap = { { 0, 1, 2 } } }));
+            CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } };
+            json::to_file(m_path, CustomZoneSetJSON::ToJson(expected));
+            Assert::IsTrue(std::filesystem::exists(m_path));
+
+            const int spacing = 10;
+            const int zoneCount = grid.rows() * grid.columns();
+
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+            auto set = MakeZoneSet(m_config);
+
+            auto result = set->CalculateZones(m_monitorInfo, type, zoneCount, spacing, m_path);
+            Assert::IsTrue(result);
+            checkZones(set, zoneCount);
+        }
+
+        TEST_METHOD(CustomZoneFromValidGridMinimalLayoutInfo)
+        {
+            using namespace JSONHelpers;
+
+            const auto type = JSONHelpers::ZoneSetLayoutType::Custom;
+            const auto id = JSONHelpers::TypeToLayoutId(type);
+
+            const std::wstring uuid = L"uuid";
+            const GridLayoutInfo grid(GridLayoutInfo(JSONHelpers::GridLayoutInfo::Minimal{
+                .rows = 1,
+                .columns = 3 }));
+            CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } };
+            json::to_file(m_path, CustomZoneSetJSON::ToJson(expected));
+            Assert::IsTrue(std::filesystem::exists(m_path));
+
+            const int spacing = 0;
+            const int zoneCount = grid.rows() * grid.columns();
+
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+            auto set = MakeZoneSet(m_config);
+
+            auto result = set->CalculateZones(m_monitorInfo, type, zoneCount, spacing, m_path);
+            Assert::IsFalse(result);
         }
     };
 }
