@@ -419,7 +419,6 @@ namespace JSONHelpers
             // Custom zone sets have to be migrated before applied zone sets!
             MigrateCustomZoneSetsFromRegistry();
             MigrateAppZoneHistoryFromRegistry();
-            //MigrateDeviceInfoFromRegistry(appliedZoneSets);
 
             SaveFancyZonesData();
         }

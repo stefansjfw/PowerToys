@@ -146,7 +146,7 @@ namespace FancyZonesEditor.Models
             outputStream.Close();
         }
 
-        // Loads all the Layouts persisted under the Layouts key in the registry
+        // Loads all the custom Layouts from tmp file passed by FancuZonesLib
         public static ObservableCollection<LayoutModel> LoadCustomModels()
         {
             _customModels = new ObservableCollection<LayoutModel>();
