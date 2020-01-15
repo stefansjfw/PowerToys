@@ -178,27 +178,17 @@ namespace JSONHelpers
         const std::wstring& GetPersistFancyZonesJSONPath() const;
         json::JsonObject GetPersistFancyZonesJSON();
 
-        TDeviceInfosMap& GetDeviceInfoMap()
+        const TDeviceInfosMap& GetDeviceInfoMap()
         {
             return deviceInfoMap;
         }
 
-        const TDeviceInfosMap& GetDeviceInfoMap() const
-        {
-            return deviceInfoMap;
-        }
-
-        TCustomZoneSetsMap& GetCustomZoneSetsMap()
+        const TCustomZoneSetsMap& GetCustomZoneSetsMap()
         {
             return customZoneSetsMap;
         }
 
-        const TCustomZoneSetsMap& GetCustomZoneSetsMap() const
-        {
-            return customZoneSetsMap;
-        }
-
-        const std::unordered_map<TAppPath, AppZoneHistoryData>& GetAppZoneHistoryMap() const
+        const TAppZoneHistoryMap& GetAppZoneHistoryMap()
         {
             return appZoneHistoryMap;
         }

@@ -318,7 +318,6 @@ namespace JSONHelpers
     {
         json::JsonArray appHistoryArray;
 
-        int i = 0;
         for (const auto& [appPath, appZoneHistoryData] : appZoneHistoryMap)
         {
             appHistoryArray.Append(AppZoneHistoryJSON::ToJson(AppZoneHistoryJSON{ appPath, appZoneHistoryData }));
@@ -358,7 +357,6 @@ namespace JSONHelpers
     {
         json::JsonArray DeviceInfosJSON{};
 
-        int i = 0;
         for (const auto& [deviceID, deviceData] : deviceInfoMap)
         {
             DeviceInfosJSON.Append(DeviceInfoJSON::DeviceInfoJSON::ToJson(DeviceInfoJSON{ deviceID, deviceData }));
@@ -394,7 +392,6 @@ namespace JSONHelpers
     {
         json::JsonArray customZoneSetsJSON{};
 
-        int i = 0;
         for (const auto& [zoneSetId, zoneSetData] : customZoneSetsMap)
         {
             customZoneSetsJSON.Append(CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ zoneSetId, zoneSetData }));
@@ -761,7 +758,7 @@ namespace JSONHelpers
         infoJson.SetNamedValue(L"ref-width", json::value(canvasInfo.referenceWidth));
         infoJson.SetNamedValue(L"ref-height", json::value(canvasInfo.referenceHeight));
         json::JsonArray zonesJson;
-        int i = 0;
+
         for (const auto& [x, y, width, height] : canvasInfo.zones)
         {
             json::JsonObject zoneJson;

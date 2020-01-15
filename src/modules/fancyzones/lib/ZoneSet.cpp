@@ -448,7 +448,7 @@ void ZoneSet::CalculateCustomLayout(Rect workArea, const std::wstring& customZon
     if (SUCCEEDED_LOG(StringFromCLSID(m_config.Id, &guuidStr)))
     {
         JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetFromTmpFile(customZoneSetFilePath, guuidStr.get());
-        const auto& zoneSet = JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetsMap()[guuidStr.get()];
+        const auto& zoneSet = JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetsMap().at(guuidStr.get());
 
         if (zoneSet.type == JSONHelpers::CustomLayoutType::Canvas)
         {
