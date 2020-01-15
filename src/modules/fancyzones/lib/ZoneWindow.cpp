@@ -70,7 +70,8 @@ namespace {
 struct ZoneWindow : public winrt::implements<ZoneWindow, IZoneWindow>
 {
 public:
-    ZoneWindow(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monitor, PCWSTR deviceId, PCWSTR virtualDesktopId, bool flashZones);
+    ZoneWindow(HINSTANCE hinstance);
+    bool Init(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monitor, PCWSTR deviceId, PCWSTR virtualDesktopId, bool flashZones);
 
     IFACEMETHODIMP MoveSizeEnter(HWND window, bool dragEnabled) noexcept;
     IFACEMETHODIMP MoveSizeUpdate(POINT const& ptScreen, bool dragEnabled) noexcept;
@@ -145,36 +146,11 @@ private:
     static const UINT m_flashDuration = 700; // ms
 };
 
-ZoneWindow::ZoneWindow(
-    IZoneWindowHost* host,
-    HINSTANCE hinstance,
-    HMONITOR monitor,
-    PCWSTR deviceId,
-    PCWSTR virtualDesktopId,
-    bool flashZones)
-        : m_monitor(monitor)
+ZoneWindow::ZoneWindow(HINSTANCE hinstance) 
 {
-    m_host.copy_from(host);
-
-    MONITORINFO mi{};
-    mi.cbSize = sizeof(mi);
-    if (!GetMonitorInfoW(m_monitor, &mi))
-    {
-        return;
-    }
-    const UINT dpi = GetDpiForMonitor();
-    const Rect monitorRect(mi.rcMonitor);
-    const Rect workAreaRect(mi.rcWork, dpi);
-
-    StringCchPrintf(m_workArea, ARRAYSIZE(m_workArea), L"%d_%d", monitorRect.width(), monitorRect.height());
-
     m_activeZoneSetPath = GenerateTmpFileName(TTmpFileType::EActiveZoneSetFile);
     m_appliedZoneSetPath = GenerateTmpFileName(TTmpFileType::EAppliedZoneSetFile);
     m_customZoneSetsPath = GenerateTmpFileName(TTmpFileType::ECustomZoneSetsFile);
-
-    InitializeId(deviceId, virtualDesktopId);
-    LoadSettings();
-    InitializeZoneSets(mi);
 
     WNDCLASSEXW wcex{};
     wcex.cbSize = sizeof(WNDCLASSEX);
@@ -183,31 +159,58 @@ ZoneWindow::ZoneWindow(
     wcex.lpszClassName = L"SuperFancyZones_ZoneWindow";
     wcex.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     RegisterClassExW(&wcex);
+}
 
-    m_window = wil::unique_hwnd {
-        CreateWindowExW(WS_EX_TOOLWINDOW, L"SuperFancyZones_ZoneWindow", L"", WS_POPUP,
-                workAreaRect.left(), workAreaRect.top(), workAreaRect.width(), workAreaRect.height(),
-                nullptr, nullptr, hinstance, this)
+bool ZoneWindow::Init(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monitor, PCWSTR deviceId, PCWSTR virtualDesktopId, bool flashZones)
+{
+    if (!host)
+    {
+        return false;    
+    }
+    m_host.copy_from(host);
+        
+    MONITORINFO mi{};
+    mi.cbSize = sizeof(mi);
+    if (!GetMonitorInfoW(monitor, &mi))
+    {
+        return false;
+    }
+
+    m_monitor = monitor;
+    const UINT dpi = GetDpiForMonitor();
+    const Rect monitorRect(mi.rcMonitor);
+    const Rect workAreaRect(mi.rcWork, dpi);
+    StringCchPrintf(m_workArea, ARRAYSIZE(m_workArea), L"%d_%d", monitorRect.width(), monitorRect.height());
+        
+    InitializeId(deviceId, virtualDesktopId);
+    LoadSettings();
+    InitializeZoneSets(mi);
+    
+    m_window = wil::unique_hwnd{
+        CreateWindowExW(WS_EX_TOOLWINDOW, L"SuperFancyZones_ZoneWindow", L"", WS_POPUP, workAreaRect.left(), workAreaRect.top(), workAreaRect.width(), workAreaRect.height(), nullptr, nullptr, hinstance, this)
     };
 
-    if (m_window)
+    if (!m_window)
     {
-        MakeWindowTransparent(m_window.get());
-        if (flashZones)
+        return false;
+    }
+
+    MakeWindowTransparent(m_window.get());
+    if (flashZones)
+    {
+        // Don't flash if the foreground window is in full screen mode
+        RECT windowRect;
+        if (!(GetWindowRect(GetForegroundWindow(), &windowRect) &&
+              windowRect.left == mi.rcMonitor.left &&
+              windowRect.top == mi.rcMonitor.top &&
+              windowRect.right == mi.rcMonitor.right &&
+              windowRect.bottom == mi.rcMonitor.bottom))
         {
-            // Don't flash if the foreground window is in full screen mode
-            RECT windowRect;
-            if (GetWindowRect(GetForegroundWindow(), &windowRect) &&
-                windowRect.left == mi.rcMonitor.left &&
-                windowRect.top == mi.rcMonitor.top &&
-                windowRect.right == mi.rcMonitor.right &&
-                windowRect.bottom == mi.rcMonitor.bottom)
-            {
-                return;
-            }
             FlashZones();
         }
     }
+
+    return true;
 }
 
 IFACEMETHODIMP ZoneWindow::MoveSizeEnter(HWND window, bool dragEnabled) noexcept
@@ -805,8 +808,13 @@ LRESULT CALLBACK ZoneWindow::s_WndProc(HWND window, UINT message, WPARAM wparam,
         DefWindowProc(window, message, wparam, lparam);
 }
 
-winrt::com_ptr<IZoneWindow> MakeZoneWindow(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monitor,
-    PCWSTR deviceId, PCWSTR virtualDesktopId, bool flashZones) noexcept
+winrt::com_ptr<IZoneWindow> MakeZoneWindow(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monitor, PCWSTR deviceId, PCWSTR virtualDesktopId, bool flashZones) noexcept
 {
-    return winrt::make_self<ZoneWindow>(host, hinstance, monitor, deviceId, virtualDesktopId, flashZones);
+    auto self = winrt::make_self<ZoneWindow>(hinstance);
+    if (self->Init(host, hinstance, monitor, deviceId, virtualDesktopId, flashZones))
+    {
+        return self;
+    }
+
+    return nullptr;
 }
