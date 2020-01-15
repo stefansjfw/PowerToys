@@ -76,6 +76,10 @@ public:
         }
         return GUID_NULL;
     }
+    IFACEMETHODIMP_(int) GetZoneHighlightOpacity() noexcept
+    {
+        return m_settings->GetSettings().zoneHighlightOpacity;
+    }
 
     LRESULT WndProc(HWND, UINT, WPARAM, LPARAM) noexcept;
     void OnDisplayChange(DisplayChangeType changeType) noexcept;
