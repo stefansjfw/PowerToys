@@ -363,7 +363,7 @@ void ZoneWindow::HideZoneWindow() noexcept
 
 void ZoneWindow::InitializeId(PCWSTR deviceId, PCWSTR virtualDesktopId) noexcept
 {
-    SHStrDup(deviceId, &m_deviceId);
+    deviceId ? SHStrDup(deviceId, &m_deviceId) : SHStrDup(L"", &m_deviceId);
 
     MONITORINFOEXW mi;
     mi.cbSize = sizeof(mi);
@@ -629,7 +629,7 @@ void ZoneWindow::DrawActiveZoneSet(wil::unique_hdc& hdc, RECT const& clientRect)
             colorIndex = colorIndex != 0 ? colorIndex - 1 : maxColorIndex;
         }
 
-        if (m_highlightZone)
+        if (m_highlightZone && m_host)
         {
             colorHighlight.fill = m_host->GetZoneHighlightColor();
             colorHighlight.border = RGB(
@@ -682,11 +682,17 @@ void ZoneWindow::ChooseDefaultActiveZoneSet() noexcept
 {
     // Default zone set can be empty (no fancyzones layout), or it can be layout from virtual
     // desktop from which this virtual desktop is created.
-    if (GUID id{ m_host->GetCurrentMonitorZoneSetId(m_monitor) }; id != GUID_NULL) {
-        for (const auto& zoneSet : m_zoneSets) {
-            if (id == zoneSet->Id()) {
-                UpdateActiveZoneSet(zoneSet.get());
-                return;
+    if (m_host)
+    {
+        if (GUID id{ m_host->GetCurrentMonitorZoneSetId(m_monitor) }; id != GUID_NULL)
+        {
+            for (const auto& zoneSet : m_zoneSets)
+            {
+                if (id == zoneSet->Id())
+                {
+                    UpdateActiveZoneSet(zoneSet.get());
+                    return;
+                }
             }
         }
     }
@@ -755,7 +761,10 @@ void ZoneWindow::CycleActiveZoneSetInternal(DWORD wparam, Trace::ZoneWindow::Inp
         m_keyCycle++;
     }
 
-    m_host->MoveWindowsOnActiveZoneSetChange();
+    if (m_host)
+    {
+        m_host->MoveWindowsOnActiveZoneSetChange();
+    }
     m_highlightZone = nullptr;
 }
 
