@@ -24,32 +24,29 @@ namespace {
     static std::wstring customZoneSetsTmpFileName;
 
     if (activeZoneSetTmpFileName.empty()) {
-      wchar_t path[256];
-      GetTempPathW(256, path);
+      wchar_t fileName[L_tmpnam_s];
 
-      wchar_t fileName[260];
-      GetTempFileNameW(path, L"FZA", rand() + 1, fileName);
+      if (_wtmpnam_s(fileName, L_tmpnam_s) != 0)
+        abort();
 
       activeZoneSetTmpFileName = std::wstring{ fileName };
     }
     if (appliedZoneSetTmpFileName.empty()) {
-      wchar_t path[256];
-      GetTempPathW(256, path);
+      wchar_t fileName[L_tmpnam_s];
 
-      wchar_t fileName[260];
-      GetTempFileNameW(path, L"FZP", rand() + 1, fileName);
+      if (_wtmpnam_s(fileName, L_tmpnam_s) != 0)
+          abort();
 
       appliedZoneSetTmpFileName = std::wstring{ fileName };
     }
     if (customZoneSetsTmpFileName.empty())
     {
-        wchar_t path[256];
-        GetTempPathW(256, path);
+      wchar_t fileName[L_tmpnam_s];
 
-        wchar_t fileName[260];
-        GetTempFileNameW(path, L"FZC", rand() + 1, fileName);
+      if (_wtmpnam_s(fileName, L_tmpnam_s) != 0)
+          abort();
 
-        customZoneSetsTmpFileName = std::wstring{ fileName };
+      customZoneSetsTmpFileName = std::wstring{ fileName };
     }
 
 
