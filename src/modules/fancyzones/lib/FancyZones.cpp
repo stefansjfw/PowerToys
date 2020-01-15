@@ -379,7 +379,9 @@ void FancyZones::ToggleEditor() noexcept
         DPIAware::GetScreenDPIForWindow(foregroundWindow, dpi_x, dpi_y);
     }
 
-    JSONHelpers::FancyZonesDataInstance().CustomZoneSetsToJsonFile(iter->second->GetCustomZoneSetsTmpPath());
+    auto zoneWindow = iter->second;
+
+    JSONHelpers::FancyZonesDataInstance().CustomZoneSetsToJsonFile(zoneWindow->GetCustomZoneSetsTmpPath());
 
     const auto taskbar_x_offset = MulDiv(mi.rcWork.left - mi.rcMonitor.left, DPIAware::DEFAULT_DPI, dpi_x);
     const auto taskbar_y_offset = MulDiv(mi.rcWork.top - mi.rcMonitor.top, DPIAware::DEFAULT_DPI, dpi_y);
@@ -395,33 +397,29 @@ void FancyZones::ToggleEditor() noexcept
         std::to_wstring(width) + L"_" +
         std::to_wstring(height);
 
-    const auto activeZoneSet = iter->second->ActiveZoneSet();
+    const auto activeZoneSet = zoneWindow->ActiveZoneSet();
     const std::wstring layoutID = activeZoneSet ? std::to_wstring(activeZoneSet->LayoutId()) : L"0";
 
-    int showSpacing;
-    int spacing;
-    int zoneCount;
-
     const auto& deviceInfos = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap();
-    showSpacing = deviceInfos.at(iter->second->UniqueId()).showSpacing ? 1 : 0;
-    spacing = deviceInfos.at(iter->second->UniqueId()).spacing;
-    zoneCount = deviceInfos.at(iter->second->UniqueId()).zoneCount;
+    int showSpacing = deviceInfos.at(zoneWindow->UniqueId()).showSpacing ? 1 : 0;
+    int spacing = deviceInfos.at(zoneWindow->UniqueId()).spacing;
+    int zoneCount = deviceInfos.at(zoneWindow->UniqueId()).zoneCount;
 
     const std::wstring params =
-        /*1*/ iter->second->UniqueId() + L" " +
+        /*1*/ zoneWindow->UniqueId() + L" " +
         /*2*/ layoutID + L" " +
         /*3*/ std::to_wstring(reinterpret_cast<UINT_PTR>(monitor)) + L" " +
         /*4*/ editorLocation + L" " +
-        /*5*/ iter->second->WorkAreaKey() + L" " +
+        /*5*/ zoneWindow->WorkAreaKey() + L" " +
         /*6*/ std::to_wstring(static_cast<float>(dpi_x) / DPIAware::DEFAULT_DPI) + L" " +
-        /*7*/ iter->second->GetActiveZoneSetTmpPath() + L" " +
+        /*7*/ zoneWindow->GetActiveZoneSetTmpPath() + L" " +
         /*8*/ std::to_wstring(showSpacing) + L" " +
         /*9*/ std::to_wstring(spacing) + L" " +
         /*10*/ std::to_wstring(zoneCount) + L" " +
-        /*11*/ iter->second->GetAppliedZoneSetTmpPath() + L" " +
-        /*12*/ iter->second->GetCustomZoneSetsTmpPath();
+        /*11*/ zoneWindow->GetAppliedZoneSetTmpPath() + L" " +
+        /*12*/ zoneWindow->GetCustomZoneSetsTmpPath();
 
-        SHELLEXECUTEINFO sei{ sizeof(sei) };
+    SHELLEXECUTEINFO sei{ sizeof(sei) };
     sei.fMask = { SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI };
     sei.lpFile = L"modules\\FancyZonesEditor.exe";
     sei.lpParameters = params.c_str();

@@ -7,13 +7,15 @@ namespace
 {
     constexpr int C_MULTIPLIER = 10000;
 
-    //struct GridLayoutInfo {
-    //  int rows;
-    //  int columns;
-    //  int rowsPercents[MAX_ZONE_COUNT];
-    //  int columnsPercents[MAX_ZONE_COUNT];
-    //  int cellChildMap[MAX_ZONE_COUNT][MAX_ZONE_COUNT];
-    //};
+    /*
+      struct GridLayoutInfo {
+        int rows;
+        int columns;
+        int rowsPercents[MAX_ZONE_COUNT];
+        int columnsPercents[MAX_ZONE_COUNT];
+        int cellChildMap[MAX_ZONE_COUNT][MAX_ZONE_COUNT];
+      };
+    */
 
     auto l = JSONHelpers::GridLayoutInfo(JSONHelpers::GridLayoutInfo::Minimal{ .rows = 1, .columns = 1 });
     // PriorityGrid layout is unique for zoneCount <= 11. For zoneCount > 11 PriorityGrid is same as Grid
@@ -333,9 +335,8 @@ void ZoneSet::CalculateFocusLayout(Rect workArea, int zoneCount) noexcept
 void ZoneSet::CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept
 {
     int gutter = spacing;
-    int c_multiplier = 10000;
 
-    int zonePercent = c_multiplier / zoneCount;
+    int zonePercent = C_MULTIPLIER / zoneCount;
 
     LONG totalWidth;
     LONG totalHeight;
@@ -347,7 +348,7 @@ void ZoneSet::CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetL
     {
         totalWidth = workArea.width() - (gutter * 2) - (spacing * (zoneCount - 1));
         totalHeight = workArea.height() - (gutter * 2);
-        cellWidth = totalWidth * zonePercent / c_multiplier;
+        cellWidth = totalWidth * zonePercent / C_MULTIPLIER;
         cellHeight = totalHeight;
     }
     else
@@ -355,7 +356,7 @@ void ZoneSet::CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetL
         totalWidth = workArea.width() - (gutter * 2);
         totalHeight = workArea.height() - (gutter * 2) - (spacing * (zoneCount - 1));
         cellWidth = totalWidth;
-        cellHeight = totalHeight * zonePercent / c_multiplier;
+        cellHeight = totalHeight * zonePercent / C_MULTIPLIER;
     }
 
     LONG top = spacing;

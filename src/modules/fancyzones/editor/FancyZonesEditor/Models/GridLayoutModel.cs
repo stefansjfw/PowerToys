@@ -170,9 +170,8 @@ namespace FancyZonesEditor.Models
             return layout;
         }
 
-        // GetPersistData
-        //  Implements the LayoutModel.GetPersistData abstract method
-        //  Returns the state of this GridLayoutModel in persisted format
+        // PersistData
+        // Implements the LayoutModel.PersistData abstract method
         protected override void PersistData()
         {
             FileStream outputStream = File.Open(Settings.AppliedZoneSetTmpFile, FileMode.Create);
