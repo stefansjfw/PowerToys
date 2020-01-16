@@ -302,7 +302,7 @@ ZoneSet::CalculateZones(MONITORINFO monitorInfo, JSONHelpers::ZoneSetLayoutType 
     }
 
     //invalid zoneCount, may cause division by zero
-    if (zoneCount <= 0)
+    if (zoneCount <= 0 && layoutType != JSONHelpers::ZoneSetLayoutType::Custom)
     {
         return false;
     }
