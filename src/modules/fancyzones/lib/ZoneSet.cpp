@@ -227,12 +227,9 @@ ZoneSet::MoveWindowIntoZoneByIndex(HWND window, HWND windowZone, int index) noex
         zoneDrop->RemoveWindowFromZone(window, !IsZoomed(window));
     }
 
-    if (index < m_zones.size())
+    if (auto zone = m_zones.at(index))
     {
-        if (auto zone = m_zones.at(index))
-        {
-            zone->AddWindowToZone(window, windowZone, false);
-        }
+        zone->AddWindowToZone(window, windowZone, false);
     }
 }
 
