@@ -161,7 +161,15 @@ namespace FancyZonesUnitTests
             auto host = m_zoneWindowHost.get_strong();
             m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, nullptr, m_virtualDesktopId.c_str(), false);
 
-            testZoneWindow(m_zoneWindow);
+            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
+            Assert::IsNotNull(m_zoneWindow.get());
+            Assert::IsFalse(m_zoneWindow->IsDragEnabled());
+            Assert::AreEqual(L"", m_zoneWindow->DeviceId().c_str());
+            Assert::IsFalse(m_zoneWindow->UniqueId().empty());
+            Assert::AreEqual(expectedWorkArea, m_zoneWindow->WorkAreaKey());
+            Assert::IsFalse(m_zoneWindow->GetActiveZoneSetTmpPath().empty());
+            Assert::IsFalse(m_zoneWindow->GetAppliedZoneSetTmpPath().empty());
+            Assert::IsFalse(m_zoneWindow->GetCustomZoneSetsTmpPath().empty());
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
         }
 
@@ -306,7 +314,7 @@ namespace FancyZonesUnitTests
 
             Assert::IsNotNull(actual->ActiveZoneSet());
             const auto actualZoneSet = actual->ActiveZoneSet()->GetZones();
-            Assert::AreEqual((size_t)0, actualZoneSet.size());
+            Assert::AreEqual((size_t)1, actualZoneSet.size());
         }
 
         TEST_METHOD(CreateZoneWindowWithActiveCustomZoneAppliedTmpFileWithUnusedDeletedCustomZones)
