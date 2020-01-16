@@ -46,6 +46,20 @@ namespace FancyZonesUnitTests
 
         winrt::com_ptr<IZoneWindow> m_zoneWindow;
 
+        std::wstring guidString()
+        {
+            GUID guid;
+            Assert::AreEqual(S_OK, CoCreateGuid(&guid));
+
+            OLECHAR* guidString;
+            Assert::AreEqual(S_OK, StringFromCLSID(guid, &guidString));
+
+            std::wstring guisStr{ guidString };
+            CoTaskMemFree(guidString);
+
+            return guidString;
+        }
+
         TEST_METHOD_INITIALIZE(Init)
         {
             m_hInst = (HINSTANCE)GetModuleHandleW(nullptr);
@@ -53,6 +67,8 @@ namespace FancyZonesUnitTests
             m_monitor = MonitorFromPoint(POINT{ 0, 0 }, MONITOR_DEFAULTTOPRIMARY);
             m_monitorInfo.cbSize = sizeof(m_monitorInfo);
             Assert::AreNotEqual(0, GetMonitorInfoW(m_monitor, &m_monitorInfo));
+
+            Assert::AreEqual(S_OK, CoCreateGuid(&m_zoneWindowHost.m_guid));
         }
 
         TEST_METHOD_CLEANUP(Cleanup)
@@ -67,46 +83,40 @@ namespace FancyZonesUnitTests
             }
         }
 
+        void testZoneWindow(winrt::com_ptr<IZoneWindow> zoneWindow)
+        {
+            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
+
+            Assert::IsNotNull(zoneWindow.get());
+            Assert::IsFalse(zoneWindow->IsDragEnabled());
+            Assert::AreEqual(m_deviceId, zoneWindow->DeviceId());
+            Assert::IsFalse(zoneWindow->UniqueId().empty());
+            Assert::AreEqual(expectedWorkArea, zoneWindow->WorkAreaKey());
+            Assert::IsFalse(zoneWindow->GetActiveZoneSetTmpPath().empty());
+            Assert::IsFalse(zoneWindow->GetAppliedZoneSetTmpPath().empty());
+            Assert::IsFalse(zoneWindow->GetCustomZoneSetsTmpPath().empty());
+        }
+
     public:
         TEST_METHOD(CreateZoneWindow)
         {
-            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
             auto host = m_zoneWindowHost.get_strong();
             m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
-
-            Assert::IsNotNull(m_zoneWindow.get());
-            Assert::IsNotNull(host.get());
-            Assert::IsFalse(m_zoneWindow->IsDragEnabled());
-            Assert::AreEqual(m_deviceId, m_zoneWindow->DeviceId());
-            Assert::IsFalse(m_zoneWindow->UniqueId().empty());
-            Assert::AreEqual(expectedWorkArea, m_zoneWindow->WorkAreaKey());
+            testZoneWindow(m_zoneWindow);
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
-            Assert::IsFalse(m_zoneWindow->GetActiveZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetAppliedZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetCustomZoneSetsTmpPath().empty());
         }
 
         TEST_METHOD(CreateZoneWindowFlashZones)
         {
-            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
             auto host = m_zoneWindowHost.get_strong();
             m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
-            Assert::IsNotNull(m_zoneWindow.get());
-            Assert::IsNotNull(host.get());
-            Assert::IsFalse(m_zoneWindow->IsDragEnabled());
-            Assert::AreEqual(m_deviceId, m_zoneWindow->DeviceId());
-            Assert::IsFalse(m_zoneWindow->UniqueId().empty());
-            Assert::AreEqual(expectedWorkArea, m_zoneWindow->WorkAreaKey());
+            testZoneWindow(m_zoneWindow);
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
-            Assert::IsFalse(m_zoneWindow->GetActiveZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetAppliedZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetCustomZoneSetsTmpPath().empty());
         }
 
         TEST_METHOD(CreateZoneWindowNoZoneWindowHost)
         {
-            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
             m_zoneWindow = MakeZoneWindow(nullptr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
             Assert::IsNull(m_zoneWindow.get());
@@ -114,7 +124,6 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(CreateZoneWindowNoZoneWindowHostFlashZones)
         {
-            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
             m_zoneWindow = MakeZoneWindow(nullptr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), true);
 
             Assert::IsNull(m_zoneWindow.get());
@@ -122,43 +131,24 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(CreateZoneWindowNoHinst)
         {
-            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
             auto host = m_zoneWindowHost.get_strong();
             m_zoneWindow = MakeZoneWindow(host.get(), {}, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
-            Assert::IsNotNull(m_zoneWindow.get());
-            Assert::IsNotNull(host.get());
-            Assert::IsFalse(m_zoneWindow->IsDragEnabled());
-            Assert::AreEqual(m_deviceId, m_zoneWindow->DeviceId());
-            Assert::IsFalse(m_zoneWindow->UniqueId().empty());
-            Assert::AreEqual(expectedWorkArea, m_zoneWindow->WorkAreaKey());
+            testZoneWindow(m_zoneWindow);
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
-            Assert::IsFalse(m_zoneWindow->GetActiveZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetAppliedZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetCustomZoneSetsTmpPath().empty());
         }
 
         TEST_METHOD(CreateZoneWindowNoHinstFlashZones)
         {
-            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
             auto host = m_zoneWindowHost.get_strong();
             m_zoneWindow = MakeZoneWindow(host.get(), {}, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), true);
 
-            Assert::IsNotNull(m_zoneWindow.get());
-            Assert::IsNotNull(host.get());
-            Assert::IsFalse(m_zoneWindow->IsDragEnabled());
-            Assert::AreEqual(m_deviceId, m_zoneWindow->DeviceId());
-            Assert::IsFalse(m_zoneWindow->UniqueId().empty());
-            Assert::AreEqual(expectedWorkArea, m_zoneWindow->WorkAreaKey());
+            testZoneWindow(m_zoneWindow);
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
-            Assert::IsFalse(m_zoneWindow->GetActiveZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetAppliedZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetCustomZoneSetsTmpPath().empty());
         }
 
         TEST_METHOD(CreateZoneWindowNoMonitor)
         {
-            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
             auto host = m_zoneWindowHost.get_strong();
             m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, {}, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
@@ -168,7 +158,6 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(CreateZoneWindowNoMonitorFlashZones)
         {
-            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
             auto host = m_zoneWindowHost.get_strong();
             m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, {}, m_deviceId.c_str(), m_virtualDesktopId.c_str(), true);
 
@@ -178,74 +167,38 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(CreateZoneWindowNoDeviceId)
         {
-            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
             auto host = m_zoneWindowHost.get_strong();
             m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, nullptr, m_virtualDesktopId.c_str(), false);
 
-            Assert::IsNotNull(m_zoneWindow.get());
-            Assert::IsNotNull(host.get());
-            Assert::IsFalse(m_zoneWindow->IsDragEnabled());
-            Assert::AreEqual(std::wstring(), m_zoneWindow->DeviceId());
-            Assert::IsFalse(m_zoneWindow->UniqueId().empty());
-            Assert::AreEqual(expectedWorkArea, m_zoneWindow->WorkAreaKey());
+            testZoneWindow(m_zoneWindow);
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
-            Assert::IsFalse(m_zoneWindow->GetActiveZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetAppliedZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetCustomZoneSetsTmpPath().empty());
         }
 
         TEST_METHOD(CreateZoneWindowNoDeviceIdFlashZones)
         {
-            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
             auto host = m_zoneWindowHost.get_strong();
             m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, nullptr, m_virtualDesktopId.c_str(), true);
 
-            Assert::IsNotNull(m_zoneWindow.get());
-            Assert::IsNotNull(host.get());
-            Assert::IsFalse(m_zoneWindow->IsDragEnabled());
-            Assert::AreEqual(std::wstring(), m_zoneWindow->DeviceId());
-            Assert::IsFalse(m_zoneWindow->UniqueId().empty());
-            Assert::AreEqual(expectedWorkArea, m_zoneWindow->WorkAreaKey());
+            testZoneWindow(m_zoneWindow);
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
-            Assert::IsFalse(m_zoneWindow->GetActiveZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetAppliedZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetCustomZoneSetsTmpPath().empty());
         }
 
         TEST_METHOD(CreateZoneWindowNoDesktopId)
         {
-            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
             auto host = m_zoneWindowHost.get_strong();
             m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), nullptr, false);
 
-            Assert::IsNotNull(m_zoneWindow.get());
-            Assert::IsNotNull(host.get());
-            Assert::IsFalse(m_zoneWindow->IsDragEnabled());
-            Assert::AreEqual(m_deviceId, m_zoneWindow->DeviceId());
-            Assert::IsFalse(m_zoneWindow->UniqueId().empty());
-            Assert::AreEqual(expectedWorkArea, m_zoneWindow->WorkAreaKey());
+            testZoneWindow(m_zoneWindow);
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
-            Assert::IsFalse(m_zoneWindow->GetActiveZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetAppliedZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetCustomZoneSetsTmpPath().empty());
         }
 
         TEST_METHOD(CreateZoneWindowNoDesktopIdFlashZones)
         {
-            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
             auto host = m_zoneWindowHost.get_strong();
             m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), nullptr, true);
 
-            Assert::IsNotNull(m_zoneWindow.get());
-            Assert::IsNotNull(host.get());
-            Assert::IsFalse(m_zoneWindow->IsDragEnabled());
-            Assert::AreEqual(m_deviceId, m_zoneWindow->DeviceId());
-            Assert::IsFalse(m_zoneWindow->UniqueId().empty());
-            Assert::AreEqual(expectedWorkArea, m_zoneWindow->WorkAreaKey());
+            testZoneWindow(m_zoneWindow);
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
-            Assert::IsFalse(m_zoneWindow->GetActiveZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetAppliedZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetCustomZoneSetsTmpPath().empty());
         }
 
         TEST_METHOD(CreateZoneWindowWithActiveZoneTmpFile)
