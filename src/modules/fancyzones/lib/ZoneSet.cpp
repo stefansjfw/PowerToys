@@ -219,6 +219,11 @@ ZoneSet::GetZoneIndexFromWindow(HWND window) noexcept
 IFACEMETHODIMP_(void)
 ZoneSet::MoveWindowIntoZoneByIndex(HWND window, HWND windowZone, int index) noexcept
 {
+    if (m_zones.empty())
+    {
+        return;
+    }    
+
     if (index >= static_cast<int>(m_zones.size()))
     {
         index = 0;
@@ -489,9 +494,15 @@ bool ZoneSet::CalculateCustomLayout(Rect workArea, const std::wstring& customZon
     wil::unique_cotaskmem_string guuidStr;
     if (SUCCEEDED_LOG(StringFromCLSID(m_config.Id, &guuidStr)))
     {
-        JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetFromTmpFile(customZoneSetFilePath, guuidStr.get());
-        const auto& zoneSet = JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetsMap().at(guuidStr.get());
+        const auto guuid = guuidStr.get();
+        JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetFromTmpFile(customZoneSetFilePath, guuid);
+        const auto& customZoneSets = JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetsMap();
+        if (!customZoneSets.contains(guuid))
+        {
+            return false;
+        }
 
+        const auto& zoneSet = customZoneSets.at(guuid);
         if (zoneSet.type == JSONHelpers::CustomLayoutType::Canvas && std::holds_alternative<JSONHelpers::CanvasLayoutInfo>(zoneSet.info))
         {
             const auto& zoneSetInfo = std::get<JSONHelpers::CanvasLayoutInfo>(zoneSet.info);
