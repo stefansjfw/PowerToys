@@ -106,15 +106,6 @@ namespace FancyZonesUnitTests
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
         }
 
-        TEST_METHOD(CreateZoneWindowFlashZones)
-        {
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
-
-            testZoneWindow(m_zoneWindow);
-            Assert::IsNull(m_zoneWindow->ActiveZoneSet());
-        }
-
         TEST_METHOD(CreateZoneWindowNoZoneWindowHost)
         {
             m_zoneWindow = MakeZoneWindow(nullptr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
@@ -174,28 +165,10 @@ namespace FancyZonesUnitTests
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
         }
 
-        TEST_METHOD(CreateZoneWindowNoDeviceIdFlashZones)
-        {
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, nullptr, m_virtualDesktopId.c_str(), true);
-
-            testZoneWindow(m_zoneWindow);
-            Assert::IsNull(m_zoneWindow->ActiveZoneSet());
-        }
-
         TEST_METHOD(CreateZoneWindowNoDesktopId)
         {
             auto host = m_zoneWindowHost.get_strong();
             m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), nullptr, false);
-
-            testZoneWindow(m_zoneWindow);
-            Assert::IsNull(m_zoneWindow->ActiveZoneSet());
-        }
-
-        TEST_METHOD(CreateZoneWindowNoDesktopIdFlashZones)
-        {
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), nullptr, true);
 
             testZoneWindow(m_zoneWindow);
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
@@ -220,34 +193,6 @@ namespace FancyZonesUnitTests
 
                 //temp file read on initialization
                 auto actual = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
-
-                testZoneWindow(actual);
-
-                Assert::IsNotNull(actual->ActiveZoneSet());
-                const auto actualZoneSet = actual->ActiveZoneSet()->GetZones();
-                Assert::AreEqual((size_t)expectedZoneSet.zoneCount.value(), actualZoneSet.size());
-            }
-        }
-
-        TEST_METHOD(CreateZoneWindowWithActiveZoneTmpFileFlashZones)
-        {
-            using namespace JSONHelpers;
-
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), true);
-
-            const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
-
-            for (int type = static_cast<int>(ZoneSetLayoutType::Focus); type < static_cast<int>(ZoneSetLayoutType::Custom); type++)
-            {
-                const auto expectedZoneSet = ZoneSetData{ guidString(), static_cast<ZoneSetLayoutType>(type), 5 };
-                const auto data = DeviceInfoData{ expectedZoneSet, true, 16, 3 };
-                const auto deviceInfo = DeviceInfoJSON{ L"default_device_id", data };
-                const auto json = DeviceInfoJSON::ToJson(deviceInfo);
-                json::to_file(activeZoneSetTempPath, json);
-
-                //temp file read on initialization
-                auto actual = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), true);
 
                 testZoneWindow(actual);
 
@@ -284,33 +229,6 @@ namespace FancyZonesUnitTests
             Assert::AreEqual((size_t)0, actualZoneSet.size());
         }
 
-        TEST_METHOD(CreateZoneWindowWithActiveCustomZoneTmpFileFlashZone)
-        {
-            using namespace JSONHelpers;
-
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), true);
-
-            const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
-
-            const ZoneSetLayoutType type = ZoneSetLayoutType::Custom;
-            const auto expectedZoneSet = ZoneSetData{ guidString(), type, 5 };
-            const auto data = DeviceInfoData{ expectedZoneSet, true, 16, 3 };
-            const auto deviceInfo = DeviceInfoJSON{ L"default_device_id", data };
-            const auto json = DeviceInfoJSON::ToJson(deviceInfo);
-            json::to_file(activeZoneSetTempPath, json);
-
-            //temp file read on initialization
-            auto actual = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), true);
-
-            testZoneWindow(actual);
-
-            //custom zone needs temp file for applied zone
-            Assert::IsNotNull(actual->ActiveZoneSet());
-            const auto actualZoneSet = actual->ActiveZoneSet()->GetZones();
-            Assert::AreEqual((size_t)0, actualZoneSet.size());
-        }
-
         TEST_METHOD(CreateZoneWindowWithActiveCustomZoneAppliedTmpFile)
         {
             using namespace JSONHelpers;
@@ -338,42 +256,6 @@ namespace FancyZonesUnitTests
 
             //temp file read on initialization
             auto actual = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
-
-            testZoneWindow(actual);
-
-            //custom zone needs temp file for applied zone
-            Assert::IsNotNull(actual->ActiveZoneSet());
-            const auto actualZoneSet = actual->ActiveZoneSet()->GetZones();
-            Assert::AreEqual((size_t)1, actualZoneSet.size());
-        }
-
-        TEST_METHOD(CreateZoneWindowWithActiveCustomZoneAppliedTmpFileFlashZone)
-        {
-            using namespace JSONHelpers;
-
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), true);
-
-            //save required data
-            const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
-            const auto appliedZoneSetTempPath = m_zoneWindow->GetAppliedZoneSetTmpPath();
-
-            const ZoneSetLayoutType type = ZoneSetLayoutType::Custom;
-            const auto expectedZoneSet = ZoneSetData{ guidString(), type, 5 };
-            const auto data = DeviceInfoData{ expectedZoneSet, true, 16, 3 };
-            const auto deviceInfo = DeviceInfoJSON{ L"default_device_id", data };
-            const auto json = DeviceInfoJSON::ToJson(deviceInfo);
-            json::to_file(activeZoneSetTempPath, json);
-
-            const auto info = CanvasLayoutInfo{
-                100, 100, std::vector{ CanvasLayoutInfo::Rect{ 0, 0, 100, 100 } }
-            };
-            const auto customZoneData = CustomZoneSetData{ L"name", CustomLayoutType::Canvas, info };
-            auto customZoneJson = CustomZoneSetJSON::ToJson(CustomZoneSetJSON{ guidString(), customZoneData });
-            json::to_file(appliedZoneSetTempPath, customZoneJson);
-
-            //temp file read on initialization
-            auto actual = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), true);
 
             testZoneWindow(actual);
 
