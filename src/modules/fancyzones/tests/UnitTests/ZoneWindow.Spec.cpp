@@ -36,8 +36,9 @@ namespace FancyZonesUnitTests
 
     TEST_CLASS(ZoneWindowUnitTests)
     {
-        const std::wstring m_deviceId = L"DeviceId";
+        const std::wstring m_deviceId = L"\\\\?\\DISPLAY#DELA026#5&10a58c63&0&UID16777488#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}";
         const std::wstring m_virtualDesktopId = L"MyVirtualDesktopId";
+        std::wstringstream m_uniqueId;
 
         HINSTANCE m_hInst{};
         HMONITOR m_monitor{};
@@ -54,10 +55,10 @@ namespace FancyZonesUnitTests
             OLECHAR* guidString;
             Assert::AreEqual(S_OK, StringFromCLSID(guid, &guidString));
 
-            std::wstring guisStr{ guidString };
+            std::wstring guidStr{guidString};
             CoTaskMemFree(guidString);
 
-            return guidString;
+            return guidStr;
         }
 
         TEST_METHOD_INITIALIZE(Init)
@@ -69,6 +70,8 @@ namespace FancyZonesUnitTests
             Assert::AreNotEqual(0, GetMonitorInfoW(m_monitor, &m_monitorInfo));
 
             Assert::AreEqual(S_OK, CoCreateGuid(&m_zoneWindowHost.m_guid));
+
+            m_uniqueId << L"DELA026#5&10a58c63&0&UID16777488_" << m_monitorInfo.rcMonitor.right << "_" << m_monitorInfo.rcMonitor.bottom << "_MyVirtualDesktopId";
         }
 
         TEST_METHOD_CLEANUP(Cleanup)
@@ -90,7 +93,7 @@ namespace FancyZonesUnitTests
             Assert::IsNotNull(zoneWindow.get());
             Assert::IsFalse(zoneWindow->IsDragEnabled());
             Assert::AreEqual(m_deviceId, zoneWindow->DeviceId());
-            Assert::IsFalse(zoneWindow->UniqueId().empty());
+            Assert::AreEqual(m_uniqueId.str().c_str(), zoneWindow->UniqueId().c_str());
             Assert::AreEqual(expectedWorkArea, zoneWindow->WorkAreaKey());
             Assert::IsFalse(zoneWindow->GetActiveZoneSetTmpPath().empty());
             Assert::IsFalse(zoneWindow->GetAppliedZoneSetTmpPath().empty());
@@ -160,12 +163,14 @@ namespace FancyZonesUnitTests
         {
             auto host = m_zoneWindowHost.get_strong();
             m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, nullptr, m_virtualDesktopId.c_str(), false);
-
+            
             const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
+            const std::wstring expectedUniqueId = L"FallbackDevice_" + std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom) + L"_" + m_virtualDesktopId;
+           
             Assert::IsNotNull(m_zoneWindow.get());
             Assert::IsFalse(m_zoneWindow->IsDragEnabled());
-            Assert::AreEqual(L"", m_zoneWindow->DeviceId().c_str());
-            Assert::IsFalse(m_zoneWindow->UniqueId().empty());
+            Assert::IsTrue(m_zoneWindow->DeviceId().empty());
+            Assert::AreEqual(expectedUniqueId.c_str(), m_zoneWindow->UniqueId().c_str());
             Assert::AreEqual(expectedWorkArea, m_zoneWindow->WorkAreaKey());
             Assert::IsFalse(m_zoneWindow->GetActiveZoneSetTmpPath().empty());
             Assert::IsFalse(m_zoneWindow->GetAppliedZoneSetTmpPath().empty());
@@ -178,7 +183,15 @@ namespace FancyZonesUnitTests
             auto host = m_zoneWindowHost.get_strong();
             m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), nullptr, false);
 
-            testZoneWindow(m_zoneWindow);
+            const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
+            Assert::IsNotNull(m_zoneWindow.get());
+            Assert::IsFalse(m_zoneWindow->IsDragEnabled());
+            Assert::AreEqual(m_deviceId.c_str(), m_zoneWindow->DeviceId().c_str());
+            Assert::IsTrue(m_zoneWindow->UniqueId().empty());
+            Assert::IsFalse(m_zoneWindow->GetActiveZoneSetTmpPath().empty());
+            Assert::IsFalse(m_zoneWindow->GetAppliedZoneSetTmpPath().empty());
+            Assert::IsFalse(m_zoneWindow->GetCustomZoneSetsTmpPath().empty());
+            Assert::IsNull(m_zoneWindow->ActiveZoneSet());
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
         }
 
@@ -360,37 +373,6 @@ namespace FancyZonesUnitTests
             Assert::IsNotNull(actual->ActiveZoneSet());
             const auto actualZoneSet = actual->ActiveZoneSet()->GetZones();
             Assert::AreEqual((size_t)1, actualZoneSet.size());
-        }
-
-        TEST_METHOD(TestDeviceId)
-        {
-            // Window initialization requires a valid HMONITOR - just use the primary for now.
-            HMONITOR pimaryMonitor = MonitorFromWindow(HWND(), MONITOR_DEFAULTTOPRIMARY);
-            MockZoneWindowHost host;
-            std::wstring expectedDeviceId = L"SomeRandomValue";
-            winrt::com_ptr<IZoneWindow> zoneWindow = MakeZoneWindow(dynamic_cast<IZoneWindowHost*>(&host), Mocks::Instance(), pimaryMonitor, expectedDeviceId.c_str(), L"MyVirtualDesktopId", false);
-
-            Assert::AreEqual(expectedDeviceId, zoneWindow->DeviceId());
-        }
-
-        TEST_METHOD(TestUniqueId)
-        {
-            // Unique id of the format "ParsedMonitorDeviceId_MonitorWidth_MonitorHeight_VirtualDesktopId
-            // Example: "DELA026#5&10a58c63&0&UID16777488_1024_768_MyVirtualDesktopId"
-            std::wstring deviceId(L"\\\\?\\DISPLAY#DELA026#5&10a58c63&0&UID16777488#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}");
-            // Window initialization requires a valid HMONITOR - just use the primary for now.
-            HMONITOR pimaryMonitor = MonitorFromWindow(HWND(), MONITOR_DEFAULTTOPRIMARY);
-            MONITORINFO info;
-            info.cbSize = sizeof(info);
-            Assert::IsTrue(GetMonitorInfo(pimaryMonitor, &info));
-
-            Rect monitorRect = Rect(info.rcMonitor);
-            std::wstringstream ss;
-            ss << L"DELA026#5&10a58c63&0&UID16777488_" << monitorRect.width() << "_" << monitorRect.height() << "_MyVirtualDesktopId";
-
-            MockZoneWindowHost host;
-            winrt::com_ptr<IZoneWindow> zoneWindow = MakeZoneWindow(dynamic_cast<IZoneWindowHost*>(&host), Mocks::Instance(), pimaryMonitor, deviceId.c_str(), L"MyVirtualDesktopId", false);
-            Assert::AreEqual(zoneWindow->UniqueId().compare(ss.str()), 0);
         }
     };
 }
