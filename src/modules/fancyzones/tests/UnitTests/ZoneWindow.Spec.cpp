@@ -44,6 +44,7 @@ namespace FancyZonesUnitTests
         HMONITOR m_monitor{};
         MONITORINFO m_monitorInfo{};
         MockZoneWindowHost m_zoneWindowHost{};
+        IZoneWindowHost* m_hostPtr = m_zoneWindowHost.get_strong().get();
 
         winrt::com_ptr<IZoneWindow> m_zoneWindow;
 
@@ -55,7 +56,7 @@ namespace FancyZonesUnitTests
             OLECHAR* guidString;
             Assert::AreEqual(S_OK, StringFromCLSID(guid, &guidString));
 
-            std::wstring guidStr{guidString};
+            std::wstring guidStr{ guidString };
             CoTaskMemFree(guidString);
 
             return guidStr;
@@ -103,8 +104,7 @@ namespace FancyZonesUnitTests
     public:
         TEST_METHOD(CreateZoneWindow)
         {
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
             testZoneWindow(m_zoneWindow);
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
         }
@@ -125,8 +125,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(CreateZoneWindowNoHinst)
         {
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), {}, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, {}, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
             testZoneWindow(m_zoneWindow);
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
@@ -134,8 +133,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(CreateZoneWindowNoHinstFlashZones)
         {
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), {}, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), true);
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, {}, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), true);
 
             testZoneWindow(m_zoneWindow);
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
@@ -143,30 +141,27 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(CreateZoneWindowNoMonitor)
         {
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, {}, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, {}, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
             Assert::IsNull(m_zoneWindow.get());
-            Assert::IsNotNull(host.get());
+            Assert::IsNotNull(m_hostPtr);
         }
 
         TEST_METHOD(CreateZoneWindowNoMonitorFlashZones)
         {
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, {}, m_deviceId.c_str(), m_virtualDesktopId.c_str(), true);
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, {}, m_deviceId.c_str(), m_virtualDesktopId.c_str(), true);
 
             Assert::IsNull(m_zoneWindow.get());
-            Assert::IsNotNull(host.get());
+            Assert::IsNotNull(m_hostPtr);
         }
 
         TEST_METHOD(CreateZoneWindowNoDeviceId)
         {
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, nullptr, m_virtualDesktopId.c_str(), false);
-            
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, nullptr, m_virtualDesktopId.c_str(), false);
+
             const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
             const std::wstring expectedUniqueId = L"FallbackDevice_" + std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom) + L"_" + m_virtualDesktopId;
-           
+
             Assert::IsNotNull(m_zoneWindow.get());
             Assert::IsFalse(m_zoneWindow->IsDragEnabled());
             Assert::IsTrue(m_zoneWindow->DeviceId().empty());
@@ -180,8 +175,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(CreateZoneWindowNoDesktopId)
         {
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), nullptr, false);
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), nullptr, false);
 
             const std::wstring expectedWorkArea = std::to_wstring(m_monitorInfo.rcMonitor.right) + L"_" + std::to_wstring(m_monitorInfo.rcMonitor.bottom);
             Assert::IsNotNull(m_zoneWindow.get());
@@ -199,8 +193,7 @@ namespace FancyZonesUnitTests
         {
             using namespace JSONHelpers;
 
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
             const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
 
@@ -213,7 +206,7 @@ namespace FancyZonesUnitTests
                 json::to_file(activeZoneSetTempPath, json);
 
                 //temp file read on initialization
-                auto actual = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+                auto actual = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
                 testZoneWindow(actual);
 
@@ -227,8 +220,7 @@ namespace FancyZonesUnitTests
         {
             using namespace JSONHelpers;
 
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
             const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
 
@@ -240,7 +232,7 @@ namespace FancyZonesUnitTests
             json::to_file(activeZoneSetTempPath, json);
 
             //temp file read on initialization
-            auto actual = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            auto actual = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
             testZoneWindow(actual);
 
@@ -254,8 +246,7 @@ namespace FancyZonesUnitTests
         {
             using namespace JSONHelpers;
 
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
             //save required data
             const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
@@ -276,7 +267,7 @@ namespace FancyZonesUnitTests
             json::to_file(appliedZoneSetTempPath, customZoneJson);
 
             //temp file read on initialization
-            auto actual = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            auto actual = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
             testZoneWindow(actual);
 
@@ -290,8 +281,7 @@ namespace FancyZonesUnitTests
         {
             using namespace JSONHelpers;
 
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
             //save required data
             const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
@@ -321,7 +311,7 @@ namespace FancyZonesUnitTests
             json::to_file(deletedZonesTempPath, deletedCustomZoneSets);
 
             //temp file read on initialization
-            auto actual = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            auto actual = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
             testZoneWindow(actual);
 
@@ -334,8 +324,7 @@ namespace FancyZonesUnitTests
         {
             using namespace JSONHelpers;
 
-            auto host = m_zoneWindowHost.get_strong();
-            m_zoneWindow = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
             //save required data
             const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
@@ -366,7 +355,7 @@ namespace FancyZonesUnitTests
             json::to_file(deletedZonesTempPath, deletedCustomZoneSets);
 
             //temp file read on initialization
-            auto actual = MakeZoneWindow(host.get(), m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            auto actual = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
 
             testZoneWindow(actual);
 
