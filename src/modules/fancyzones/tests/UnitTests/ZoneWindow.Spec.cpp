@@ -363,5 +363,175 @@ namespace FancyZonesUnitTests
             const auto actualZoneSet = actual->ActiveZoneSet()->GetZones();
             Assert::AreEqual((size_t)1, actualZoneSet.size());
         }
+
+        TEST_METHOD(MoveSizeEnter)
+        {
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+
+            const auto expected = S_OK;
+            const auto actual = m_zoneWindow->MoveSizeEnter(Mocks::Window(), true);
+
+            Assert::AreEqual(expected, actual);
+            Assert::IsTrue(m_zoneWindow->IsDragEnabled());
+        }
+
+        TEST_METHOD(MoveSizeEnterTwice)
+        {
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+
+            const auto expected = E_INVALIDARG;
+
+            m_zoneWindow->MoveSizeEnter(Mocks::Window(), true);
+            const auto actual = m_zoneWindow->MoveSizeEnter(Mocks::Window(), false);
+
+            Assert::AreEqual(expected, actual);
+            Assert::IsTrue(m_zoneWindow->IsDragEnabled());
+        }
+
+        TEST_METHOD(MoveSizeUpdate)
+        {
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+
+            const auto expected = S_OK;
+            const auto actual = m_zoneWindow->MoveSizeUpdate(POINT{ 0, 0 }, true);
+
+            Assert::AreEqual(expected, actual);
+            Assert::IsTrue(m_zoneWindow->IsDragEnabled());
+        }
+
+        TEST_METHOD(MoveSizeUpdatePointNegativeCoordinates)
+        {
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+
+            const auto expected = S_OK;
+            const auto actual = m_zoneWindow->MoveSizeUpdate(POINT{ -10, -10 }, true);
+
+            Assert::AreEqual(expected, actual);
+            Assert::IsTrue(m_zoneWindow->IsDragEnabled());
+        }
+
+        TEST_METHOD(MoveSizeUpdatePointBigCoordinates)
+        {
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+
+            const auto expected = S_OK;
+            const auto actual = m_zoneWindow->MoveSizeUpdate(POINT{ m_monitorInfo.rcMonitor.right + 1, m_monitorInfo.rcMonitor.bottom + 1 }, true);
+
+            Assert::AreEqual(expected, actual);
+            Assert::IsTrue(m_zoneWindow->IsDragEnabled());
+        }
+
+        TEST_METHOD(MoveSizeEnd)
+        {
+            //prepare data
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
+            const auto type = JSONHelpers::ZoneSetLayoutType::Columns;
+            const auto expectedZoneSet = JSONHelpers::ZoneSetData{ guidString(), type, 5 };
+            const auto data = JSONHelpers::DeviceInfoData{ expectedZoneSet, true, 16, 3 };
+            const auto deviceInfo = JSONHelpers::DeviceInfoJSON{ L"default_device_id", data };
+            const auto json = JSONHelpers::DeviceInfoJSON::ToJson(deviceInfo);
+            json::to_file(activeZoneSetTempPath, json);
+
+            auto zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+
+            const auto window = Mocks::Window();
+            zoneWindow->MoveSizeEnter(window, true);
+
+            const auto expected = S_OK;
+            const auto actual = zoneWindow->MoveSizeEnd(window, POINT{ 0, 0 });
+            Assert::AreEqual(expected, actual);
+
+            const auto zoneSet = zoneWindow->ActiveZoneSet();
+            zoneSet->MoveWindowIntoZoneByIndex(window, Mocks::Window(), false);
+            const auto actualZoneIndex = zoneSet->GetZoneIndexFromWindow(window);
+            Assert::AreNotEqual(-1, actualZoneIndex);
+        }
+
+        TEST_METHOD(MoveSizeEndWindowNotAdded)
+        {
+            //prepare data
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
+            const auto type = JSONHelpers::ZoneSetLayoutType::Columns;
+            const auto expectedZoneSet = JSONHelpers::ZoneSetData{ guidString(), type, 5 };
+            const auto data = JSONHelpers::DeviceInfoData{ expectedZoneSet, true, 16, 3 };
+            const auto deviceInfo = JSONHelpers::DeviceInfoJSON{ L"default_device_id", data };
+            const auto json = JSONHelpers::DeviceInfoJSON::ToJson(deviceInfo);
+            json::to_file(activeZoneSetTempPath, json);
+
+            auto zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+
+            const auto window = Mocks::Window();
+            zoneWindow->MoveSizeEnter(window, true);
+
+            const auto expected = S_OK;
+            const auto actual = zoneWindow->MoveSizeEnd(window, POINT{ 0, 0 });
+            Assert::AreEqual(expected, actual);
+
+            const auto zoneSet = zoneWindow->ActiveZoneSet();
+            const auto actualZoneIndex = zoneSet->GetZoneIndexFromWindow(window);
+            Assert::AreEqual(-1, actualZoneIndex);
+        }
+
+        TEST_METHOD(MoveSizeEndDifferentWindows)
+        {
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+
+            const auto window = Mocks::Window();
+            m_zoneWindow->MoveSizeEnter(window, true);
+
+            const auto expected = E_INVALIDARG;
+            const auto actual = m_zoneWindow->MoveSizeEnd(Mocks::Window(), POINT{ 0, 0 });
+
+            Assert::AreEqual(expected, actual);
+        }
+
+        TEST_METHOD(MoveSizeEndWindowNotSet)
+        {
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+
+            const auto expected = E_INVALIDARG;
+            const auto actual = m_zoneWindow->MoveSizeEnd(Mocks::Window(), POINT{0, 0});
+
+            Assert::AreEqual(expected, actual);
+        }
+
+        TEST_METHOD(MoveSizeEndInvalidPoint)
+        {
+            //prepare data
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
+            const auto type = JSONHelpers::ZoneSetLayoutType::Columns;
+            const auto expectedZoneSet = JSONHelpers::ZoneSetData{ guidString(), type, 5 };
+            const auto data = JSONHelpers::DeviceInfoData{ expectedZoneSet, true, 16, 3 };
+            const auto deviceInfo = JSONHelpers::DeviceInfoJSON{ L"default_device_id", data };
+            const auto json = JSONHelpers::DeviceInfoJSON::ToJson(deviceInfo);
+            json::to_file(activeZoneSetTempPath, json);
+
+            auto zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+
+            const auto window = Mocks::Window();
+            zoneWindow->MoveSizeEnter(window, true);
+
+            const auto expected = S_OK;
+            const auto actual = zoneWindow->MoveSizeEnd(window, POINT{ -1, -1 });
+            Assert::AreEqual(expected, actual);
+
+            const auto zoneSet = zoneWindow->ActiveZoneSet();
+            zoneSet->MoveWindowIntoZoneByIndex(window, Mocks::Window(), false);
+            const auto actualZoneIndex = zoneSet->GetZoneIndexFromWindow(window);
+            Assert::AreNotEqual(-1, actualZoneIndex); //with invalid point zone remains the same
+        }
+
+        TEST_METHOD(MoveSizeCancel)
+        {
+            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+
+            const auto expected = S_OK;
+            const auto actual = m_zoneWindow->MoveSizeCancel();
+
+            Assert::AreEqual(expected, actual);
+        }
     };
 }
