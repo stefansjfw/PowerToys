@@ -383,7 +383,7 @@ void ZoneWindow::InitializeId(PCWSTR deviceId, PCWSTR virtualDesktopId) noexcept
 
     MONITORINFOEXW mi;
     mi.cbSize = sizeof(mi);
-    if (GetMonitorInfo(m_monitor, &mi))
+    if (virtualDesktopId && GetMonitorInfo(m_monitor, &mi))
     {
         wchar_t parsedId[256]{};
         ParseDeviceId(m_deviceId.get(), parsedId, 256);
