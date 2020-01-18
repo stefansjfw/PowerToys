@@ -79,17 +79,13 @@ namespace FancyZonesEditor.Models
         {
         }
 
-        public GridLayoutModel(string name, ushort id)
-            : base(name, id)
+        public GridLayoutModel(string name, LayoutType type)
+            : base(name, type)
         {
         }
 
-        public GridLayoutModel(ushort version, string name, ushort id, byte[] data)
-            : base(name, id)
-        {
-        }
-
-        public GridLayoutModel(string uuid, string name, int rows, int cols, int[] rowPercents, int[] colsPercents, int[,] cellChildMap) : base(uuid, name)
+        public GridLayoutModel(string uuid, string name, LayoutType type, int rows, int cols, int[] rowPercents, int[] colsPercents, int[,] cellChildMap)
+            : base(uuid, name, type)
         {
             _rows = rows;
             _cols = cols;

@@ -14,37 +14,24 @@ namespace FancyZonesEditor.Models
     //  Free form Layout Model, which specifies independent zone rects
     public class CanvasLayoutModel : LayoutModel
     {
-        public CanvasLayoutModel(string uuid, string name, int referenceWidth, int referenceHeight, IList<Int32Rect> zones) : base(uuid, name)
+        public CanvasLayoutModel(string uuid, string name, LayoutType type, int referenceWidth, int referenceHeight, IList<Int32Rect> zones)
+            : base(uuid, name, type)
         {
             _referenceWidth = referenceWidth;
             _referenceHeight = referenceHeight;
             Zones = zones;
         }
-        
-        public CanvasLayoutModel(string name, ushort id, int referenceWidth, int referenceHeight)
-        : base(name, id)
+
+        public CanvasLayoutModel(string name, LayoutType type, int referenceWidth, int referenceHeight)
+        : base(name, type)
         {
             // Initialize Reference Size
             _referenceWidth = referenceWidth;
             _referenceHeight = referenceHeight;
         }
 
-        public CanvasLayoutModel(Guid guid, string name) : base(guid.ToString(), name)
-        {
-        }
-
-        public CanvasLayoutModel(string name, ushort id)
-            : base(name, id)
-        {
-        }
-
         public CanvasLayoutModel(string name)
             : base(name)
-        {
-        }
-
-        public CanvasLayoutModel()
-            : base()
         {
         }
 

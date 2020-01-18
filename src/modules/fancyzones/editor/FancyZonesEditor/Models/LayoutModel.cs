@@ -12,6 +12,16 @@ using System.Windows;
 
 namespace FancyZonesEditor.Models
 {
+    public enum LayoutType
+    {
+        Focus,
+        Columns,
+        Rows,
+        Grid,
+        PriorityGrid,
+        Custom,
+    }
+
     // Base LayoutModel
     //  Manages common properties and base persistence
     public abstract class LayoutModel : INotifyPropertyChanged
@@ -21,24 +31,30 @@ namespace FancyZonesEditor.Models
 
         protected LayoutModel()
         {
+            _guid = Guid.NewGuid();
+            Type = LayoutType.Custom;
         }
 
         protected LayoutModel(string name)
             : this()
         {
+            _guid = Guid.NewGuid();
             Name = name;
         }
 
-        protected LayoutModel(string uuid, string name) : this()
+        protected LayoutModel(string uuid, string name, LayoutType type)
+            : this()
         {
             _guid = Guid.Parse(uuid);
             Name = name;
+            Type = type;
         }
 
-        protected LayoutModel(string name, ushort id)
+        protected LayoutModel(string name, LayoutType type)
             : this(name)
         {
-            _id = id;
+            _guid = Guid.NewGuid();
+            Type = type;
         }
 
         // Name - the display name for this layout model - is also used as the key in the registry
@@ -60,23 +76,7 @@ namespace FancyZonesEditor.Models
         }
 
         private string _name;
-
-        // Id - the unique ID for this layout model - is used to connect fancy zones' ZonesSets with the editor's Layouts
-        //    - note: 0 means this is a new layout, which means it will have its ID auto-assigned on persist
-        public ushort Id
-        {
-            get
-            {
-                if (_id == 0)
-                {
-                    _id = ++_maxId;
-                }
-
-                return _id;
-            }
-        }
-
-        private ushort _id = 0;
+        public LayoutType Type { get; set; }
 
         public Guid Guid
         {
@@ -85,6 +85,7 @@ namespace FancyZonesEditor.Models
                 return _guid;
             }
         }
+
         private Guid _guid;
 
         // IsSelected (not-persisted) - tracks whether or not this LayoutModel is selected in the picker
@@ -192,7 +193,7 @@ namespace FancyZonesEditor.Models
                         }
                         i++;
                     }
-                    _customModels.Add(new GridLayoutModel(uuid, name, rows, columns, rowsPercentage, columnsPercentage, cellChildMap));
+                    _customModels.Add(new GridLayoutModel(uuid, name, LayoutType.Custom, rows, columns, rowsPercentage, columnsPercentage, cellChildMap));
                 }
                 else if (type.Equals("canvas"))
                 {
@@ -208,7 +209,7 @@ namespace FancyZonesEditor.Models
                         int height = zonesEnumerator.Current.GetProperty("height").GetInt32();
                         zones.Add(new Int32Rect(x, y, width, height));
                     }
-                    _customModels.Add(new CanvasLayoutModel(uuid, name, referenceWidth, referenceHeight, zones));
+                    _customModels.Add(new CanvasLayoutModel(uuid, name, LayoutType.Custom, referenceWidth, referenceHeight, zones));
                 }
             }
 
@@ -243,24 +244,24 @@ namespace FancyZonesEditor.Models
             writer.WriteStartObject("active-zoneset");
             writer.WriteString("uuid", "{" + Guid.ToString().ToUpper() + "}");
             bool custom = false;
-            switch (_id)
+            switch (Type)
             {
-                case Settings._focusModelId:
+                case LayoutType.Focus:
                     writer.WriteString("type", "focus");
                     break;
-                case Settings._rowsModelId:
+                case LayoutType.Rows:
                     writer.WriteString("type", "rows");
                     break;
-                case Settings._columnsModelId:
+                case LayoutType.Columns:
                     writer.WriteString("type", "columns");
                     break;
-                case Settings._gridModelId:
+                case LayoutType.Grid:
                     writer.WriteString("type", "grid");
                     break;
-                case Settings._priorityGridModelId:
+                case LayoutType.PriorityGrid:
                     writer.WriteString("type", "priority-grid");
                     break;
-                default:
+                case LayoutType.Custom:
                     writer.WriteString("type", "custom");
                     custom = true;
                     break;
