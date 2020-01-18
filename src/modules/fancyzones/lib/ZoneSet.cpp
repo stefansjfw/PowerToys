@@ -133,18 +133,18 @@ public:
     IFACEMETHODIMP_(void)
     MoveWindowIntoZoneByDirection(HWND window, HWND zoneWindow, DWORD vkCode) noexcept;
     IFACEMETHODIMP_(void)
-    MoveSizeEnd(HWND window, HWND zoneWindow, POINT ptClient) noexcept;
-    IFACEMETHODIMP_(void)
+    MoveWindowIntoZoneByPoint(HWND window, HWND zoneWindow, POINT ptClient) noexcept;
+    IFACEMETHODIMP_(bool)
     CalculateZones(MONITORINFO monitorInfo, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing, const std::wstring& customZoneSetFilePath) noexcept;
 
 private:
-    void CalculateFocusLayout(Rect workArea, int zoneCount) noexcept;
-    void CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept;
-    void CalculateGridLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept;
-    void CalculateUniquePriorityGridLayout(Rect workArea, int zoneCount, int spacing) noexcept;
-    void CalculateCustomLayout(Rect workArea, const std::wstring& customZoneSetFilePath, int spacing) noexcept;
+    bool CalculateFocusLayout(Rect workArea, int zoneCount) noexcept;
+    bool CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept;
+    bool CalculateGridLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept;
+    bool CalculateUniquePriorityGridLayout(Rect workArea, int zoneCount, int spacing) noexcept;
+    bool CalculateCustomLayout(Rect workArea, const std::wstring& customZoneSetFilePath, int spacing) noexcept;
 
-    void CalculateGridZones(Rect workArea, JSONHelpers::GridLayoutInfo gridLayoutInfo, int spacing);
+    bool CalculateGridZones(Rect workArea, JSONHelpers::GridLayoutInfo gridLayoutInfo, int spacing);
 
     winrt::com_ptr<IZone> ZoneFromWindow(HWND window) noexcept;
 
@@ -219,25 +219,35 @@ ZoneSet::GetZoneIndexFromWindow(HWND window) noexcept
 IFACEMETHODIMP_(void)
 ZoneSet::MoveWindowIntoZoneByIndex(HWND window, HWND windowZone, int index) noexcept
 {
+    if (m_zones.empty())
+    {
+        return;
+    }    
+
     if (index >= static_cast<int>(m_zones.size()))
     {
         index = 0;
     }
 
-    if (index < m_zones.size())
+    while (auto zoneDrop = ZoneFromWindow(window))
     {
-        if (auto zone = m_zones.at(index))
-        {
-            zone->AddWindowToZone(window, windowZone, false);
-        }
+        zoneDrop->RemoveWindowFromZone(window, !IsZoomed(window));
+    }
+
+    if (auto zone = m_zones.at(index))
+    {
+        zone->AddWindowToZone(window, windowZone, false);
     }
 }
 
 IFACEMETHODIMP_(void)
 ZoneSet::MoveWindowIntoZoneByDirection(HWND window, HWND windowZone, DWORD vkCode) noexcept
 {
-    winrt::com_ptr<IZone> oldZone;
-    winrt::com_ptr<IZone> newZone;
+    if (m_zones.empty())
+        return;
+
+    winrt::com_ptr<IZone> oldZone = nullptr;
+    winrt::com_ptr<IZone> newZone = nullptr;
 
     auto iter = std::find(m_zones.begin(), m_zones.end(), ZoneFromWindow(window));
     if (iter == m_zones.end())
@@ -275,9 +285,9 @@ ZoneSet::MoveWindowIntoZoneByDirection(HWND window, HWND windowZone, DWORD vkCod
 }
 
 IFACEMETHODIMP_(void)
-ZoneSet::MoveSizeEnd(HWND window, HWND zoneWindow, POINT ptClient) noexcept
+ZoneSet::MoveWindowIntoZoneByPoint(HWND window, HWND zoneWindow, POINT ptClient) noexcept
 {
-    if (auto zoneDrop = ZoneFromWindow(window))
+    while (auto zoneDrop = ZoneFromWindow(window))
     {
         zoneDrop->RemoveWindowFromZone(window, !IsZoomed(window));
     }
@@ -288,32 +298,48 @@ ZoneSet::MoveSizeEnd(HWND window, HWND zoneWindow, POINT ptClient) noexcept
     }
 }
 
-IFACEMETHODIMP_(void)
+IFACEMETHODIMP_(bool)
 ZoneSet::CalculateZones(MONITORINFO monitorInfo, JSONHelpers::ZoneSetLayoutType layoutType, int zoneCount, int spacing, const std::wstring& customZoneSetFilePath) noexcept
 {
     Rect const workArea(monitorInfo.rcWork);
+    //invalid work area
+    if (workArea.width() == 0 || workArea.height() == 0)
+    {
+        return false;
+    }
 
+    //invalid zoneCount, may cause division by zero
+    if (zoneCount <= 0 && layoutType != JSONHelpers::ZoneSetLayoutType::Custom)
+    {
+        return false;
+    }
+
+    bool success = true;
     switch (layoutType)
     {
     case JSONHelpers::ZoneSetLayoutType::Focus:
-        CalculateFocusLayout(workArea, zoneCount);
+        success = CalculateFocusLayout(workArea, zoneCount);
         break;
     case JSONHelpers::ZoneSetLayoutType::Columns:
     case JSONHelpers::ZoneSetLayoutType::Rows:
-        CalculateColumnsAndRowsLayout(workArea, layoutType, zoneCount, spacing);
+        success = CalculateColumnsAndRowsLayout(workArea, layoutType, zoneCount, spacing);
         break;
     case JSONHelpers::ZoneSetLayoutType::Grid:
     case JSONHelpers::ZoneSetLayoutType::PriorityGrid:
-        CalculateGridLayout(workArea, layoutType, zoneCount, spacing);
+        success = CalculateGridLayout(workArea, layoutType, zoneCount, spacing);
         break;
     case JSONHelpers::ZoneSetLayoutType::Custom:
-        CalculateCustomLayout(workArea, customZoneSetFilePath, spacing);
+        success = CalculateCustomLayout(workArea, customZoneSetFilePath, spacing);
         break;
     }
+
+    return success;
 }
 
-void ZoneSet::CalculateFocusLayout(Rect workArea, int zoneCount) noexcept
+bool ZoneSet::CalculateFocusLayout(Rect workArea, int zoneCount) noexcept
 {
+    bool success = true;
+
     LONG left{ static_cast<LONG>(workArea.width() * 0.1) };
     LONG top{ static_cast<LONG>(workArea.height() * 0.1) };
     LONG right{ static_cast<LONG>(workArea.width() * 0.6) };
@@ -321,6 +347,11 @@ void ZoneSet::CalculateFocusLayout(Rect workArea, int zoneCount) noexcept
     RECT focusZoneRect{ left, top, right, bottom };
     int focusRectXIncrement = (zoneCount <= 1) ? 0 : (int)(workArea.width() * 0.2) / (zoneCount - 1);
     int focusRectYIncrement = (zoneCount <= 1) ? 0 : (int)(workArea.height() * 0.2) / (zoneCount - 1);
+
+    if (left >= right || top >= bottom || left < 0 || right < 0 || top < 0 || bottom < 0)
+    {
+        success = false;
+    }
 
     for (int i = 0; i < zoneCount; i++)
     {
@@ -330,10 +361,14 @@ void ZoneSet::CalculateFocusLayout(Rect workArea, int zoneCount) noexcept
         focusZoneRect.bottom += focusRectYIncrement;
         focusZoneRect.top += focusRectYIncrement;
     }
+
+    return success;
 }
 
-void ZoneSet::CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept
+bool ZoneSet::CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept
 {
+    bool success = true;
+
     int gutter = spacing;
 
     int zonePercent = C_MULTIPLIER / zoneCount;
@@ -366,6 +401,11 @@ void ZoneSet::CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetL
 
     for (int zone = 0; zone < zoneCount; zone++)
     {
+        if (left >= right || top >= bottom || left < 0 || right < 0 || top < 0 || bottom < 0)
+        {
+            success = false;
+        }
+
         RECT focusZoneRect{ left, top, right, bottom };
         AddZone(MakeZone(focusZoneRect));
 
@@ -380,14 +420,16 @@ void ZoneSet::CalculateColumnsAndRowsLayout(Rect workArea, JSONHelpers::ZoneSetL
             bottom = top + cellHeight;
         }
     }
+
+    return success;
 }
 
-void ZoneSet::CalculateGridLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept
+bool ZoneSet::CalculateGridLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing) noexcept
 {
-    if (type == JSONHelpers::ZoneSetLayoutType::PriorityGrid && zoneCount <= 11)
+    const auto count = sizeof(predefinedPriorityGridLayouts) / sizeof(JSONHelpers::GridLayoutInfo);
+    if (type == JSONHelpers::ZoneSetLayoutType::PriorityGrid && zoneCount < count)
     {
-        CalculateUniquePriorityGridLayout(workArea, zoneCount, spacing);
-        return;
+        return CalculateUniquePriorityGridLayout(workArea, zoneCount, spacing);
     }
 
     int rows = 1, columns = 1;
@@ -434,23 +476,34 @@ void ZoneSet::CalculateGridLayout(Rect workArea, JSONHelpers::ZoneSetLayoutType 
             }
         }
     }
-    CalculateGridZones(workArea, gridLayoutInfo, spacing);
+    return CalculateGridZones(workArea, gridLayoutInfo, spacing);
 }
 
-void ZoneSet::CalculateUniquePriorityGridLayout(Rect workArea, int zoneCount, int spacing) noexcept
+bool ZoneSet::CalculateUniquePriorityGridLayout(Rect workArea, int zoneCount, int spacing) noexcept
 {
-    CalculateGridZones(workArea, predefinedPriorityGridLayouts[zoneCount - 1], spacing);
+    if (zoneCount <= 0 || zoneCount >= sizeof(predefinedPriorityGridLayouts))
+    {
+        return false;
+    }
+
+    return CalculateGridZones(workArea, predefinedPriorityGridLayouts[zoneCount - 1], spacing);
 }
 
-void ZoneSet::CalculateCustomLayout(Rect workArea, const std::wstring& customZoneSetFilePath, int spacing) noexcept
+bool ZoneSet::CalculateCustomLayout(Rect workArea, const std::wstring& customZoneSetFilePath, int spacing) noexcept
 {
     wil::unique_cotaskmem_string guuidStr;
     if (SUCCEEDED_LOG(StringFromCLSID(m_config.Id, &guuidStr)))
     {
-        JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetFromTmpFile(customZoneSetFilePath, guuidStr.get());
-        const auto& zoneSet = JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetsMap().at(guuidStr.get());
+        const auto guuid = guuidStr.get();
+        JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetFromTmpFile(customZoneSetFilePath, guuid);
+        const auto& customZoneSets = JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetsMap();
+        if (!customZoneSets.contains(guuid))
+        {
+            return false;
+        }
 
-        if (zoneSet.type == JSONHelpers::CustomLayoutType::Canvas)
+        const auto& zoneSet = customZoneSets.at(guuid);
+        if (zoneSet.type == JSONHelpers::CustomLayoutType::Canvas && std::holds_alternative<JSONHelpers::CanvasLayoutInfo>(zoneSet.info))
         {
             const auto& zoneSetInfo = std::get<JSONHelpers::CanvasLayoutInfo>(zoneSet.info);
             for (const auto& zone : zoneSetInfo.zones)
@@ -459,22 +512,35 @@ void ZoneSet::CalculateCustomLayout(Rect workArea, const std::wstring& customZon
                 int y = zone.y;
                 int width = zone.width;
                 int height = zone.height;
+
+                if (x < 0 || y < 0 || width < 0 || height < 0)
+                {
+                    return false;
+                }
+
                 DPIAware::Convert(NULL, x, y);
                 DPIAware::Convert(NULL, width, height);
 
                 RECT focusZoneRect{ x, y, x + width, y + height };
                 AddZone(MakeZone(focusZoneRect));
             }
+
+            return true;
         }
-        else if (zoneSet.type == JSONHelpers::CustomLayoutType::Grid)
+        else if (zoneSet.type == JSONHelpers::CustomLayoutType::Grid && std::holds_alternative<JSONHelpers::GridLayoutInfo>(zoneSet.info))
         {
-            CalculateGridZones(workArea, std::get<JSONHelpers::GridLayoutInfo>(zoneSet.info), spacing);
+            const auto& info = std::get<JSONHelpers::GridLayoutInfo>(zoneSet.info);
+            return CalculateGridZones(workArea, info, spacing);
         }
     }
+
+    return false;
 }
 
-void ZoneSet::CalculateGridZones(Rect workArea, JSONHelpers::GridLayoutInfo gridLayoutInfo, int spacing)
+bool ZoneSet::CalculateGridZones(Rect workArea, JSONHelpers::GridLayoutInfo gridLayoutInfo, int spacing)
 {
+    bool success = true;
+
     int gutter = spacing;
 
     LONG totalWidth = static_cast<LONG>(workArea.width()) - (gutter * 2) - (spacing * (gridLayoutInfo.columns() - 1));
@@ -530,11 +596,19 @@ void ZoneSet::CalculateGridZones(Rect workArea, JSONHelpers::GridLayoutInfo grid
 
                 LONG right = columnInfo[maxCol].End;
                 LONG bottom = rowInfo[maxRow].End;
+
+                if (left >= right || top >= bottom || left < 0 || right < 0 || top < 0 || bottom < 0)
+                {
+                    success = false;
+                }
+
                 RECT focusZoneRect{ left, top, right, bottom };
                 AddZone(MakeZone(focusZoneRect));
             }
         }
     }
+
+    return success;
 }
 
 winrt::com_ptr<IZone> ZoneSet::ZoneFromWindow(HWND window) noexcept
