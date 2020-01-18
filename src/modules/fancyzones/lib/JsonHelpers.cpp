@@ -231,7 +231,7 @@ namespace JSONHelpers
         {
             // Creates entry in map when ZoneWindow is created
             // TODO(stefan): provide valid uuid
-            deviceInfoMap[uniqueID] = DeviceInfoData{ ZoneSetData{ L"", ZoneSetLayoutType::Grid, 1 }, true, 16, 3 };
+            deviceInfoMap[uniqueID] = DeviceInfoData{ ZoneSetData{ L"null", ZoneSetLayoutType::Grid, 1 }, true, 16, 3 };
         }
 
         if (std::filesystem::exists(tmpFilePath))

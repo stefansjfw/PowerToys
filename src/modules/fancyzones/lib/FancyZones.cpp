@@ -422,26 +422,18 @@ void FancyZones::ToggleEditor() noexcept
     const std::wstring layoutID = activeZoneSet ? std::to_wstring(activeZoneSet->LayoutId()) : L"0";
 
     const auto& deviceInfo = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap().at(zoneWindow->UniqueId());
-    int showSpacing = deviceInfo.showSpacing ? 1 : 0;
-    int spacing = deviceInfo.spacing;
-    int zoneCount = deviceInfo.zoneCount;
-    std::wstring activeZoneSetUuid = deviceInfo.activeZoneSet.uuid.empty() ||
-      deviceInfo.activeZoneSet.type != JSONHelpers::ZoneSetLayoutType::Custom ? L"null" : deviceInfo.activeZoneSet.uuid;
+
+    JSONHelpers::DeviceInfoJSON deviceInfoJson{ zoneWindow->UniqueId(), deviceInfo };
+    JSONHelpers::FancyZonesDataInstance().SetDeviceInfoToTmpFile(deviceInfoJson, zoneWindow->GetActiveZoneSetTmpPath());
 
     const std::wstring params =
-        /*1*/ zoneWindow->UniqueId() + L" " +
-        /*2*/ std::to_wstring(static_cast<int>(deviceInfo.activeZoneSet.type)) + L" " +
-        /*3*/ std::to_wstring(reinterpret_cast<UINT_PTR>(monitor)) + L" " +
-        /*4*/ editorLocation + L" " +
-        /*5*/ zoneWindow->WorkAreaKey() + L" " +
-        /*6*/ std::to_wstring(static_cast<float>(dpi_x) / DPIAware::DEFAULT_DPI) + L" " +
-        /*7*/ zoneWindow->GetActiveZoneSetTmpPath() + L" " +
-        /*8*/ std::to_wstring(showSpacing) + L" " +
-        /*9*/ std::to_wstring(spacing) + L" " +
-        /*10*/ std::to_wstring(zoneCount) + L" " +
-        /*11*/ zoneWindow->GetAppliedZoneSetTmpPath() + L" " +
-        /*12*/ zoneWindow->GetCustomZoneSetsTmpPath() + L" " +
-        /*13*/ activeZoneSetUuid;
+        /*1*/ std::to_wstring(reinterpret_cast<UINT_PTR>(monitor)) + L" " +
+        /*2*/ editorLocation + L" " +
+        /*3*/ zoneWindow->WorkAreaKey() + L" " +
+        /*4*/ std::to_wstring(static_cast<float>(dpi_x) / DPIAware::DEFAULT_DPI) + L" " +
+        /*5*/ zoneWindow->GetActiveZoneSetTmpPath() + L" " +
+        /*6*/ zoneWindow->GetAppliedZoneSetTmpPath() + L" " +
+        /*7*/ zoneWindow->GetCustomZoneSetsTmpPath();
 
     SHELLEXECUTEINFO sei{ sizeof(sei) };
     sei.fMask = { SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI };

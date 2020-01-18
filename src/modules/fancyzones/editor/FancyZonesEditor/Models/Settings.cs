@@ -6,10 +6,11 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Globalization;
+using System.Text.Json;
 using System.Windows;
 using FancyZonesEditor.Models;
-using Microsoft.Win32;
 
 namespace FancyZonesEditor
 {
@@ -378,6 +379,50 @@ namespace FancyZonesEditor
             }
         }
 
+        private void ParseDeviceInfoData()
+        {
+            FileStream inputStream = File.Open(Settings.ActiveZoneSetTmpFile, FileMode.Open);
+            var jsonObject = JsonDocument.Parse(inputStream, options: default).RootElement;
+
+            UniqueKey = jsonObject.GetProperty("device-id").GetString();
+            ActiveZoneSetUUid = jsonObject.GetProperty("active-zoneset").GetProperty("uuid").GetString();
+            string layoutType = jsonObject.GetProperty("active-zoneset").GetProperty("type").GetString();
+
+            if (ActiveZoneSetUUid == "null")
+            {
+                // Default selection is Focus
+                ActiveZoneSetLayoutType = LayoutType.Focus;
+            }
+            else
+            {
+                switch (layoutType)
+                {
+                    case "focus":
+                        ActiveZoneSetLayoutType = LayoutType.Focus;
+                        break;
+                    case "columns":
+                        ActiveZoneSetLayoutType = LayoutType.Columns;
+                        break;
+                    case "rows":
+                        ActiveZoneSetLayoutType = LayoutType.Rows;
+                        break;
+                    case "grid":
+                        ActiveZoneSetLayoutType = LayoutType.Grid;
+                        break;
+                    case "priority-grid":
+                        ActiveZoneSetLayoutType = LayoutType.PriorityGrid;
+                        break;
+                    case "custom":
+                        ActiveZoneSetLayoutType = LayoutType.Custom;
+                        break;
+                }
+            }
+
+            _showSpacing = jsonObject.GetProperty("editor-show-spacing").GetBoolean();
+            _spacing = jsonObject.GetProperty("editor-spacing").GetInt32();
+            _zoneCount = jsonObject.GetProperty("editor-zone-count").GetInt32();
+        }
+
         private void ParseCommandLineArgs()
         {
             _workArea = SystemParameters.WorkArea;
@@ -385,70 +430,36 @@ namespace FancyZonesEditor
             Dpi = 1;
 
             string[] args = Environment.GetCommandLineArgs();
-            if (args.Length == 14)
+            if (args.Length == 8)
             {
-                // 1 = unique key for per-monitor settings
-                // 2 = active zoneset layout type
-                // 3 = handle to monitor (passed back to engine to persist data)
-                // 4 = X_Y_Width_Height in a dpi-scaled-but-unaware coords (where EditorOverlay shows up)
-                // 5 = resolution key (passed back to engine to persist data)
-                // 6 = monitor DPI (float)
-                // 7 = temp file for active zone set
-                // 8 = showSpacing value
-                // 9 = spacing value
-                // 10 = zoneCount value
-                // 11 = temp file for applied zone set
-                // 12 = FancyZones peristed data json file path
-                // 13 = active zoneset uuid
-
-                UniqueKey = args[1];
-                ActiveZoneSetUUid = args[13];
-                if (ActiveZoneSetUUid != "null")
+                // 1 = handle to monitor (passed back to engine to persist data)
+                // 2 = X_Y_Width_Height in a dpi-scaled-but-unaware coords (where EditorOverlay shows up)
+                // 3 = resolution key (passed back to engine to persist data)
+                // 4 = monitor DPI (float)
+                // 5 = temp file for active zone set
+                // 6 = temp file for applied zone set
+                // 7 = temp file for custom zone sets
+                if (uint.TryParse(args[1], out uint monitor))
                 {
-                    ActiveZoneSetLayoutType = LayoutType.Custom;
-                }
-                else
-                {
-                    switch (int.Parse(args[2]))
-                    {
-                        case 0:
-                            ActiveZoneSetLayoutType = LayoutType.Focus;
-                            break;
-                        case 1:
-                            ActiveZoneSetLayoutType = LayoutType.Columns;
-                            break;
-                        case 2:
-                            ActiveZoneSetLayoutType = LayoutType.Rows;
-                            break;
-                        case 3:
-                            ActiveZoneSetLayoutType = LayoutType.Grid;
-                            break;
-                        case 4:
-                            ActiveZoneSetLayoutType = LayoutType.PriorityGrid;
-                            break;
-                        case 5:
-                            ActiveZoneSetLayoutType = LayoutType.Custom;
-                            break;
-                        default:
-                            ActiveZoneSetLayoutType = LayoutType.Focus;
-                            break;
-                    }
+                    Monitor = monitor;
                 }
 
-                var parsedLocation = args[4].Split('_');
+                var parsedLocation = args[2].Split('_');
                 var x = int.Parse(parsedLocation[0]);
                 var y = int.Parse(parsedLocation[1]);
                 var width = int.Parse(parsedLocation[2]);
                 var height = int.Parse(parsedLocation[3]);
 
-                WorkAreaKey = args[5];
+                _workArea = new Rect(x, y, width, height);
+
+                WorkAreaKey = args[3];
 
                 // Try invariant culture first, caller likely uses invariant i.e. "C" locale to construct parameters
                 foreach (var cultureInfo in new[] { CultureInfo.InvariantCulture, CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture })
                 {
                     try
                     {
-                        Dpi = float.Parse(args[6], cultureInfo);
+                        Dpi = float.Parse(args[4], cultureInfo);
                         break;
                     }
                     catch (FormatException)
@@ -456,21 +467,11 @@ namespace FancyZonesEditor
                     }
                 }
 
-                _activeZoneSetTmpFile = args[7];
+                _activeZoneSetTmpFile = args[5];
+                _appliedZoneSetTmpFile = args[6];
+                _customZoneSetsTmpFile = args[7];
 
-                _showSpacing = int.Parse(args[8]) == 1;
-                _spacing = int.Parse(args[9]);
-                _zoneCount = int.Parse(args[10]);
-
-                _appliedZoneSetTmpFile = args[11];
-                _customZoneSetsTmpFile = args[12];
-
-                _workArea = new Rect(x, y, width, height);
-
-                if (uint.TryParse(args[4], out uint monitor))
-                {
-                    Monitor = monitor;
-                }
+                ParseDeviceInfoData();
             }
         }
 
