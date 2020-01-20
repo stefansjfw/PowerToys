@@ -424,7 +424,7 @@ void FancyZones::ToggleEditor() noexcept
     const auto& deviceInfo = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap().at(zoneWindow->UniqueId());
 
     JSONHelpers::DeviceInfoJSON deviceInfoJson{ zoneWindow->UniqueId(), deviceInfo };
-    JSONHelpers::FancyZonesDataInstance().SetDeviceInfoToTmpFile(deviceInfoJson, zoneWindow->GetActiveZoneSetTmpPath());
+    JSONHelpers::FancyZonesDataInstance().SerializeDeviceInfoToTmpFile(deviceInfoJson, zoneWindow->GetActiveZoneSetTmpPath());
 
     const std::wstring params =
         /*1*/ std::to_wstring(reinterpret_cast<UINT_PTR>(monitor)) + L" " +

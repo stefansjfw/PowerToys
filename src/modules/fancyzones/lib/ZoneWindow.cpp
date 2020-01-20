@@ -380,10 +380,10 @@ void ZoneWindow::LoadSettings() noexcept
         JSONHelpers::FancyZonesDataInstance().MigrateDeviceInfoFromRegistry(m_uniqueId);
     }
   
-    JSONHelpers::FancyZonesDataInstance().GetDeviceInfoFromTmpFile(m_uniqueId, m_activeZoneSetPath);
+    JSONHelpers::FancyZonesDataInstance().ParseDeviceInfoFromTmpFile(m_uniqueId, m_activeZoneSetPath);
     const WCHAR* activeZoneSetStr = deviceInfoMap.at(m_uniqueId).activeZoneSet.uuid.c_str();
 
-    JSONHelpers::FancyZonesDataInstance().GetDeletedCustomZoneSetsFromTmpFile(m_customZoneSetsPath);
+    JSONHelpers::FancyZonesDataInstance().ParseDeletedCustomZoneSetsFromTmpFile(m_customZoneSetsPath);
 }
 
 void ZoneWindow::InitializeZoneSets(MONITORINFO const& mi) noexcept

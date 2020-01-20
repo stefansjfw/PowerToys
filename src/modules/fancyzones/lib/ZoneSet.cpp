@@ -495,7 +495,7 @@ bool ZoneSet::CalculateCustomLayout(Rect workArea, const std::wstring& customZon
     if (SUCCEEDED_LOG(StringFromCLSID(m_config.Id, &guuidStr)))
     {
         const auto guuid = guuidStr.get();
-        JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetFromTmpFile(customZoneSetFilePath, guuid);
+        JSONHelpers::FancyZonesDataInstance().ParseCustomZoneSetFromTmpFile(customZoneSetFilePath, guuid);
         const auto& customZoneSets = JSONHelpers::FancyZonesDataInstance().GetCustomZoneSetsMap();
         if (!customZoneSets.contains(guuid))
         {

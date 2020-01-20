@@ -951,7 +951,7 @@ namespace FancyZonesUnitTests
             DeviceInfoJSON deviceInfo{ L"default_device_id", DeviceInfoData{ ZoneSetData{ L"uuid", ZoneSetLayoutType::Custom }, true, 16, 3 } };
 
             const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
-            data.SetDeviceInfoToTmpFile(deviceInfo, path);
+            data.SerializeDeviceInfoToTmpFile(deviceInfo, path);
 
             bool actualFileExists = std::filesystem::exists(path);
             Assert::IsTrue(actualFileExists);
@@ -970,9 +970,9 @@ namespace FancyZonesUnitTests
             const std::wstring zoneUuid = L"default_device_id";
             DeviceInfoJSON expected{ zoneUuid, DeviceInfoData{ ZoneSetData{ L"uuid", ZoneSetLayoutType::Custom }, true, 16, 3 } };
             const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
-            data.SetDeviceInfoToTmpFile(expected, path);
+            data.SerializeDeviceInfoToTmpFile(expected, path);
 
-            data.GetDeviceInfoFromTmpFile(zoneUuid, path);
+            data.ParseDeviceInfoFromTmpFile(zoneUuid, path);
 
             bool actualFileExists = std::filesystem::exists(path);
             if (actualFileExists)
@@ -1000,7 +1000,7 @@ namespace FancyZonesUnitTests
 
             const std::wstring zoneUuid = L"default_device_id";
             const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
-            data.GetDeviceInfoFromTmpFile(zoneUuid, path);
+            data.ParseDeviceInfoFromTmpFile(zoneUuid, path);
 
             auto devices = data.GetDeviceInfoMap();
             Assert::AreEqual((size_t)1, devices.size());
@@ -1304,7 +1304,7 @@ namespace FancyZonesUnitTests
             const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
             json::to_file(path, CustomZoneSetJSON::ToJson(expected));
 
-            data.GetCustomZoneSetFromTmpFile(path, uuid);
+            data.ParseCustomZoneSetFromTmpFile(path, uuid);
 
             bool actualFileExists = std::filesystem::exists(path);
             if (actualFileExists)
@@ -1332,7 +1332,7 @@ namespace FancyZonesUnitTests
 
             const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
 
-            data.GetCustomZoneSetFromTmpFile(path, uuid);
+            data.ParseCustomZoneSetFromTmpFile(path, uuid);
             auto devices = data.GetDeviceInfoMap();
             Assert::AreEqual((size_t)0, devices.size());
         }
@@ -1346,7 +1346,7 @@ namespace FancyZonesUnitTests
             const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
 
             json::to_file(path, CustomZoneSetJSON::ToJson(expected));
-            data.GetCustomZoneSetFromTmpFile(path, L"another_uuid");
+            data.ParseCustomZoneSetFromTmpFile(path, L"another_uuid");
 
             bool actualFileExists = std::filesystem::exists(path);
             if (actualFileExists)
