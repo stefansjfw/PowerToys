@@ -9,6 +9,7 @@
 #include "RegistryHelpers.h"
 
 #include <ShellScalingApi.h>
+#include <mutex>
 
 namespace {
   enum class TTmpFileType {
@@ -22,32 +23,34 @@ namespace {
     static std::wstring activeZoneSetTmpFileName;
     static std::wstring appliedZoneSetTmpFileName;
     static std::wstring customZoneSetsTmpFileName;
+    static std::once_flag f1, f2, f3;
 
-    if (activeZoneSetTmpFileName.empty()) {
-      wchar_t fileName[L_tmpnam_s];
+    std::call_once(f1, []() {
+        wchar_t fileName[L_tmpnam_s];
 
-      if (_wtmpnam_s(fileName, L_tmpnam_s) != 0)
-        abort();
+        if (_wtmpnam_s(fileName, L_tmpnam_s) != 0)
+            abort();
 
-      activeZoneSetTmpFileName = std::wstring{ fileName };
-    }
-    if (appliedZoneSetTmpFileName.empty()) {
-      wchar_t fileName[L_tmpnam_s];
+        activeZoneSetTmpFileName = std::wstring{ fileName };
+    });
 
-      if (_wtmpnam_s(fileName, L_tmpnam_s) != 0)
-          abort();
+    std::call_once(f2, []() {
+        wchar_t fileName[L_tmpnam_s];
 
-      appliedZoneSetTmpFileName = std::wstring{ fileName };
-    }
-    if (customZoneSetsTmpFileName.empty())
-    {
+        if (_wtmpnam_s(fileName, L_tmpnam_s) != 0)
+            abort();
+
+        appliedZoneSetTmpFileName = std::wstring{ fileName };
+    });
+
+    std::call_once(f3, []() {
       wchar_t fileName[L_tmpnam_s];
 
       if (_wtmpnam_s(fileName, L_tmpnam_s) != 0)
           abort();
 
       customZoneSetsTmpFileName = std::wstring{ fileName };
-    }
+    });
 
 
     switch (type)
