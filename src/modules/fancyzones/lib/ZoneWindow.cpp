@@ -333,7 +333,7 @@ IFACEMETHODIMP_(void)
 ZoneWindow::SaveWindowProcessToZoneIndex(HWND window) noexcept
 {
     auto processPath = get_process_path(window);
-    if (!processPath.empty())
+    if (!processPath.empty() && m_activeZoneSet)
     {
         DWORD zoneIndex = static_cast<DWORD>(m_activeZoneSet->GetZoneIndexFromWindow(window));
         if (zoneIndex != -1)
