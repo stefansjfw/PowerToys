@@ -50,8 +50,8 @@ namespace FancyZonesUnitTests
 
         winrt::com_ptr<IZoneWindow> m_zoneWindow;
 
-        JSONHelpers::FancyZonesData m_fancyZonesData;
-
+        JSONHelpers::FancyZonesData& m_fancyZonesData = JSONHelpers::FancyZonesDataInstance();
+        
         std::wstring guidString()
         {
             GUID guid;
@@ -77,9 +77,8 @@ namespace FancyZonesUnitTests
             Assert::AreEqual(S_OK, CoCreateGuid(&m_zoneWindowHost.m_guid));
 
             m_uniqueId << L"DELA026#5&10a58c63&0&UID16777488_" << m_monitorInfo.rcMonitor.right << "_" << m_monitorInfo.rcMonitor.bottom << "_MyVirtualDesktopId";
-        
-            m_fancyZonesData = JSONHelpers::FancyZonesDataInstance();
-            Assert::IsTrue(m_fancyZonesData.GetAppZoneHistoryMap().empty());
+
+            m_fancyZonesData = JSONHelpers::FancyZonesData();
         }
 
         TEST_METHOD_CLEANUP(Cleanup)
@@ -108,6 +107,7 @@ namespace FancyZonesUnitTests
             const auto deviceInfo = JSONHelpers::DeviceInfoJSON{ guidString(), data };
             const auto json = JSONHelpers::DeviceInfoJSON::ToJson(deviceInfo);
             json::to_file(activeZoneSetTempPath, json);
+            Assert::IsTrue(std::filesystem::exists(activeZoneSetTempPath));
 
             return MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
         }
@@ -667,7 +667,7 @@ namespace FancyZonesUnitTests
             const auto zone = MakeZone(RECT{ 0, 0, 100, 100 });
             m_zoneWindow->ActiveZoneSet()->AddZone(zone);
 
-            m_zoneWindow->SaveWindowProcessToZoneIndex(window);            
+            m_zoneWindow->SaveWindowProcessToZoneIndex(window);
             Assert::AreEqual((size_t)1, m_fancyZonesData.GetAppZoneHistoryMap().size());
             Assert::AreEqual(0, m_fancyZonesData.GetAppZoneHistoryMap().begin()->second.zoneIndex);
         }
@@ -693,7 +693,7 @@ namespace FancyZonesUnitTests
 
             const auto actualAppZoneHistory = m_fancyZonesData.GetAppZoneHistoryMap();
             Assert::AreEqual((size_t)1, actualAppZoneHistory.size());
-            Assert::AreEqual(2, actualAppZoneHistory.begin()->second.zoneIndex);
+            Assert::AreEqual(m_zoneWindow->ActiveZoneSet()->GetZoneIndexFromWindow(window), actualAppZoneHistory.begin()->second.zoneIndex);
         }
     };
 }
