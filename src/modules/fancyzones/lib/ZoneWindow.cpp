@@ -64,6 +64,196 @@ namespace ZoneWindowUtils
     }
 }
 
+namespace ZoneWindowDrawUtils
+{
+    struct ColorSetting
+    {
+        BYTE fillAlpha{};
+        COLORREF fill{};
+        BYTE borderAlpha{};
+        COLORREF border{};
+        int thickness{};
+    };
+
+    bool IsOccluded(const std::vector<winrt::com_ptr<IZone>>& zones, POINT pt, size_t index) noexcept 
+    {
+        size_t i = 1;
+
+        for (auto iter = zones.begin(); iter != zones.end(); iter++)
+        {
+            if (winrt::com_ptr<IZone> zone = iter->try_as<IZone>())
+            {
+                if (i < index)
+                {
+                    if (PtInRect(&zone->GetZoneRect(), pt))
+                    {
+                        return true;
+                    }
+                }
+            }
+            i++;
+        }
+        return false;
+    }
+
+    void DrawBackdrop(wil::unique_hdc& hdc, RECT const& clientRect) noexcept
+    {
+        FillRectARGB(hdc, &clientRect, 0, RGB(0, 0, 0), false);
+    }
+
+    void DrawIndex(wil::unique_hdc& hdc, POINT offset, size_t index, int padding, int size, bool flipX, bool flipY, COLORREF colorFill)
+    {
+        RECT rect = { offset.x, offset.y, offset.x + size, offset.y + size };
+        for (int y = 0; y < 3; y++)
+        {
+            for (int x = 0; x < 3; x++)
+            {
+                RECT useRect = rect;
+                if (flipX)
+                {
+                    if (x == 0)
+                        useRect.left += (size + padding + size + padding);
+                    else if (x == 2)
+                        useRect.left -= (size + padding + size + padding);
+                    useRect.right = useRect.left + size;
+                }
+
+                if (flipY)
+                {
+                    if (y == 0)
+                        useRect.top += (size + padding + size + padding);
+                    else if (y == 2)
+                        useRect.top -= (size + padding + size + padding);
+                    useRect.bottom = useRect.top + size;
+                }
+
+                FillRectARGB(hdc, &useRect, 200, RGB(50, 50, 50), true);
+
+                RECT inside = useRect;
+                InflateRect(&inside, -2, -2);
+
+                FillRectARGB(hdc, &inside, 100, colorFill, true);
+
+                rect.left += (size + padding);
+                rect.right = rect.left + size;
+
+                if (--index == 0)
+                {
+                    return;
+                }
+            }
+            rect.left = offset.x;
+            rect.right = rect.left + size;
+            rect.top += (size + padding);
+            rect.bottom = rect.top + size;
+        }
+    }
+
+    void DrawZone(wil::unique_hdc& hdc, ColorSetting const& colorSetting, winrt::com_ptr<IZone> zone, const std::vector<winrt::com_ptr<IZone>>& zones, bool flashMode) noexcept
+    {
+        RECT zoneRect = zone->GetZoneRect();
+        if (colorSetting.borderAlpha > 0)
+        {
+            FillRectARGB(hdc, &zoneRect, colorSetting.borderAlpha, colorSetting.border, false);
+            InflateRect(&zoneRect, colorSetting.thickness, colorSetting.thickness);
+        }
+        FillRectARGB(hdc, &zoneRect, colorSetting.fillAlpha, colorSetting.fill, false);
+
+        if (flashMode)
+        {
+            return;
+        }
+        COLORREF const colorFill = RGB(255, 255, 255);
+
+        size_t const index = zone->Id();
+        int const padding = 5;
+        int const size = 10;
+        POINT offset = { zoneRect.left + padding, zoneRect.top + padding };
+        if (!IsOccluded(zones, offset, index))
+        {
+            DrawIndex(hdc, offset, index, padding, size, false, false, colorFill); // top left
+            return;
+        }
+
+        offset.x = zoneRect.right - ((padding + size) * 3);
+        if (!IsOccluded(zones, offset, index))
+        {
+            DrawIndex(hdc, offset, index, padding, size, true, false, colorFill); // top right
+            return;
+        }
+
+        offset.y = zoneRect.bottom - ((padding + size) * 3);
+        if (!IsOccluded(zones, offset, index))
+        {
+            DrawIndex(hdc, offset, index, padding, size, true, true, colorFill); // bottom right
+            return;
+        }
+
+        offset.x = zoneRect.left + padding;
+        DrawIndex(hdc, offset, index, padding, size, false, true, colorFill); // bottom left
+    }
+
+    void DrawActiveZoneSet(wil::unique_hdc& hdc, COLORREF highlightColor, int highlightOpacity, const std::vector<winrt::com_ptr<IZone>>& zones
+        , const winrt::com_ptr<IZone>& highlightZone, bool flashMode, bool drawHints) noexcept
+    {
+        static constexpr std::array<COLORREF, 9> colors{
+            RGB(75, 75, 85),
+            RGB(150, 150, 160),
+            RGB(100, 100, 110),
+            RGB(125, 125, 135),
+            RGB(225, 225, 235),
+            RGB(25, 25, 35),
+            RGB(200, 200, 210),
+            RGB(50, 50, 60),
+            RGB(175, 175, 185),
+        };
+
+        //                                 { fillAlpha, fill, borderAlpha, border, thickness }
+        ColorSetting const colorHints{ 225, RGB(81, 92, 107), 255, RGB(104, 118, 138), -2 };
+        ColorSetting colorViewer{ OpacitySettingToAlpha(highlightOpacity), 0, 255, RGB(40, 50, 60), -2 };
+        ColorSetting colorHighlight{ OpacitySettingToAlpha(highlightOpacity), 0, 255, 0, -2 };
+        ColorSetting const colorFlash{ 200, RGB(81, 92, 107), 200, RGB(104, 118, 138), -2 };
+
+        const size_t maxColorIndex = min(size(zones) - 1, size(colors) - 1);
+        size_t colorIndex = maxColorIndex;
+        for (auto iter = zones.begin(); iter != zones.end(); iter++)
+        {
+            winrt::com_ptr<IZone> zone = iter->try_as<IZone>();
+            if (!zone)
+            {
+                continue;
+            }
+
+            if (zone != highlightZone)
+            {
+                if (flashMode)
+                {
+                    DrawZone(hdc, colorFlash, zone, zones, flashMode);
+                }
+                else if (drawHints)
+                {
+                    DrawZone(hdc, colorHints, zone, zones, flashMode);
+                }
+                {
+                    colorViewer.fill = colors[colorIndex];
+                    DrawZone(hdc, colorViewer, zone, zones, flashMode);
+                }
+            }
+            colorIndex = colorIndex != 0 ? colorIndex - 1 : maxColorIndex;
+        }
+
+        if (highlightZone)
+        {
+            colorHighlight.fill = highlightColor;
+            colorHighlight.border = RGB(
+                max(0, GetRValue(colorHighlight.fill) - 25),
+                max(0, GetGValue(colorHighlight.fill) - 25),
+                max(0, GetBValue(colorHighlight.fill) - 25));
+            DrawZone(hdc, colorHighlight, highlightZone, zones, flashMode);
+        }
+    }
+}
+
 struct ZoneWindow : public winrt::implements<ZoneWindow, IZoneWindow>
 {
 public:
@@ -97,15 +287,6 @@ protected:
     static LRESULT CALLBACK s_WndProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) noexcept;
 
 private:
-    struct ColorSetting
-    {
-        BYTE fillAlpha{};
-        COLORREF fill{};
-        BYTE borderAlpha{};
-        COLORREF border{};
-        int thickness{};
-    };
-
     void ShowZoneWindow() noexcept;
     void HideZoneWindow() noexcept;
     void InitializeId(PCWSTR deviceId, PCWSTR virtualDesktopId) noexcept;
@@ -114,15 +295,10 @@ private:
     void CalculateZoneSet() noexcept;
     void UpdateActiveZoneSet(_In_opt_ IZoneSet* zoneSet) noexcept;
     LRESULT WndProc(UINT message, WPARAM wparam, LPARAM lparam) noexcept;
-    void DrawBackdrop(wil::unique_hdc& hdc, RECT const& clientRect) noexcept;
-    void DrawZone(wil::unique_hdc& hdc, ColorSetting const& colorSetting, winrt::com_ptr<IZone> zone) noexcept;
-    void DrawIndex(wil::unique_hdc& hdc, POINT offset, size_t index, int padding, int size, bool flipX, bool flipY, COLORREF colorFill);
-    void DrawActiveZoneSet(wil::unique_hdc& hdc, RECT const& clientRect) noexcept;
     void OnPaint(wil::unique_hdc& hdc) noexcept;
     void OnKeyUp(WPARAM wparam) noexcept;
     winrt::com_ptr<IZone> ZoneFromPoint(POINT pt) noexcept;
     void ChooseDefaultActiveZoneSet() noexcept;
-    bool IsOccluded(POINT pt, size_t index) noexcept;
     void CycleActiveZoneSetInternal(DWORD wparam, Trace::ZoneWindow::InputMode mode) noexcept;
     void FlashZones() noexcept;
 
@@ -383,7 +559,7 @@ void ZoneWindow::LoadSettings() noexcept
     {
         JSONHelpers::FancyZonesDataInstance().MigrateDeviceInfoFromRegistry(m_uniqueId);
     }
-  
+
     JSONHelpers::FancyZonesDataInstance().ParseDeviceInfoFromTmpFile(m_uniqueId, ZoneWindowUtils::GetActiveZoneSetTmpPath());
     JSONHelpers::FancyZonesDataInstance().ParseDeletedCustomZoneSetsFromTmpFile(ZoneWindowUtils::GetCustomZoneSetsTmpPath());
 }
@@ -481,166 +657,6 @@ LRESULT ZoneWindow::WndProc(UINT message, WPARAM wparam, LPARAM lparam) noexcept
     return 0;
 }
 
-void ZoneWindow::DrawBackdrop(wil::unique_hdc& hdc, RECT const& clientRect) noexcept
-{
-    FillRectARGB(hdc, &clientRect, 0, RGB(0, 0, 0), false);
-}
-
-void ZoneWindow::DrawZone(wil::unique_hdc& hdc, ColorSetting const& colorSetting, winrt::com_ptr<IZone> zone) noexcept
-{
-    RECT zoneRect = zone->GetZoneRect();
-    if (colorSetting.borderAlpha > 0)
-    {
-        FillRectARGB(hdc, &zoneRect, colorSetting.borderAlpha, colorSetting.border, false);
-        InflateRect(&zoneRect, colorSetting.thickness, colorSetting.thickness);
-    }
-    FillRectARGB(hdc, &zoneRect, colorSetting.fillAlpha, colorSetting.fill, false);
-
-    if (m_flashMode)
-    {
-        return;
-    }
-    COLORREF const colorFill = RGB(255, 255, 255);
-
-    size_t const index = zone->Id();
-    int const padding = 5;
-    int const size = 10;
-    POINT offset = { zoneRect.left + padding, zoneRect.top + padding };
-    if (!IsOccluded(offset, index))
-    {
-        DrawIndex(hdc, offset, index, padding, size, false, false, colorFill); // top left
-        return;
-    }
-
-    offset.x = zoneRect.right - ((padding + size) * 3);
-    if (!IsOccluded(offset, index))
-    {
-        DrawIndex(hdc, offset, index, padding, size, true, false, colorFill); // top right
-        return;
-    }
-
-    offset.y = zoneRect.bottom - ((padding + size) * 3);
-    if (!IsOccluded(offset, index))
-    {
-        DrawIndex(hdc, offset, index, padding, size, true, true, colorFill); // bottom right
-        return;
-    }
-
-    offset.x = zoneRect.left + padding;
-    DrawIndex(hdc, offset, index, padding, size, false, true, colorFill); // bottom left
-}
-
-void ZoneWindow::DrawIndex(wil::unique_hdc& hdc, POINT offset, size_t index, int padding, int size, bool flipX, bool flipY, COLORREF colorFill)
-{
-    RECT rect = { offset.x, offset.y, offset.x + size, offset.y + size };
-    for (int y = 0; y < 3; y++)
-    {
-        for (int x = 0; x < 3; x++)
-        {
-            RECT useRect = rect;
-            if (flipX)
-            {
-                if (x == 0)
-                    useRect.left += (size + padding + size + padding);
-                else if (x == 2)
-                    useRect.left -= (size + padding + size + padding);
-                useRect.right = useRect.left + size;
-            }
-
-            if (flipY)
-            {
-                if (y == 0)
-                    useRect.top += (size + padding + size + padding);
-                else if (y == 2)
-                    useRect.top -= (size + padding + size + padding);
-                useRect.bottom = useRect.top + size;
-            }
-
-            FillRectARGB(hdc, &useRect, 200, RGB(50, 50, 50), true);
-
-            RECT inside = useRect;
-            InflateRect(&inside, -2, -2);
-
-            FillRectARGB(hdc, &inside, 100, colorFill, true);
-
-            rect.left += (size + padding);
-            rect.right = rect.left + size;
-
-            if (--index == 0)
-            {
-                return;
-            }
-        }
-        rect.left = offset.x;
-        rect.right = rect.left + size;
-        rect.top += (size + padding);
-        rect.bottom = rect.top + size;
-    }
-}
-
-void ZoneWindow::DrawActiveZoneSet(wil::unique_hdc& hdc, RECT const& clientRect) noexcept
-{
-    if (m_activeZoneSet)
-    {
-        static constexpr std::array<COLORREF, 9> colors{
-            RGB(75, 75, 85),
-            RGB(150, 150, 160),
-            RGB(100, 100, 110),
-            RGB(125, 125, 135),
-            RGB(225, 225, 235),
-            RGB(25, 25, 35),
-            RGB(200, 200, 210),
-            RGB(50, 50, 60),
-            RGB(175, 175, 185),
-        };
-
-        //                                 { fillAlpha, fill, borderAlpha, border, thickness }
-        ColorSetting const colorHints      { 225, RGB(81, 92, 107),   255, RGB(104, 118, 138), -2 };
-        ColorSetting       colorViewer     { OpacitySettingToAlpha(m_host->GetZoneHighlightOpacity()), 0, 255, RGB(40, 50, 60),    -2 };
-        ColorSetting       colorHighlight  { OpacitySettingToAlpha(m_host->GetZoneHighlightOpacity()), 0, 255, 0, -2 };
-        ColorSetting const colorFlash      { 200, RGB(81, 92, 107),   200, RGB(104, 118, 138), -2 };
-
-        auto zones = m_activeZoneSet->GetZones();
-        const size_t maxColorIndex = min(size(zones) - 1, size(colors) - 1);
-        size_t colorIndex = maxColorIndex;
-        for (auto iter = zones.begin(); iter != zones.end(); iter++)
-        {
-            winrt::com_ptr<IZone> zone = iter->try_as<IZone>();
-            if (!zone)
-            {
-                continue;
-            }
-
-            if (zone != m_highlightZone)
-            {
-                if (m_flashMode)
-                {
-                    DrawZone(hdc, colorFlash, zone);
-                }
-                else if (m_drawHints)
-                {
-                    DrawZone(hdc, colorHints, zone);
-                }
-                {
-                    colorViewer.fill = colors[colorIndex];
-                    DrawZone(hdc, colorViewer, zone);
-                }
-            }
-            colorIndex = colorIndex != 0 ? colorIndex - 1 : maxColorIndex;
-        }
-
-        if (m_highlightZone && m_host)
-        {
-            colorHighlight.fill = m_host->GetZoneHighlightColor();
-            colorHighlight.border = RGB(
-                max(0, GetRValue(colorHighlight.fill) - 25),
-                max(0, GetGValue(colorHighlight.fill) - 25),
-                max(0, GetBValue(colorHighlight.fill) - 25));
-            DrawZone(hdc, colorHighlight, m_highlightZone);
-        }
-    }
-}
-
 void ZoneWindow::OnPaint(wil::unique_hdc& hdc) noexcept
 {
     RECT clientRect;
@@ -650,8 +666,12 @@ void ZoneWindow::OnPaint(wil::unique_hdc& hdc) noexcept
     HPAINTBUFFER bufferedPaint = BeginBufferedPaint(hdc.get(), &clientRect, BPBF_TOPDOWNDIB, nullptr, &hdcMem);
     if (bufferedPaint)
     {
-        DrawBackdrop(hdcMem, clientRect);
-        DrawActiveZoneSet(hdcMem, clientRect);
+        ZoneWindowDrawUtils::DrawBackdrop(hdcMem, clientRect);
+        if (m_activeZoneSet && m_host)
+        {
+            ZoneWindowDrawUtils::DrawActiveZoneSet(hdcMem, m_host->GetZoneHighlightColor(), m_host->GetZoneHighlightOpacity(), m_activeZoneSet->GetZones(), m_highlightZone, m_flashMode, m_drawHints);
+        }
+
         EndBufferedPaint(bufferedPaint, TRUE);
     }
 }
@@ -695,28 +715,6 @@ void ZoneWindow::ChooseDefaultActiveZoneSet() noexcept
             }
         }
     }
-}
-
-bool ZoneWindow::IsOccluded(POINT pt, size_t index) noexcept
-{
-    auto zones = m_activeZoneSet->GetZones();
-    size_t i = 1;
-
-    for (auto iter = zones.begin(); iter != zones.end(); iter++)
-    {
-        if (winrt::com_ptr<IZone> zone = iter->try_as<IZone>())
-        {
-            if (i < index)
-            {
-                if (PtInRect(&zone->GetZoneRect(), pt))
-                {
-                    return true;
-                }
-            }
-        }
-        i++;
-    }
-    return false;
 }
 
 void ZoneWindow::CycleActiveZoneSetInternal(DWORD wparam, Trace::ZoneWindow::InputMode mode) noexcept
@@ -802,4 +800,3 @@ winrt::com_ptr<IZoneWindow> MakeZoneWindow(IZoneWindowHost* host, HINSTANCE hins
 
     return nullptr;
 }
-
