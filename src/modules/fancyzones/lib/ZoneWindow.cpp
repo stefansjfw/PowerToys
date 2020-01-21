@@ -1,7 +1,6 @@
 #include "pch.h"
 
 #include <common/common.h>
-#include <common/dpi_aware.h>
 
 #include "ZoneWindow.h"
 #include "trace.h"
@@ -134,7 +133,6 @@ private:
     bool IsOccluded(POINT pt, size_t index) noexcept;
     void CycleActiveZoneSetInternal(DWORD wparam, Trace::ZoneWindow::InputMode mode) noexcept;
     void FlashZones() noexcept;
-    UINT GetDpiForMonitor() noexcept;
 
     winrt::com_ptr<IZoneWindowHost> m_host;
     HMONITOR m_monitor{};
@@ -189,15 +187,15 @@ bool ZoneWindow::Init(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monit
     }
 
     m_monitor = monitor;
-    const UINT dpi = GetDpiForMonitor();
+    const UINT dpi = GetDpiForMonitor(m_monitor);
     const Rect monitorRect(mi.rcMonitor);
     const Rect workAreaRect(mi.rcWork, dpi);
     StringCchPrintf(m_workArea, ARRAYSIZE(m_workArea), L"%d_%d", monitorRect.width(), monitorRect.height());
-        
+
     InitializeId(deviceId, virtualDesktopId);
     LoadSettings();
     InitializeZoneSets(mi);
-    
+
     m_window = wil::unique_hwnd{
         CreateWindowExW(WS_EX_TOOLWINDOW, L"SuperFancyZones_ZoneWindow", L"", WS_POPUP, workAreaRect.left(), workAreaRect.top(), workAreaRect.width(), workAreaRect.height(), nullptr, nullptr, hinstance, this)
     };
@@ -794,29 +792,6 @@ void ZoneWindow::FlashZones() noexcept
     std::thread([window = m_window.get()]() {
         AnimateWindow(window, m_flashDuration, AW_HIDE | AW_BLEND);
     }).detach();
-}
-
-typedef BOOL(WINAPI* GetDpiForMonitorInternalFunc)(HMONITOR, UINT, UINT*, UINT*);
-UINT ZoneWindow::GetDpiForMonitor() noexcept
-{
-    UINT dpi{};
-    if (wil::unique_hmodule user32{ LoadLibrary(L"user32.dll") })
-    {
-        if (auto func = reinterpret_cast<GetDpiForMonitorInternalFunc>(GetProcAddress(user32.get(), "GetDpiForMonitorInternal")))
-        {
-            func(m_monitor, 0, &dpi, &dpi);
-        }
-    }
-
-    if (dpi == 0)
-    {
-        if (wil::unique_hdc hdc{ GetDC(nullptr) })
-        {
-            dpi = GetDeviceCaps(hdc.get(), LOGPIXELSX);
-        }
-    }
-
-    return (dpi == 0) ? DPIAware::DEFAULT_DPI : dpi;
 }
 #pragma endregion
 
