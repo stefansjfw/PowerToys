@@ -12,11 +12,11 @@
 #include <mutex>
 
 namespace {
-  enum class TTmpFileType {
-    EActiveZoneSetFile = 0,
-    EAppliedZoneSetFile,
-    ECustomZoneSetsFile
-  };
+    enum class TTmpFileType {
+        EActiveZoneSetFile = 0,
+        EAppliedZoneSetFile,
+        ECustomZoneSetsFile
+    };
 
   std::wstring GenerateTmpFileName(TTmpFileType type)
   {
@@ -53,18 +53,18 @@ namespace {
     });
 
 
-    switch (type)
-    {
-    case TTmpFileType::EActiveZoneSetFile:
-      return activeZoneSetTmpFileName;
-    case TTmpFileType::EAppliedZoneSetFile:
-      return appliedZoneSetTmpFileName;
-    case TTmpFileType::ECustomZoneSetsFile:
-      return customZoneSetsTmpFileName;
-    }
+        switch (type)
+        {
+        case TTmpFileType::EActiveZoneSetFile:
+            return activeZoneSetTmpFileName;
+        case TTmpFileType::EAppliedZoneSetFile:
+            return appliedZoneSetTmpFileName;
+        case TTmpFileType::ECustomZoneSetsFile:
+            return customZoneSetsTmpFileName;
+        }
 
-    return L"";
-  }
+        return L"";
+    }
 }
 
 struct ZoneWindow : public winrt::implements<ZoneWindow, IZoneWindow>
@@ -77,18 +77,30 @@ public:
     IFACEMETHODIMP MoveSizeUpdate(POINT const& ptScreen, bool dragEnabled) noexcept;
     IFACEMETHODIMP MoveSizeEnd(HWND window, POINT const& ptScreen) noexcept;
     IFACEMETHODIMP MoveSizeCancel() noexcept;
-    IFACEMETHODIMP_(bool) IsDragEnabled() noexcept { return m_dragEnabled; }
-    IFACEMETHODIMP_(void) MoveWindowIntoZoneByIndex(HWND window, int index) noexcept;
-    IFACEMETHODIMP_(void) MoveWindowIntoZoneByDirection(HWND window, DWORD vkCode) noexcept;
-    IFACEMETHODIMP_(void) CycleActiveZoneSet(DWORD vkCode) noexcept;
-    IFACEMETHODIMP_(std::wstring) DeviceId() noexcept { return { m_deviceId.get() }; }
-    IFACEMETHODIMP_(std::wstring) UniqueId() noexcept { return { m_uniqueId }; }
-    IFACEMETHODIMP_(std::wstring) WorkAreaKey() noexcept { return { m_workArea }; }
-    IFACEMETHODIMP_(void) SaveWindowProcessToZoneIndex(HWND window) noexcept;
-    IFACEMETHODIMP_(IZoneSet*) ActiveZoneSet() noexcept { return m_activeZoneSet.get(); }
-    IFACEMETHOD_(std::wstring, GetActiveZoneSetTmpPath)() noexcept { return m_activeZoneSetPath; };
-    IFACEMETHOD_(std::wstring, GetAppliedZoneSetTmpPath)() noexcept { return m_appliedZoneSetPath; };
-    IFACEMETHOD_(std::wstring, GetCustomZoneSetsTmpPath)() noexcept { return m_customZoneSetsPath; };
+    IFACEMETHODIMP_(bool)
+    IsDragEnabled() noexcept { return m_dragEnabled; }
+    IFACEMETHODIMP_(void)
+    MoveWindowIntoZoneByIndex(HWND window, int index) noexcept;
+    IFACEMETHODIMP_(void)
+    MoveWindowIntoZoneByDirection(HWND window, DWORD vkCode) noexcept;
+    IFACEMETHODIMP_(void)
+    CycleActiveZoneSet(DWORD vkCode) noexcept;
+    IFACEMETHODIMP_(std::wstring)
+    DeviceId() noexcept { return { m_deviceId.get() }; }
+    IFACEMETHODIMP_(std::wstring)
+    UniqueId() noexcept { return { m_uniqueId }; }
+    IFACEMETHODIMP_(std::wstring)
+    WorkAreaKey() noexcept { return { m_workArea }; }
+    IFACEMETHODIMP_(void)
+    SaveWindowProcessToZoneIndex(HWND window) noexcept;
+    IFACEMETHODIMP_(IZoneSet*)
+    ActiveZoneSet() noexcept { return m_activeZoneSet.get(); }
+    IFACEMETHOD_(std::wstring, GetActiveZoneSetTmpPath)
+    () noexcept { return m_activeZoneSetPath; };
+    IFACEMETHOD_(std::wstring, GetAppliedZoneSetTmpPath)
+    () noexcept { return m_appliedZoneSetPath; };
+    IFACEMETHOD_(std::wstring, GetCustomZoneSetsTmpPath)
+    () noexcept { return m_customZoneSetsPath; };
 
 protected:
     static LRESULT CALLBACK s_WndProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) noexcept;
@@ -126,7 +138,7 @@ private:
 
     winrt::com_ptr<IZoneWindowHost> m_host;
     HMONITOR m_monitor{};
-    wchar_t m_uniqueId[256]{};  // Parsed deviceId + resolution + virtualDesktopId
+    wchar_t m_uniqueId[256]{}; // Parsed deviceId + resolution + virtualDesktopId
     wchar_t m_workArea[256]{};
     wil::unique_cotaskmem_string m_deviceId{};
     wil::unique_hwnd m_window{};
@@ -283,7 +295,8 @@ IFACEMETHODIMP ZoneWindow::MoveSizeCancel() noexcept
     return S_OK;
 }
 
-IFACEMETHODIMP_(void) ZoneWindow::MoveWindowIntoZoneByIndex(HWND window, int index) noexcept
+IFACEMETHODIMP_(void)
+ZoneWindow::MoveWindowIntoZoneByIndex(HWND window, int index) noexcept
 {
     if (m_activeZoneSet)
     {
@@ -291,7 +304,8 @@ IFACEMETHODIMP_(void) ZoneWindow::MoveWindowIntoZoneByIndex(HWND window, int ind
     }
 }
 
-IFACEMETHODIMP_(void) ZoneWindow::MoveWindowIntoZoneByDirection(HWND window, DWORD vkCode) noexcept
+IFACEMETHODIMP_(void)
+ZoneWindow::MoveWindowIntoZoneByDirection(HWND window, DWORD vkCode) noexcept
 {
     if (m_activeZoneSet)
     {
@@ -300,7 +314,8 @@ IFACEMETHODIMP_(void) ZoneWindow::MoveWindowIntoZoneByDirection(HWND window, DWO
     }
 }
 
-IFACEMETHODIMP_(void) ZoneWindow::CycleActiveZoneSet(DWORD wparam) noexcept
+IFACEMETHODIMP_(void)
+ZoneWindow::CycleActiveZoneSet(DWORD wparam) noexcept
 {
     CycleActiveZoneSetInternal(wparam, Trace::ZoneWindow::InputMode::Keyboard);
 
@@ -314,7 +329,8 @@ IFACEMETHODIMP_(void) ZoneWindow::CycleActiveZoneSet(DWORD wparam) noexcept
     }
 }
 
-IFACEMETHODIMP_(void) ZoneWindow::SaveWindowProcessToZoneIndex(HWND window) noexcept
+IFACEMETHODIMP_(void)
+ZoneWindow::SaveWindowProcessToZoneIndex(HWND window) noexcept
 {
     auto processPath = get_process_path(window);
     if (!processPath.empty())
@@ -373,8 +389,7 @@ void ZoneWindow::InitializeId(PCWSTR deviceId, PCWSTR virtualDesktopId) noexcept
         ParseDeviceId(m_deviceId.get(), parsedId, 256);
 
         Rect const monitorRect(mi.rcMonitor);
-        StringCchPrintf(m_uniqueId, ARRAYSIZE(m_uniqueId), L"%s_%d_%d_%s",
-            parsedId, monitorRect.width(), monitorRect.height(), virtualDesktopId);
+        StringCchPrintf(m_uniqueId, ARRAYSIZE(m_uniqueId), L"%s_%d_%d_%s", parsedId, monitorRect.width(), monitorRect.height(), virtualDesktopId);
     }
 }
 
@@ -404,28 +419,30 @@ void ZoneWindow::InitializeZoneSets(MONITORINFO const& mi) noexcept
 
 void ZoneWindow::CalculateZoneSet() noexcept
 {
-  const auto& deviceInfoMap = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap();
+    const auto& deviceInfoMap = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap();
 
-  const auto& activeZoneSet = deviceInfoMap.at(std::wstring{ m_uniqueId }).activeZoneSet;
-  if (!activeZoneSet.uuid.empty()) {
-    GUID zoneSetId;
-    if (SUCCEEDED_LOG(CLSIDFromString(activeZoneSet.uuid.c_str(), &zoneSetId))) {
-        auto zoneSet = MakeZoneSet(ZoneSetConfig(
-            zoneSetId,
-            activeZoneSet.type,
-            m_monitor,
-            m_workArea));
-      MONITORINFO monitorInfo{};
-      monitorInfo.cbSize = sizeof(monitorInfo);
-      if (GetMonitorInfoW(m_monitor, &monitorInfo))
-      {
-        int spacing = deviceInfoMap.at(std::wstring{ m_uniqueId }).spacing;
-        int zoneCount = activeZoneSet.zoneCount.has_value() ? activeZoneSet.zoneCount.value() : 0;
-        zoneSet->CalculateZones(monitorInfo, zoneCount, spacing, m_appliedZoneSetPath);
-        UpdateActiveZoneSet(zoneSet.get());
-      }
+    const auto& activeZoneSet = deviceInfoMap.at(std::wstring{ m_uniqueId }).activeZoneSet;
+    if (!activeZoneSet.uuid.empty())
+    {
+        GUID zoneSetId;
+        if (SUCCEEDED_LOG(CLSIDFromString(activeZoneSet.uuid.c_str(), &zoneSetId)))
+        {
+            auto zoneSet = MakeZoneSet(ZoneSetConfig(
+                zoneSetId,
+                activeZoneSet.type,
+                m_monitor,
+                m_workArea));
+            MONITORINFO monitorInfo{};
+            monitorInfo.cbSize = sizeof(monitorInfo);
+            if (GetMonitorInfoW(m_monitor, &monitorInfo))
+            {
+                int spacing = deviceInfoMap.at(std::wstring{ m_uniqueId }).spacing;
+                int zoneCount = activeZoneSet.zoneCount.has_value() ? activeZoneSet.zoneCount.value() : 0;
+                zoneSet->CalculateZones(monitorInfo, zoneCount, spacing, m_appliedZoneSetPath);
+                UpdateActiveZoneSet(zoneSet.get());
+            }
+        }
     }
-  }
 }
 
 void ZoneWindow::UpdateActiveZoneSet(_In_opt_ IZoneSet* zoneSet) noexcept
@@ -446,41 +463,39 @@ LRESULT ZoneWindow::WndProc(UINT message, WPARAM wparam, LPARAM lparam) noexcept
 {
     switch (message)
     {
-        case WM_NCDESTROY:
+    case WM_NCDESTROY: {
+        ::DefWindowProc(m_window.get(), message, wparam, lparam);
+        SetWindowLongPtr(m_window.get(), GWLP_USERDATA, 0);
+    }
+    break;
+
+    case WM_ERASEBKGND:
+        return 1;
+
+    case WM_PRINTCLIENT:
+    case WM_PAINT: {
+        PAINTSTRUCT ps;
+        wil::unique_hdc hdc{ reinterpret_cast<HDC>(wparam) };
+        if (!hdc)
         {
-            ::DefWindowProc(m_window.get(), message, wparam, lparam);
-            SetWindowLongPtr(m_window.get(), GWLP_USERDATA, 0);
+            hdc.reset(BeginPaint(m_window.get(), &ps));
         }
-        break;
 
-        case WM_ERASEBKGND:
-            return 1;
+        OnPaint(hdc);
 
-        case WM_PRINTCLIENT:
-        case WM_PAINT:
+        if (wparam == 0)
         {
-            PAINTSTRUCT ps;
-            wil::unique_hdc hdc{ reinterpret_cast<HDC>(wparam) };
-            if (!hdc)
-            {
-                hdc.reset(BeginPaint(m_window.get(), &ps));
-            }
-
-            OnPaint(hdc);
-
-            if (wparam == 0)
-            {
-                EndPaint(m_window.get(), &ps);
-            }
-
-            hdc.release();
+            EndPaint(m_window.get(), &ps);
         }
-        break;
 
-        default:
-        {
-            return DefWindowProc(m_window.get(), message, wparam, lparam);
-        }
+        hdc.release();
+    }
+    break;
+
+    default:
+    {
+        return DefWindowProc(m_window.get(), message, wparam, lparam);
+    }
     }
     return 0;
 }
@@ -544,15 +559,19 @@ void ZoneWindow::DrawIndex(wil::unique_hdc& hdc, POINT offset, size_t index, int
             RECT useRect = rect;
             if (flipX)
             {
-                if (x == 0) useRect.left += (size + padding + size + padding);
-                else if (x == 2) useRect.left -= (size + padding + size + padding);
+                if (x == 0)
+                    useRect.left += (size + padding + size + padding);
+                else if (x == 2)
+                    useRect.left -= (size + padding + size + padding);
                 useRect.right = useRect.left + size;
             }
 
             if (flipY)
             {
-                if (y == 0) useRect.top += (size + padding + size + padding);
-                else if (y == 2) useRect.top -= (size + padding + size + padding);
+                if (y == 0)
+                    useRect.top += (size + padding + size + padding);
+                else if (y == 2)
+                    useRect.top -= (size + padding + size + padding);
                 useRect.bottom = useRect.top + size;
             }
 
@@ -635,8 +654,7 @@ void ZoneWindow::DrawActiveZoneSet(wil::unique_hdc& hdc, RECT const& clientRect)
             colorHighlight.border = RGB(
                 max(0, GetRValue(colorHighlight.fill) - 25),
                 max(0, GetGValue(colorHighlight.fill) - 25),
-                max(0, GetBValue(colorHighlight.fill) - 25)
-            );
+                max(0, GetBValue(colorHighlight.fill) - 25));
             DrawZone(hdc, colorHighlight, m_highlightZone);
         }
     }
@@ -773,13 +791,12 @@ void ZoneWindow::FlashZones() noexcept
     m_flashMode = true;
 
     ShowWindow(m_window.get(), SW_SHOWNA);
-    std::thread([window = m_window.get()]()
-        {
-            AnimateWindow(window, m_flashDuration, AW_HIDE | AW_BLEND);
-        }).detach();
+    std::thread([window = m_window.get()]() {
+        AnimateWindow(window, m_flashDuration, AW_HIDE | AW_BLEND);
+    }).detach();
 }
 
-typedef BOOL(WINAPI *GetDpiForMonitorInternalFunc)(HMONITOR, UINT, UINT*, UINT*);
+typedef BOOL(WINAPI* GetDpiForMonitorInternalFunc)(HMONITOR, UINT, UINT*, UINT*);
 UINT ZoneWindow::GetDpiForMonitor() noexcept
 {
     UINT dpi{};
@@ -814,7 +831,7 @@ LRESULT CALLBACK ZoneWindow::s_WndProc(HWND window, UINT message, WPARAM wparam,
     }
 
     return (thisRef != nullptr) ? thisRef->WndProc(message, wparam, lparam) :
-        DefWindowProc(window, message, wparam, lparam);
+                                  DefWindowProc(window, message, wparam, lparam);
 }
 
 winrt::com_ptr<IZoneWindow> MakeZoneWindow(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monitor, PCWSTR deviceId, PCWSTR virtualDesktopId, bool flashZones) noexcept
