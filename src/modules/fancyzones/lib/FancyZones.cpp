@@ -402,7 +402,7 @@ void FancyZones::ToggleEditor() noexcept
 
     auto zoneWindow = iter->second;
 
-    JSONHelpers::FancyZonesDataInstance().CustomZoneSetsToJsonFile(zoneWindow->GetCustomZoneSetsTmpPath());
+    JSONHelpers::FancyZonesDataInstance().CustomZoneSetsToJsonFile(ZoneWindowUtils::GetCustomZoneSetsTmpPath());
 
     const auto taskbar_x_offset = MulDiv(mi.rcWork.left - mi.rcMonitor.left, DPIAware::DEFAULT_DPI, dpi_x);
     const auto taskbar_y_offset = MulDiv(mi.rcWork.top - mi.rcMonitor.top, DPIAware::DEFAULT_DPI, dpi_y);
@@ -421,16 +421,16 @@ void FancyZones::ToggleEditor() noexcept
     const auto& deviceInfo = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap().at(zoneWindow->UniqueId());
 
     JSONHelpers::DeviceInfoJSON deviceInfoJson{ zoneWindow->UniqueId(), deviceInfo };
-    JSONHelpers::FancyZonesDataInstance().SerializeDeviceInfoToTmpFile(deviceInfoJson, zoneWindow->GetActiveZoneSetTmpPath());
+    JSONHelpers::FancyZonesDataInstance().SerializeDeviceInfoToTmpFile(deviceInfoJson, ZoneWindowUtils::GetActiveZoneSetTmpPath());
 
     const std::wstring params =
         /*1*/ std::to_wstring(reinterpret_cast<UINT_PTR>(monitor)) + L" " +
         /*2*/ editorLocation + L" " +
         /*3*/ zoneWindow->WorkAreaKey() + L" " +
         /*4*/ std::to_wstring(static_cast<float>(dpi_x) / DPIAware::DEFAULT_DPI) + L" " +
-        /*5*/ zoneWindow->GetActiveZoneSetTmpPath() + L" " +
-        /*6*/ zoneWindow->GetAppliedZoneSetTmpPath() + L" " +
-        /*7*/ zoneWindow->GetCustomZoneSetsTmpPath();
+        /*5*/ ZoneWindowUtils::GetActiveZoneSetTmpPath() + L" " +
+        /*6*/ ZoneWindowUtils::GetAppliedZoneSetTmpPath() + L" " +
+        /*7*/ ZoneWindowUtils::GetCustomZoneSetsTmpPath();
 
     SHELLEXECUTEINFO sei{ sizeof(sei) };
     sei.fMask = { SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI };

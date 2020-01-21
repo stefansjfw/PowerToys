@@ -78,26 +78,30 @@ namespace FancyZonesUnitTests
 
             m_uniqueId << L"DELA026#5&10a58c63&0&UID16777488_" << m_monitorInfo.rcMonitor.right << "_" << m_monitorInfo.rcMonitor.bottom << "_MyVirtualDesktopId";
 
+            Assert::IsFalse(ZoneWindowUtils::GetActiveZoneSetTmpPath().empty());
+            Assert::IsFalse(ZoneWindowUtils::GetAppliedZoneSetTmpPath().empty());
+            Assert::IsFalse(ZoneWindowUtils::GetCustomZoneSetsTmpPath().empty());
+
+            Assert::IsFalse(std::filesystem::exists(ZoneWindowUtils::GetActiveZoneSetTmpPath()));
+            Assert::IsFalse(std::filesystem::exists(ZoneWindowUtils::GetAppliedZoneSetTmpPath()));
+            Assert::IsFalse(std::filesystem::exists(ZoneWindowUtils::GetCustomZoneSetsTmpPath()));
+
             m_fancyZonesData = JSONHelpers::FancyZonesData();
         }
 
         TEST_METHOD_CLEANUP(Cleanup)
         {
-            if (m_zoneWindow)
-            {
-                //cleanup if temp files were created
-                std::filesystem::remove(m_zoneWindow->GetActiveZoneSetTmpPath());
-                std::filesystem::remove(m_zoneWindow->GetAppliedZoneSetTmpPath());
-                std::filesystem::remove(m_zoneWindow->GetCustomZoneSetsTmpPath());
-                m_zoneWindow = nullptr;
-            }
+            //cleanup temp files if were created
+            std::filesystem::remove(ZoneWindowUtils::GetActiveZoneSetTmpPath());
+            std::filesystem::remove(ZoneWindowUtils::GetAppliedZoneSetTmpPath());
+            std::filesystem::remove(ZoneWindowUtils::GetCustomZoneSetsTmpPath());
+
+            m_zoneWindow = nullptr;
         }
 
         winrt::com_ptr<IZoneWindow> InitZoneWindowWithActiveZoneSet()
         {
-            auto zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
-
-            const auto activeZoneSetTempPath = zoneWindow->GetActiveZoneSetTmpPath();
+            const auto activeZoneSetTempPath = ZoneWindowUtils::GetActiveZoneSetTmpPath();
             Logger::WriteMessage(activeZoneSetTempPath.c_str());
             Assert::IsFalse(std::filesystem::exists(activeZoneSetTempPath));
 
@@ -121,9 +125,6 @@ namespace FancyZonesUnitTests
             Assert::AreEqual(m_deviceId, zoneWindow->DeviceId());
             Assert::AreEqual(m_uniqueId.str().c_str(), zoneWindow->UniqueId().c_str());
             Assert::AreEqual(expectedWorkArea, zoneWindow->WorkAreaKey());
-            Assert::IsFalse(zoneWindow->GetActiveZoneSetTmpPath().empty());
-            Assert::IsFalse(zoneWindow->GetAppliedZoneSetTmpPath().empty());
-            Assert::IsFalse(zoneWindow->GetCustomZoneSetsTmpPath().empty());
         }
 
     public:
@@ -192,9 +193,6 @@ namespace FancyZonesUnitTests
             Assert::IsTrue(m_zoneWindow->DeviceId().empty());
             Assert::AreEqual(expectedUniqueId.c_str(), m_zoneWindow->UniqueId().c_str());
             Assert::AreEqual(expectedWorkArea, m_zoneWindow->WorkAreaKey());
-            Assert::IsFalse(m_zoneWindow->GetActiveZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetAppliedZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetCustomZoneSetsTmpPath().empty());
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
         }
 
@@ -207,9 +205,6 @@ namespace FancyZonesUnitTests
             Assert::IsFalse(m_zoneWindow->IsDragEnabled());
             Assert::AreEqual(m_deviceId.c_str(), m_zoneWindow->DeviceId().c_str());
             Assert::IsTrue(m_zoneWindow->UniqueId().empty());
-            Assert::IsFalse(m_zoneWindow->GetActiveZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetAppliedZoneSetTmpPath().empty());
-            Assert::IsFalse(m_zoneWindow->GetCustomZoneSetsTmpPath().empty());
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
             Assert::IsNull(m_zoneWindow->ActiveZoneSet());
         }
@@ -217,10 +212,8 @@ namespace FancyZonesUnitTests
         TEST_METHOD(CreateZoneWindowWithActiveZoneTmpFile)
         {
             using namespace JSONHelpers;
-
-            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
-
-            const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
+            
+            const auto activeZoneSetTempPath = ZoneWindowUtils::GetActiveZoneSetTmpPath();
 
             for (int type = static_cast<int>(ZoneSetLayoutType::Focus); type < static_cast<int>(ZoneSetLayoutType::Custom); type++)
             {
@@ -245,9 +238,7 @@ namespace FancyZonesUnitTests
         {
             using namespace JSONHelpers;
 
-            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
-
-            const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
+            const auto activeZoneSetTempPath = ZoneWindowUtils::GetActiveZoneSetTmpPath();
 
             const ZoneSetLayoutType type = ZoneSetLayoutType::Custom;
             const auto expectedZoneSet = ZoneSetData{ guidString(), type, 5 };
@@ -271,11 +262,9 @@ namespace FancyZonesUnitTests
         {
             using namespace JSONHelpers;
 
-            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
-
             //save required data
-            const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
-            const auto appliedZoneSetTempPath = m_zoneWindow->GetAppliedZoneSetTmpPath();
+            const auto activeZoneSetTempPath = ZoneWindowUtils::GetActiveZoneSetTmpPath();
+            const auto appliedZoneSetTempPath = ZoneWindowUtils::GetAppliedZoneSetTmpPath();
 
             const ZoneSetLayoutType type = ZoneSetLayoutType::Custom;
             const auto expectedZoneSet = ZoneSetData{ guidString(), type, 5 };
@@ -306,12 +295,10 @@ namespace FancyZonesUnitTests
         {
             using namespace JSONHelpers;
 
-            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
-
             //save required data
-            const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
-            const auto appliedZoneSetTempPath = m_zoneWindow->GetAppliedZoneSetTmpPath();
-            const auto deletedZonesTempPath = m_zoneWindow->GetCustomZoneSetsTmpPath();
+            const auto activeZoneSetTempPath = ZoneWindowUtils::GetActiveZoneSetTmpPath();
+            const auto appliedZoneSetTempPath = ZoneWindowUtils::GetAppliedZoneSetTmpPath();
+            const auto deletedZonesTempPath = ZoneWindowUtils::GetCustomZoneSetsTmpPath();
 
             const ZoneSetLayoutType type = ZoneSetLayoutType::Custom;
             const auto expectedZoneSet = ZoneSetData{ guidString(), type, 5 };
@@ -349,12 +336,10 @@ namespace FancyZonesUnitTests
         {
             using namespace JSONHelpers;
 
-            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
-
             //save required data
-            const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
-            const auto appliedZoneSetTempPath = m_zoneWindow->GetAppliedZoneSetTmpPath();
-            const auto deletedZonesTempPath = m_zoneWindow->GetCustomZoneSetsTmpPath();
+            const auto activeZoneSetTempPath = ZoneWindowUtils::GetActiveZoneSetTmpPath();
+            const auto appliedZoneSetTempPath = ZoneWindowUtils::GetAppliedZoneSetTmpPath();
+            const auto deletedZonesTempPath = ZoneWindowUtils::GetCustomZoneSetsTmpPath();
 
             const ZoneSetLayoutType type = ZoneSetLayoutType::Custom;
             const auto expectedZoneSet = ZoneSetData{ guidString(), type, 5 };
@@ -448,17 +433,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(MoveSizeEnd)
         {
-            //prepare data
-            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
-            const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
-            const auto type = JSONHelpers::ZoneSetLayoutType::Columns;
-            const auto expectedZoneSet = JSONHelpers::ZoneSetData{ guidString(), type, 5 };
-            const auto data = JSONHelpers::DeviceInfoData{ expectedZoneSet, true, 16, 3 };
-            const auto deviceInfo = JSONHelpers::DeviceInfoJSON{ L"default_device_id", data };
-            const auto json = JSONHelpers::DeviceInfoJSON::ToJson(deviceInfo);
-            json::to_file(activeZoneSetTempPath, json);
-
-            auto zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            auto zoneWindow = InitZoneWindowWithActiveZoneSet();
 
             const auto window = Mocks::Window();
             zoneWindow->MoveSizeEnter(window, true);
@@ -475,17 +450,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(MoveSizeEndWindowNotAdded)
         {
-            //prepare data
-            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
-            const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
-            const auto type = JSONHelpers::ZoneSetLayoutType::Columns;
-            const auto expectedZoneSet = JSONHelpers::ZoneSetData{ guidString(), type, 5 };
-            const auto data = JSONHelpers::DeviceInfoData{ expectedZoneSet, true, 16, 3 };
-            const auto deviceInfo = JSONHelpers::DeviceInfoJSON{ L"default_device_id", data };
-            const auto json = JSONHelpers::DeviceInfoJSON::ToJson(deviceInfo);
-            json::to_file(activeZoneSetTempPath, json);
-
-            auto zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            auto zoneWindow = InitZoneWindowWithActiveZoneSet();
 
             const auto window = Mocks::Window();
             zoneWindow->MoveSizeEnter(window, true);
@@ -524,17 +489,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(MoveSizeEndInvalidPoint)
         {
-            //prepare data
-            m_zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
-            const auto activeZoneSetTempPath = m_zoneWindow->GetActiveZoneSetTmpPath();
-            const auto type = JSONHelpers::ZoneSetLayoutType::Columns;
-            const auto expectedZoneSet = JSONHelpers::ZoneSetData{ guidString(), type, 5 };
-            const auto data = JSONHelpers::DeviceInfoData{ expectedZoneSet, true, 16, 3 };
-            const auto deviceInfo = JSONHelpers::DeviceInfoJSON{ L"default_device_id", data };
-            const auto json = JSONHelpers::DeviceInfoJSON::ToJson(deviceInfo);
-            json::to_file(activeZoneSetTempPath, json);
-
-            auto zoneWindow = MakeZoneWindow(m_hostPtr, m_hInst, m_monitor, m_deviceId.c_str(), m_virtualDesktopId.c_str(), false);
+            auto zoneWindow = InitZoneWindowWithActiveZoneSet();
 
             const auto window = Mocks::Window();
             zoneWindow->MoveSizeEnter(window, true);

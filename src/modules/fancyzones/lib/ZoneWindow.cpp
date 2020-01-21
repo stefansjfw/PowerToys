@@ -10,59 +10,57 @@
 #include <ShellScalingApi.h>
 #include <mutex>
 
-namespace {
-    enum class TTmpFileType {
-        EActiveZoneSetFile = 0,
-        EAppliedZoneSetFile,
-        ECustomZoneSetsFile
-    };
+namespace ZoneWindowUtils
+{
+    const std::wstring& GetActiveZoneSetTmpPath()
+    {
+        static std::wstring activeZoneSetTmpFileName;
+        static std::once_flag flag;
 
-  std::wstring GenerateTmpFileName(TTmpFileType type)
-  {
-    static std::wstring activeZoneSetTmpFileName;
-    static std::wstring appliedZoneSetTmpFileName;
-    static std::wstring customZoneSetsTmpFileName;
-    static std::once_flag f1, f2, f3;
+        std::call_once(flag, []() {
+            wchar_t fileName[L_tmpnam_s];
 
-    std::call_once(f1, []() {
-        wchar_t fileName[L_tmpnam_s];
+            if (_wtmpnam_s(fileName, L_tmpnam_s) != 0)
+                abort();
 
-        if (_wtmpnam_s(fileName, L_tmpnam_s) != 0)
-            abort();
+            activeZoneSetTmpFileName = std::wstring{ fileName };
+        });
 
-        activeZoneSetTmpFileName = std::wstring{ fileName };
-    });
+        return activeZoneSetTmpFileName;
+    }
 
-    std::call_once(f2, []() {
-        wchar_t fileName[L_tmpnam_s];
+    const std::wstring& GetAppliedZoneSetTmpPath()
+    {
+        static std::wstring appliedZoneSetTmpFileName;
+        static std::once_flag flag;
 
-        if (_wtmpnam_s(fileName, L_tmpnam_s) != 0)
-            abort();
+        std::call_once(flag, []() {
+            wchar_t fileName[L_tmpnam_s];
 
-        appliedZoneSetTmpFileName = std::wstring{ fileName };
-    });
+            if (_wtmpnam_s(fileName, L_tmpnam_s) != 0)
+                abort();
 
-    std::call_once(f3, []() {
-      wchar_t fileName[L_tmpnam_s];
+            appliedZoneSetTmpFileName = std::wstring{ fileName };
+        });
 
-      if (_wtmpnam_s(fileName, L_tmpnam_s) != 0)
-          abort();
+        return appliedZoneSetTmpFileName;
+    }
 
-      customZoneSetsTmpFileName = std::wstring{ fileName };
-    });
+    const std::wstring& GetCustomZoneSetsTmpPath()
+    {
+        static std::wstring customZoneSetsTmpFileName;
+        static std::once_flag flag;
 
+        std::call_once(flag, []() {
+            wchar_t fileName[L_tmpnam_s];
 
-        switch (type)
-        {
-        case TTmpFileType::EActiveZoneSetFile:
-            return activeZoneSetTmpFileName;
-        case TTmpFileType::EAppliedZoneSetFile:
-            return appliedZoneSetTmpFileName;
-        case TTmpFileType::ECustomZoneSetsFile:
-            return customZoneSetsTmpFileName;
-        }
+            if (_wtmpnam_s(fileName, L_tmpnam_s) != 0)
+                abort();
 
-        return L"";
+            customZoneSetsTmpFileName = std::wstring{ fileName };
+        });
+
+        return customZoneSetsTmpFileName;
     }
 }
 
@@ -94,12 +92,6 @@ public:
     SaveWindowProcessToZoneIndex(HWND window) noexcept;
     IFACEMETHODIMP_(IZoneSet*)
     ActiveZoneSet() noexcept { return m_activeZoneSet.get(); }
-    IFACEMETHOD_(std::wstring, GetActiveZoneSetTmpPath)
-    () noexcept { return m_activeZoneSetPath; };
-    IFACEMETHOD_(std::wstring, GetAppliedZoneSetTmpPath)
-    () noexcept { return m_appliedZoneSetPath; };
-    IFACEMETHOD_(std::wstring, GetCustomZoneSetsTmpPath)
-    () noexcept { return m_customZoneSetsPath; };
 
 protected:
     static LRESULT CALLBACK s_WndProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) noexcept;
@@ -145,9 +137,6 @@ private:
     bool m_flashMode{};
     bool m_dragEnabled{};
     winrt::com_ptr<IZoneSet> m_activeZoneSet;
-    std::wstring m_activeZoneSetPath;
-    std::wstring m_appliedZoneSetPath;
-    std::wstring m_customZoneSetsPath;
     std::vector<winrt::com_ptr<IZoneSet>> m_zoneSets;
     winrt::com_ptr<IZone> m_highlightZone;
     WPARAM m_keyLast{};
@@ -156,12 +145,8 @@ private:
     static const UINT m_flashDuration = 700; // ms
 };
 
-ZoneWindow::ZoneWindow(HINSTANCE hinstance) 
+ZoneWindow::ZoneWindow(HINSTANCE hinstance)
 {
-    m_activeZoneSetPath = GenerateTmpFileName(TTmpFileType::EActiveZoneSetFile);
-    m_appliedZoneSetPath = GenerateTmpFileName(TTmpFileType::EAppliedZoneSetFile);
-    m_customZoneSetsPath = GenerateTmpFileName(TTmpFileType::ECustomZoneSetsFile);
-
     WNDCLASSEXW wcex{};
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.lpfnWndProc = s_WndProc;
@@ -175,10 +160,10 @@ bool ZoneWindow::Init(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monit
 {
     if (!host)
     {
-        return false;    
+        return false;
     }
     m_host.copy_from(host);
-        
+
     MONITORINFO mi{};
     mi.cbSize = sizeof(mi);
     if (!GetMonitorInfoW(monitor, &mi))
@@ -399,10 +384,8 @@ void ZoneWindow::LoadSettings() noexcept
         JSONHelpers::FancyZonesDataInstance().MigrateDeviceInfoFromRegistry(m_uniqueId);
     }
   
-    JSONHelpers::FancyZonesDataInstance().ParseDeviceInfoFromTmpFile(m_uniqueId, m_activeZoneSetPath);
-    const WCHAR* activeZoneSetStr = deviceInfoMap.at(m_uniqueId).activeZoneSet.uuid.c_str();
-
-    JSONHelpers::FancyZonesDataInstance().ParseDeletedCustomZoneSetsFromTmpFile(m_customZoneSetsPath);
+    JSONHelpers::FancyZonesDataInstance().ParseDeviceInfoFromTmpFile(m_uniqueId, ZoneWindowUtils::GetActiveZoneSetTmpPath());
+    JSONHelpers::FancyZonesDataInstance().ParseDeletedCustomZoneSetsFromTmpFile(ZoneWindowUtils::GetCustomZoneSetsTmpPath());
 }
 
 void ZoneWindow::InitializeZoneSets(MONITORINFO const& mi) noexcept
@@ -436,7 +419,7 @@ void ZoneWindow::CalculateZoneSet() noexcept
             {
                 int spacing = deviceInfoMap.at(std::wstring{ m_uniqueId }).spacing;
                 int zoneCount = activeZoneSet.zoneCount.has_value() ? activeZoneSet.zoneCount.value() : 0;
-                zoneSet->CalculateZones(monitorInfo, zoneCount, spacing, m_appliedZoneSetPath);
+                zoneSet->CalculateZones(monitorInfo, zoneCount, spacing, ZoneWindowUtils::GetAppliedZoneSetTmpPath());
                 UpdateActiveZoneSet(zoneSet.get());
             }
         }
@@ -819,3 +802,4 @@ winrt::com_ptr<IZoneWindow> MakeZoneWindow(IZoneWindowHost* host, HINSTANCE hins
 
     return nullptr;
 }
+
