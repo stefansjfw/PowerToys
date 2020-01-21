@@ -7,7 +7,7 @@
 interface __declspec(uuid("{E4839EB7-669D-49CF-84A9-71A2DFD851A3}")) IZoneSet : public IUnknown
 {
     IFACEMETHOD_(GUID, Id)() = 0;
-    IFACEMETHOD_(WORD, LayoutId)() = 0;
+    IFACEMETHOD_(JSONHelpers::ZoneSetLayoutType, LayoutType)() = 0;
     IFACEMETHOD(AddZone)(winrt::com_ptr<IZone> zone) = 0;
     IFACEMETHOD_(winrt::com_ptr<IZone>, ZoneFromPoint)(POINT pt) = 0;
     IFACEMETHOD_(int, GetZoneIndexFromWindow)(HWND window) = 0;
@@ -16,7 +16,7 @@ interface __declspec(uuid("{E4839EB7-669D-49CF-84A9-71A2DFD851A3}")) IZoneSet : 
     IFACEMETHOD_(void, MoveWindowIntoZoneByDirection)(HWND window, HWND zoneWindow, DWORD vkCode) = 0;
     IFACEMETHOD_(void, MoveWindowIntoZoneByPoint)(HWND window, HWND zoneWindow, POINT ptClient) = 0;
     IFACEMETHOD_(bool, CalculateZones)
-    (MONITORINFO monitorInfo, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing, const std::wstring& customZoneSetFilePath) = 0;
+    (MONITORINFO monitorInfo, int zoneCount, int spacing, const std::wstring& customZoneSetFilePath) = 0;
 };
 
 #define VERSION_PERSISTEDDATA 0x0000F00D
@@ -48,18 +48,18 @@ struct ZoneSetConfig
 {
     ZoneSetConfig(
         GUID id,
-        WORD layoutId,
+        JSONHelpers::ZoneSetLayoutType layoutType,
         HMONITOR monitor,
         PCWSTR resolutionKey) noexcept :
             Id(id),
-            LayoutId(layoutId),
+            LayoutType(layoutType),
             Monitor(monitor),
             ResolutionKey(resolutionKey)
     {
     }
 
     GUID Id{};
-    WORD LayoutId{};
+    JSONHelpers::ZoneSetLayoutType LayoutType{};
     HMONITOR Monitor{};
     PCWSTR ResolutionKey{};
 };

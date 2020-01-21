@@ -119,8 +119,8 @@ public:
 
     IFACEMETHODIMP_(GUID)
     Id() noexcept { return m_config.Id; }
-    IFACEMETHODIMP_(WORD)
-    LayoutId() noexcept { return m_config.LayoutId; }
+    IFACEMETHODIMP_(JSONHelpers::ZoneSetLayoutType)
+    LayoutType() noexcept { return m_config.LayoutType; }
     IFACEMETHODIMP AddZone(winrt::com_ptr<IZone> zone) noexcept;
     IFACEMETHODIMP_(winrt::com_ptr<IZone>)
     ZoneFromPoint(POINT pt) noexcept;
@@ -135,7 +135,7 @@ public:
     IFACEMETHODIMP_(void)
     MoveWindowIntoZoneByPoint(HWND window, HWND zoneWindow, POINT ptClient) noexcept;
     IFACEMETHODIMP_(bool)
-    CalculateZones(MONITORINFO monitorInfo, JSONHelpers::ZoneSetLayoutType type, int zoneCount, int spacing, const std::wstring& customZoneSetFilePath) noexcept;
+    CalculateZones(MONITORINFO monitorInfo, int zoneCount, int spacing, const std::wstring& customZoneSetFilePath) noexcept;
 
 private:
     bool CalculateFocusLayout(Rect workArea, int zoneCount) noexcept;
@@ -299,7 +299,7 @@ ZoneSet::MoveWindowIntoZoneByPoint(HWND window, HWND zoneWindow, POINT ptClient)
 }
 
 IFACEMETHODIMP_(bool)
-ZoneSet::CalculateZones(MONITORINFO monitorInfo, JSONHelpers::ZoneSetLayoutType layoutType, int zoneCount, int spacing, const std::wstring& customZoneSetFilePath) noexcept
+ZoneSet::CalculateZones(MONITORINFO monitorInfo, int zoneCount, int spacing, const std::wstring& customZoneSetFilePath) noexcept
 {
     Rect const workArea(monitorInfo.rcWork);
     //invalid work area
@@ -309,24 +309,24 @@ ZoneSet::CalculateZones(MONITORINFO monitorInfo, JSONHelpers::ZoneSetLayoutType 
     }
 
     //invalid zoneCount, may cause division by zero
-    if (zoneCount <= 0 && layoutType != JSONHelpers::ZoneSetLayoutType::Custom)
+    if (zoneCount <= 0 && m_config.LayoutType != JSONHelpers::ZoneSetLayoutType::Custom)
     {
         return false;
     }
 
     bool success = true;
-    switch (layoutType)
+    switch (m_config.LayoutType)
     {
     case JSONHelpers::ZoneSetLayoutType::Focus:
         success = CalculateFocusLayout(workArea, zoneCount);
         break;
     case JSONHelpers::ZoneSetLayoutType::Columns:
     case JSONHelpers::ZoneSetLayoutType::Rows:
-        success = CalculateColumnsAndRowsLayout(workArea, layoutType, zoneCount, spacing);
+        success = CalculateColumnsAndRowsLayout(workArea, m_config.LayoutType, zoneCount, spacing);
         break;
     case JSONHelpers::ZoneSetLayoutType::Grid:
     case JSONHelpers::ZoneSetLayoutType::PriorityGrid:
-        success = CalculateGridLayout(workArea, layoutType, zoneCount, spacing);
+        success = CalculateGridLayout(workArea, m_config.LayoutType, zoneCount, spacing);
         break;
     case JSONHelpers::ZoneSetLayoutType::Custom:
         success = CalculateCustomLayout(workArea, customZoneSetFilePath, spacing);

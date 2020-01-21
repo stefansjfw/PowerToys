@@ -35,7 +35,6 @@ namespace JSONHelpers
     ZoneSetLayoutType TypeFromString(const std::wstring& typeStr);
 
     ZoneSetLayoutType TypeFromLayoutId(int layoutID);
-    int TypeToLayoutId(JSONHelpers::ZoneSetLayoutType layoutType);
 
     using TZoneCount = int;
     using TZoneUUID = std::wstring;

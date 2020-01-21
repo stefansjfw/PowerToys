@@ -57,26 +57,6 @@ namespace JSONHelpers
         return vec;
     }
 
-    int TypeToLayoutId(JSONHelpers::ZoneSetLayoutType layoutType)
-    {
-        switch (layoutType)
-        {
-        case ZoneSetLayoutType::Focus:
-            return c_focusModelId;
-        case ZoneSetLayoutType::Columns:
-            return c_columnsModelId;
-        case ZoneSetLayoutType::Rows:
-            return c_rowsModelId;
-        case ZoneSetLayoutType::Grid:
-            return c_gridModelId;
-        case ZoneSetLayoutType::PriorityGrid:
-            return c_priorityGridModelId;
-        case ZoneSetLayoutType::Custom:
-            return 0;
-        }
-        return -1; // Error
-    }
-
     ZoneSetLayoutType TypeFromLayoutId(int layoutID)
     {
         switch (layoutID)

@@ -89,26 +89,6 @@ namespace FancyZonesUnitTests
             }
         }
 
-        TEST_METHOD(ZoneSetLayoutTypeToLayoutId)
-        {
-            std::map<int, int> expectedMap = {
-                std::make_pair(-1, -1),
-                std::make_pair(0, 0xFFFF),
-                std::make_pair(1, 0xFFFD),
-                std::make_pair(2, 0xFFFE),
-                std::make_pair(3, 0xFFFC),
-                std::make_pair(4, 0xFFFB),
-                std::make_pair(5, 0),
-                std::make_pair(6, -1),
-            };
-
-            for (const auto& expected : expectedMap)
-            {
-                auto actual = JSONHelpers::TypeToLayoutId(static_cast<ZoneSetLayoutType>(expected.first));
-                Assert::AreEqual(expected.second, actual);
-            }
-        }
-
         TEST_METHOD(ZoneSetLayoutTypeFromLayoutId)
         {
             std::map<ZoneSetLayoutType, int> expectedMap = {

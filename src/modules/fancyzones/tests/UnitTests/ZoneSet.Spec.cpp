@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "lib\JsonHelpers.h"
 #include "lib\ZoneSet.h"
 
 #include <filesystem>
@@ -7,13 +8,15 @@
 #include <common/settings_helpers.h>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
+using TZoneSetLayoutType = JSONHelpers::ZoneSetLayoutType;
 
 namespace FancyZonesUnitTests
 {
+
     TEST_CLASS(ZoneSetUnitTests)
     {
         GUID m_id;
-        const WORD m_layoutId = 0xFFFF;
+        const TZoneSetLayoutType m_layoutType = TZoneSetLayoutType::Custom;
         const PCWSTR m_resolutionKey = L"WorkAreaIn";
 
         winrt::com_ptr<IZoneSet> m_set;
@@ -23,7 +26,7 @@ namespace FancyZonesUnitTests
             auto hres = CoCreateGuid(&m_id);
             Assert::AreEqual(S_OK, hres);
 
-            ZoneSetConfig m_config = ZoneSetConfig(m_id, m_layoutId, Mocks::Monitor(), m_resolutionKey);
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, m_layoutType, Mocks::Monitor(), m_resolutionKey);
             m_set = MakeZoneSet(m_config);
         }
 
@@ -41,36 +44,36 @@ namespace FancyZonesUnitTests
         {
             Assert::IsNotNull(&m_set);
             CustomAssert::AreEqual(m_set->Id(), m_id);
-            CustomAssert::AreEqual(m_set->LayoutId(), m_layoutId);
+            CustomAssert::AreEqual(m_set->LayoutType(), m_layoutType);
         }
 
         TEST_METHOD(TestCreateZoneSetGuidEmpty)
         {
             GUID zoneSetId{};
-            ZoneSetConfig config(zoneSetId, m_layoutId, Mocks::Monitor(), m_resolutionKey);
+            ZoneSetConfig config(zoneSetId, m_layoutType, Mocks::Monitor(), m_resolutionKey);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
 
             Assert::IsNotNull(&set);
             CustomAssert::AreEqual(set->Id(), zoneSetId);
-            CustomAssert::AreEqual(set->LayoutId(), m_layoutId);
+            CustomAssert::AreEqual(set->LayoutType(), m_layoutType);
         }
 
         TEST_METHOD(TestCreateZoneSetMonitorEmpty)
         {
-            ZoneSetConfig config(m_id, m_layoutId, nullptr, m_resolutionKey);
+            ZoneSetConfig config(m_id, m_layoutType, nullptr, m_resolutionKey);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
             Assert::IsNotNull(&set);
             CustomAssert::AreEqual(set->Id(), m_id);
-            CustomAssert::AreEqual(set->LayoutId(), m_layoutId);
+            CustomAssert::AreEqual(set->LayoutType(), m_layoutType);
         }
 
         TEST_METHOD(TestCreateZoneSetKeyEmpty)
         {
-            ZoneSetConfig config(m_id, m_layoutId, Mocks::Monitor(), nullptr);
+            ZoneSetConfig config(m_id, m_layoutType, Mocks::Monitor(), nullptr);
             winrt::com_ptr<IZoneSet> set = MakeZoneSet(config);
             Assert::IsNotNull(&set);
             CustomAssert::AreEqual(set->Id(), m_id);
-            CustomAssert::AreEqual(set->LayoutId(), m_layoutId);
+            CustomAssert::AreEqual(set->LayoutType(), m_layoutType);
         }
 
         TEST_METHOD(EmptyZones)
@@ -502,7 +505,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD_INITIALIZE(Initialize)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn");
+            ZoneSetConfig config({}, TZoneSetLayoutType::Custom, Mocks::Monitor(), L"WorkAreaIn");
             m_set = MakeZoneSet(config);
 
             // Add a couple of zones.
@@ -516,7 +519,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(EmptyZonesLeft)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn");
+            ZoneSetConfig config({}, TZoneSetLayoutType::Custom, Mocks::Monitor(), L"WorkAreaIn");
             auto set = MakeZoneSet(config);
 
             set->MoveWindowIntoZoneByDirection(Mocks::Window(), Mocks::Window(), VK_LEFT);
@@ -524,7 +527,7 @@ namespace FancyZonesUnitTests
 
         TEST_METHOD(EmptyZonesRight)
         {
-            ZoneSetConfig config({}, 0xFFFF, Mocks::Monitor(), L"WorkAreaIn");
+            ZoneSetConfig config({}, TZoneSetLayoutType::Custom, Mocks::Monitor(), L"WorkAreaIn");
             auto set = MakeZoneSet(config);
 
             set->MoveWindowIntoZoneByDirection(Mocks::Window(), Mocks::Window(), VK_RIGHT);
@@ -769,7 +772,7 @@ namespace FancyZonesUnitTests
     TEST_CLASS(ZoneSetCalculateZonesUnitTests)
     {
         GUID m_id;
-        const WORD m_layoutId = 0xFFFF;
+        const TZoneSetLayoutType m_layoutType = TZoneSetLayoutType::Custom;
         const PCWSTR m_resolutionKey = L"WorkAreaIn";
         winrt::com_ptr<IZoneSet> m_set;
 
@@ -788,7 +791,7 @@ namespace FancyZonesUnitTests
             m_monitorInfo.cbSize = sizeof(m_monitorInfo);
             Assert::AreNotEqual(0, GetMonitorInfoW(m_monitor, &m_monitorInfo));
 
-            ZoneSetConfig m_config = ZoneSetConfig(m_id, m_layoutId, m_monitor, m_resolutionKey);
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, m_layoutType, m_monitor, m_resolutionKey);
             m_set = MakeZoneSet(m_config);
         }
 
@@ -826,12 +829,10 @@ namespace FancyZonesUnitTests
 
             for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
             {
-                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
-
-                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, static_cast<TZoneSetLayoutType>(type), m_monitor, m_resolutionKey);
                 auto set = MakeZoneSet(m_config);
 
-                auto result = set->CalculateZones(m_monitorInfo, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                auto result = set->CalculateZones(m_monitorInfo, zoneCount, spacing, L"");
                 Assert::IsTrue(result);
 
                 checkZones(set, zoneCount);
@@ -844,13 +845,11 @@ namespace FancyZonesUnitTests
 
             for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
             {
-                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
-
-                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, static_cast<TZoneSetLayoutType>(type), m_monitor, m_resolutionKey);
                 auto set = MakeZoneSet(m_config);
 
                 MONITORINFO info{};
-                auto result = set->CalculateZones(info, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                auto result = set->CalculateZones(info, zoneCount, spacing, L"");
                 Assert::IsFalse(result);
             }
         }
@@ -862,12 +861,10 @@ namespace FancyZonesUnitTests
 
             for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
             {
-                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
-
-                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, static_cast<TZoneSetLayoutType>(type), m_monitor, m_resolutionKey);
                 auto set = MakeZoneSet(m_config);
 
-                auto result = set->CalculateZones(m_monitorInfo, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                auto result = set->CalculateZones(m_monitorInfo, zoneCount, spacing, L"");
                 Assert::IsTrue(result);
                 checkZones(set, zoneCount);
             }
@@ -880,12 +877,10 @@ namespace FancyZonesUnitTests
 
             for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
             {
-                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
-
-                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, static_cast<TZoneSetLayoutType>(type), m_monitor, m_resolutionKey);
                 auto set = MakeZoneSet(m_config);
 
-                auto result = set->CalculateZones(m_monitorInfo, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                auto result = set->CalculateZones(m_monitorInfo, zoneCount, spacing, L"");
                 if (type == static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus))
                 {
                     //Focus doesn't depends on spacing
@@ -905,12 +900,10 @@ namespace FancyZonesUnitTests
 
             for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
             {
-                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
-
-                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, static_cast<TZoneSetLayoutType>(type), m_monitor, m_resolutionKey);
                 auto set = MakeZoneSet(m_config);
 
-                auto result = set->CalculateZones(m_monitorInfo, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                auto result = set->CalculateZones(m_monitorInfo, zoneCount, spacing, L"");
                 if (type == static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus))
                 {
                     //Focus doesn't depends on spacing
@@ -930,12 +923,10 @@ namespace FancyZonesUnitTests
 
             for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
             {
-                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
-
-                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, static_cast<TZoneSetLayoutType>(type), m_monitor, m_resolutionKey);
                 auto set = MakeZoneSet(m_config);
 
-                auto result = set->CalculateZones(m_monitorInfo, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                auto result = set->CalculateZones(m_monitorInfo, zoneCount, spacing, L"");
                 Logger::WriteMessage(std::to_wstring(type).c_str());
                 if (type == static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus))
                 {
@@ -956,12 +947,10 @@ namespace FancyZonesUnitTests
 
             for (int type = static_cast<int>(JSONHelpers::ZoneSetLayoutType::Focus); type < static_cast<int>(JSONHelpers::ZoneSetLayoutType::Custom); type++)
             {
-                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
-
-                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, static_cast<TZoneSetLayoutType>(type), m_monitor, m_resolutionKey);
                 auto set = MakeZoneSet(m_config);
 
-                auto result = set->CalculateZones(m_monitorInfo, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                auto result = set->CalculateZones(m_monitorInfo, zoneCount, spacing, L"");
                 Assert::IsFalse(result);
             }
         }
@@ -975,12 +964,11 @@ namespace FancyZonesUnitTests
             {
                 const int spacing = 10;
                 const int zoneCount = 100;
-                const auto id = JSONHelpers::TypeToLayoutId(static_cast<JSONHelpers::ZoneSetLayoutType>(type));
 
-                ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+                ZoneSetConfig m_config = ZoneSetConfig(m_id, static_cast<TZoneSetLayoutType>(type), m_monitor, m_resolutionKey);
                 auto set = MakeZoneSet(m_config);
 
-                auto result = set->CalculateZones(m_monitorInfo, static_cast<JSONHelpers::ZoneSetLayoutType>(type), zoneCount, spacing, L"");
+                auto result = set->CalculateZones(m_monitorInfo, zoneCount, spacing, L"");
                 Assert::IsTrue(result);
                 checkZones(set, zoneCount);
             }
@@ -990,8 +978,6 @@ namespace FancyZonesUnitTests
         {
             const int spacing = 10;
             const int zoneCount = 0;
-            const auto type = JSONHelpers::ZoneSetLayoutType::Custom;
-            const auto id = JSONHelpers::TypeToLayoutId(type);
 
             //be sure that file does not exist
             if (std::filesystem::exists(m_path))
@@ -999,10 +985,10 @@ namespace FancyZonesUnitTests
                 std::filesystem::remove(m_path);
             }
 
-            ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, TZoneSetLayoutType::Custom, m_monitor, m_resolutionKey);
             auto set = MakeZoneSet(m_config);
 
-            auto result = set->CalculateZones(m_monitorInfo, type, zoneCount, spacing, m_path);
+            auto result = set->CalculateZones(m_monitorInfo, zoneCount, spacing, m_path);
             Assert::IsFalse(result);
         }
 
@@ -1010,25 +996,20 @@ namespace FancyZonesUnitTests
         {
             const int spacing = 10;
             const int zoneCount = 0;
-            const auto type = JSONHelpers::ZoneSetLayoutType::Custom;
-            const auto id = JSONHelpers::TypeToLayoutId(type);
 
             Assert::IsTrue(std::filesystem::create_directories(m_path));
             Assert::IsTrue(std::filesystem::exists(m_path));
 
-            ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, TZoneSetLayoutType::Custom, m_monitor, m_resolutionKey);
             auto set = MakeZoneSet(m_config);
 
-            auto result = set->CalculateZones(m_monitorInfo, type, zoneCount, spacing, m_path);
+            auto result = set->CalculateZones(m_monitorInfo, zoneCount, spacing, m_path);
             Assert::IsFalse(result);
         }
 
         TEST_METHOD(CustomZoneFromInvalidCanvasLayoutInfo)
         {
             using namespace JSONHelpers;
-
-            const auto type = JSONHelpers::ZoneSetLayoutType::Custom;
-            const auto id = JSONHelpers::TypeToLayoutId(type);
 
             const std::wstring uuid = L"uuid";
             const CanvasLayoutInfo info{ -1, 100, { CanvasLayoutInfo::Rect{ -10, -10, 100, 100 }, CanvasLayoutInfo::Rect{ 50, 50, 150, 150 } } };
@@ -1039,19 +1020,16 @@ namespace FancyZonesUnitTests
             const int spacing = 10;
             const int zoneCount = info.zones.size();
 
-            ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, TZoneSetLayoutType::Custom, m_monitor, m_resolutionKey);
             auto set = MakeZoneSet(m_config);
 
-            auto result = set->CalculateZones(m_monitorInfo, type, zoneCount, spacing, m_path);
+            auto result = set->CalculateZones(m_monitorInfo, zoneCount, spacing, m_path);
             Assert::IsFalse(result);
         }
 
         TEST_METHOD(CustomZoneFromInvalidGridLayoutInfo)
         {
             using namespace JSONHelpers;
-
-            const auto type = JSONHelpers::ZoneSetLayoutType::Custom;
-            const auto id = JSONHelpers::TypeToLayoutId(type);
 
             const std::wstring uuid = L"uuid";
             const GridLayoutInfo grid(GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
@@ -1067,18 +1045,15 @@ namespace FancyZonesUnitTests
             const int spacing = 0;
             const int zoneCount = grid.rows() * grid.columns();
 
-            ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, TZoneSetLayoutType::Custom, m_monitor, m_resolutionKey);
             auto set = MakeZoneSet(m_config);
 
-            auto result = set->CalculateZones(m_monitorInfo, type, zoneCount, spacing, m_path);
+            auto result = set->CalculateZones(m_monitorInfo, zoneCount, spacing, m_path);
             Assert::IsFalse(result);
         }
         TEST_METHOD(CustomZoneFromValidCanvasLayoutInfo)
         {
             using namespace JSONHelpers;
-
-            const auto type = JSONHelpers::ZoneSetLayoutType::Custom;
-            const auto id = JSONHelpers::TypeToLayoutId(type);
 
             const std::wstring uuid = L"uuid";
             const CanvasLayoutInfo info{ 123, 321, { CanvasLayoutInfo::Rect{ 0, 0, 100, 100 }, CanvasLayoutInfo::Rect{ 50, 50, 150, 150 } } };
@@ -1089,10 +1064,10 @@ namespace FancyZonesUnitTests
             const int spacing = 10;
             const int zoneCount = info.zones.size();
 
-            ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, TZoneSetLayoutType::Custom, m_monitor, m_resolutionKey);
             auto set = MakeZoneSet(m_config);
 
-            auto result = set->CalculateZones(m_monitorInfo, type, zoneCount, spacing, m_path);
+            auto result = set->CalculateZones(m_monitorInfo, zoneCount, spacing, m_path);
             Assert::IsTrue(result);
             checkZones(set, zoneCount);
         }
@@ -1100,9 +1075,6 @@ namespace FancyZonesUnitTests
         TEST_METHOD(CustomZoneFromValidGridFullLayoutInfo)
         {
             using namespace JSONHelpers;
-
-            const auto type = JSONHelpers::ZoneSetLayoutType::Custom;
-            const auto id = JSONHelpers::TypeToLayoutId(type);
 
             const std::wstring uuid = L"uuid";
             const GridLayoutInfo grid(GridLayoutInfo(JSONHelpers::GridLayoutInfo::Full{
@@ -1118,10 +1090,10 @@ namespace FancyZonesUnitTests
             const int spacing = 10;
             const int zoneCount = grid.rows() * grid.columns();
 
-            ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, TZoneSetLayoutType::Custom, m_monitor, m_resolutionKey);
             auto set = MakeZoneSet(m_config);
 
-            auto result = set->CalculateZones(m_monitorInfo, type, zoneCount, spacing, m_path);
+            auto result = set->CalculateZones(m_monitorInfo, zoneCount, spacing, m_path);
             Assert::IsTrue(result);
             checkZones(set, zoneCount);
         }
@@ -1129,9 +1101,6 @@ namespace FancyZonesUnitTests
         TEST_METHOD(CustomZoneFromValidGridMinimalLayoutInfo)
         {
             using namespace JSONHelpers;
-
-            const auto type = JSONHelpers::ZoneSetLayoutType::Custom;
-            const auto id = JSONHelpers::TypeToLayoutId(type);
 
             const std::wstring uuid = L"uuid";
             const GridLayoutInfo grid(GridLayoutInfo(JSONHelpers::GridLayoutInfo::Minimal{
@@ -1144,10 +1113,10 @@ namespace FancyZonesUnitTests
             const int spacing = 0;
             const int zoneCount = grid.rows() * grid.columns();
 
-            ZoneSetConfig m_config = ZoneSetConfig(m_id, id, m_monitor, m_resolutionKey);
+            ZoneSetConfig m_config = ZoneSetConfig(m_id, TZoneSetLayoutType::Custom, m_monitor, m_resolutionKey);
             auto set = MakeZoneSet(m_config);
 
-            auto result = set->CalculateZones(m_monitorInfo, type, zoneCount, spacing, m_path);
+            auto result = set->CalculateZones(m_monitorInfo, zoneCount, spacing, m_path);
             Assert::IsFalse(result);
         }
     };
