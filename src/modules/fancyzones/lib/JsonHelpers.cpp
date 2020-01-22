@@ -229,30 +229,40 @@ namespace JSONHelpers
         }
     }
 
-    void FancyZonesData::ParseCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath, const std::wstring& uuid)
+    bool FancyZonesData::ParseCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath, const std::wstring& uuid)
     {
+        bool res = true;
         if (std::filesystem::exists(tmpFilePath))
         {
-            auto customZoneSetJson = json::from_file(tmpFilePath);
-            if (customZoneSetJson.has_value())
+            try
             {
-                const auto customZoneSet = CustomZoneSetJSON::FromJson(*customZoneSetJson);
-                if (customZoneSet.has_value())
+                auto customZoneSetJson = json::from_file(tmpFilePath);
+                if (customZoneSetJson.has_value())
                 {
-                    customZoneSetsMap[uuid] = customZoneSet->data;
+                    const auto customZoneSet = CustomZoneSetJSON::FromJson(*customZoneSetJson);
+                    if (customZoneSet.has_value())
+                    {
+                        customZoneSetsMap[uuid] = customZoneSet->data;
+                    }
                 }
+            }
+            catch (const winrt::hresult_error&)
+            {
+                res = false;
             }
 
             DeleteFileW(tmpFilePath.c_str());
         }
+        return res;
     }
 
-    void FancyZonesData::ParseDeletedCustomZoneSetsFromTmpFile(const std::wstring& tmpFilePath)
+    bool FancyZonesData::ParseDeletedCustomZoneSetsFromTmpFile(const std::wstring& tmpFilePath)
     {
+        bool res = true;
         if (std::filesystem::exists(tmpFilePath))
         {
             auto deletedZoneSetsJson = json::from_file(tmpFilePath);
-            if (deletedZoneSetsJson->HasKey(L"deleted-custom-zone-sets"))
+            try
             {
                 auto deletedCustomZoneSets = deletedZoneSetsJson->GetNamedArray(L"deleted-custom-zone-sets");
                 for (auto zoneSet : deletedCustomZoneSets)
@@ -261,8 +271,14 @@ namespace JSONHelpers
                     customZoneSetsMap.erase(std::wstring{ uuid });
                 }
             }
+            catch (const winrt::hresult_error&) 
+            {
+                res = false;
+            }
             DeleteFileW(tmpFilePath.c_str());
         }
+
+        return res;
     }
 
     bool FancyZonesData::ParseAppZoneHistory(const json::JsonObject& fancyZonesDataJSON)
