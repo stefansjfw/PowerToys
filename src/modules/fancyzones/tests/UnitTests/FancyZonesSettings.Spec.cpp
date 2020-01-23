@@ -2,6 +2,7 @@
 #include <filesystem>
 
 #include <lib/Settings.h>
+#include <lib/FancyZones.h>
 #include <common/settings_helpers.h>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -400,6 +401,151 @@ namespace FancyZonesUnitTests
 
             auto actualSettings = actual->GetSettings();
             compareSettings(m_defaultSettings, actualSettings);
+        }
+    };
+
+    TEST_CLASS(FancyZonesSettingsCallbackUnitTests)
+    {
+        winrt::com_ptr<IFancyZonesSettings> m_settings = nullptr;
+
+        struct FZCallback : public winrt::implements<FZCallback, IFancyZonesCallback>
+        {
+        public:
+            FZCallback(bool* callFlag) :
+                m_callFlag(callFlag)
+            {
+                *m_callFlag = false;
+            }
+
+            IFACEMETHODIMP_(bool) InMoveSize() noexcept { return false; }
+            IFACEMETHODIMP_(void) MoveSizeStart(HWND window, HMONITOR monitor, POINT const& ptScreen) noexcept {}
+            IFACEMETHODIMP_(void) MoveSizeUpdate(HMONITOR monitor, POINT const& ptScreen) noexcept {}
+            IFACEMETHODIMP_(void) MoveSizeEnd(HWND window, POINT const& ptScreen) noexcept {}
+            IFACEMETHODIMP_(void) VirtualDesktopChanged() noexcept {}
+            IFACEMETHODIMP_(void) VirtualDesktopInitialize() noexcept {}
+            IFACEMETHODIMP_(void) WindowCreated(HWND window) noexcept {}
+            IFACEMETHODIMP_(bool) OnKeyDown(PKBDLLHOOKSTRUCT info) noexcept { return false; }
+
+            IFACEMETHODIMP_(void) ToggleEditor() noexcept
+            {
+                Assert::IsNotNull(m_callFlag);
+                *m_callFlag = true;
+            }
+
+            IFACEMETHODIMP_(void) SettingsChanged() noexcept
+            {
+                Assert::IsNotNull(m_callFlag);
+                *m_callFlag = true;
+            }
+
+        private:
+            bool* m_callFlag = nullptr;
+        };
+
+        TEST_METHOD_INITIALIZE(Init)
+        {
+            HINSTANCE hInst = (HINSTANCE)GetModuleHandleW(nullptr);
+            PCWSTR moduleName = L"FancyZonesTest";
+            const Settings expected{
+                .shiftDrag = false,
+                .displayChange_moveWindows = true,
+                .virtualDesktopChange_moveWindows = true,
+                .zoneSetChange_flashZones = true,
+                .zoneSetChange_moveWindows = true,
+                .overrideSnapHotkeys = false,
+                .appLastZone_moveWindows = false,
+                .use_cursorpos_editor_startupscreen = true,
+                .zoneHightlightColor = L"#00FFD7",
+                .zoneHighlightOpacity = 45,
+                .editorHotkey = PowerToysSettings::HotkeyObject::from_settings(false, true, true, false, VK_OEM_3),
+                .excludedApps = L"app",
+                .excludedAppsArray = { L"APP" },
+            };
+
+            PowerToysSettings::PowerToyValues values(moduleName);
+            values.add_property(L"fancyzones_shiftDrag", expected.shiftDrag);
+            values.add_property(L"fancyzones_displayChange_moveWindows", expected.displayChange_moveWindows);
+            values.add_property(L"fancyzones_virtualDesktopChange_moveWindows", expected.virtualDesktopChange_moveWindows);
+            values.add_property(L"fancyzones_zoneSetChange_flashZones", expected.zoneSetChange_flashZones);
+            values.add_property(L"fancyzones_zoneSetChange_moveWindows", expected.zoneSetChange_moveWindows);
+            values.add_property(L"fancyzones_overrideSnapHotkeys", expected.overrideSnapHotkeys);
+            values.add_property(L"fancyzones_appLastZone_moveWindows", expected.appLastZone_moveWindows);
+            values.add_property(L"use_cursorpos_editor_startupscreen", expected.use_cursorpos_editor_startupscreen);
+            values.add_property(L"fancyzones_zoneHighlightColor", expected.zoneHightlightColor);
+            values.add_property(L"fancyzones_highlight_opacity", expected.zoneHighlightOpacity);
+            values.add_property(L"fancyzones_editor_hotkey", expected.editorHotkey.get_json());
+            values.add_property(L"fancyzones_excluded_apps", expected.excludedApps);
+
+            values.save_to_settings_file();
+
+            m_settings = MakeFancyZonesSettings(hInst, moduleName);
+            Assert::IsTrue(m_settings != nullptr);
+        }
+
+        TEST_METHOD(CallbackSetConfig)
+        {
+            bool flag = false;
+            FZCallback callback(&flag);
+
+            json::JsonObject json{};
+            json.SetNamedValue(L"name", json::JsonValue::CreateStringValue(L"name"));
+
+            m_settings->SetCallback(&callback);
+            m_settings->SetConfig(json.Stringify().c_str());
+
+            Assert::IsTrue(flag);
+        }
+
+        TEST_METHOD(CallbackCallCustomAction)
+        {
+            bool flag = false;
+            FZCallback callback(&flag);
+
+            json::JsonObject action{};
+            action.SetNamedValue(L"action_name", json::JsonValue::CreateStringValue(L"ToggledFZEditor"));
+
+            m_settings->SetCallback(&callback);
+            m_settings->CallCustomAction(action.Stringify().c_str());
+
+            Assert::IsTrue(flag);
+        }
+
+        TEST_METHOD(CallbackCallCustomActionNotToggle)
+        {
+            bool flag = false;
+            FZCallback callback(&flag);
+
+            json::JsonObject action{};
+            action.SetNamedValue(L"action_name", json::JsonValue::CreateStringValue(L"NOT_ToggledFZEditor"));
+
+            m_settings->SetCallback(&callback);
+            m_settings->CallCustomAction(action.Stringify().c_str());
+
+            Assert::IsFalse(flag);
+        }
+
+        TEST_METHOD(CallbackGetConfig)
+        {
+            bool flag = false;
+            FZCallback callback(&flag);
+
+            m_settings->SetCallback(&callback);
+
+            int bufSize = 0;
+            m_settings->GetConfig(L"", &bufSize);
+
+            Assert::IsFalse(flag);
+        }
+
+        TEST_METHOD(CallbackGetSettings)
+        {
+            bool flag = false;
+            FZCallback callback(&flag);
+
+            m_settings->SetCallback(&callback);
+            m_settings->GetSettings();
+
+            Assert::IsFalse(flag);
         }
     };
 }
