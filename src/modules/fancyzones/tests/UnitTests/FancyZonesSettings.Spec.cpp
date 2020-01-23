@@ -9,6 +9,42 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace FancyZonesUnitTests
 {
+    void compareHotkeyObjects(const PowerToysSettings::HotkeyObject& expected, const PowerToysSettings::HotkeyObject& actual)
+    {
+        Assert::AreEqual(expected.alt_pressed(), actual.alt_pressed());
+        Assert::AreEqual(expected.ctrl_pressed(), actual.ctrl_pressed());
+        Assert::AreEqual(expected.shift_pressed(), actual.shift_pressed());
+        Assert::AreEqual(expected.win_pressed(), actual.win_pressed());
+
+        //NOTE: key_from_code may create different values
+        //Assert::AreEqual(expected.get_key(), actual.get_key());
+        Assert::AreEqual(expected.get_code(), actual.get_code());
+        Assert::AreEqual(expected.get_modifiers(), actual.get_modifiers());
+        Assert::AreEqual(expected.get_modifiers_repeat(), actual.get_modifiers_repeat());
+    }
+
+    void compareSettings(const Settings& expected, const Settings& actual)
+    {
+        Assert::AreEqual(expected.shiftDrag, actual.shiftDrag);
+        Assert::AreEqual(expected.displayChange_moveWindows, actual.displayChange_moveWindows);
+        Assert::AreEqual(expected.virtualDesktopChange_moveWindows, actual.virtualDesktopChange_moveWindows);
+        Assert::AreEqual(expected.zoneSetChange_flashZones, actual.zoneSetChange_flashZones);
+        Assert::AreEqual(expected.zoneSetChange_moveWindows, actual.zoneSetChange_moveWindows);
+        Assert::AreEqual(expected.overrideSnapHotkeys, actual.overrideSnapHotkeys);
+        Assert::AreEqual(expected.appLastZone_moveWindows, actual.appLastZone_moveWindows);
+        Assert::AreEqual(expected.use_cursorpos_editor_startupscreen, actual.use_cursorpos_editor_startupscreen);
+        Assert::AreEqual(expected.zoneHightlightColor.c_str(), actual.zoneHightlightColor.c_str());
+        Assert::AreEqual(expected.zoneHighlightOpacity, actual.zoneHighlightOpacity);
+        Assert::AreEqual(expected.excludedApps.c_str(), actual.excludedApps.c_str());
+        Assert::AreEqual(expected.excludedAppsArray.size(), actual.excludedAppsArray.size());
+        for (int i = 0; i < expected.excludedAppsArray.size(); i++)
+        {
+            Assert::AreEqual(expected.excludedAppsArray[i].c_str(), actual.excludedAppsArray[i].c_str());
+        }
+
+        compareHotkeyObjects(expected.editorHotkey, actual.editorHotkey);
+    }
+
     TEST_CLASS(FancyZonesSettingsCreationUnitTest)
     {
         HINSTANCE m_hInst;
@@ -31,42 +67,6 @@ namespace FancyZonesUnitTests
             .excludedApps = L"",
             .excludedAppsArray = {},
         };
-
-        void compareHotkeyObjects(const PowerToysSettings::HotkeyObject& expected, const PowerToysSettings::HotkeyObject& actual)
-        {
-            Assert::AreEqual(expected.alt_pressed(), actual.alt_pressed());
-            Assert::AreEqual(expected.ctrl_pressed(), actual.ctrl_pressed());
-            Assert::AreEqual(expected.shift_pressed(), actual.shift_pressed());
-            Assert::AreEqual(expected.win_pressed(), actual.win_pressed());
-
-            //NOTE: key_from_code may create different values
-            //Assert::AreEqual(expected.get_key(), actual.get_key());
-            Assert::AreEqual(expected.get_code(), actual.get_code());
-            Assert::AreEqual(expected.get_modifiers(), actual.get_modifiers());
-            Assert::AreEqual(expected.get_modifiers_repeat(), actual.get_modifiers_repeat());
-        }
-
-        void compareSettings(const Settings& expected, const Settings& actual)
-        {
-            Assert::AreEqual(expected.shiftDrag, actual.shiftDrag);
-            Assert::AreEqual(expected.displayChange_moveWindows, actual.displayChange_moveWindows);
-            Assert::AreEqual(expected.virtualDesktopChange_moveWindows, actual.virtualDesktopChange_moveWindows);
-            Assert::AreEqual(expected.zoneSetChange_flashZones, actual.zoneSetChange_flashZones);
-            Assert::AreEqual(expected.zoneSetChange_moveWindows, actual.zoneSetChange_moveWindows);
-            Assert::AreEqual(expected.overrideSnapHotkeys, actual.overrideSnapHotkeys);
-            Assert::AreEqual(expected.appLastZone_moveWindows, actual.appLastZone_moveWindows);
-            Assert::AreEqual(expected.use_cursorpos_editor_startupscreen, actual.use_cursorpos_editor_startupscreen);
-            Assert::AreEqual(expected.zoneHightlightColor.c_str(), actual.zoneHightlightColor.c_str());
-            Assert::AreEqual(expected.zoneHighlightOpacity, actual.zoneHighlightOpacity);
-            Assert::AreEqual(expected.excludedApps.c_str(), actual.excludedApps.c_str());
-            Assert::AreEqual(expected.excludedAppsArray.size(), actual.excludedAppsArray.size());
-            for (int i = 0; i < expected.excludedAppsArray.size(); i++)
-            {
-                Assert::AreEqual(expected.excludedAppsArray[i].c_str(), actual.excludedAppsArray[i].c_str());
-            }
-
-            compareHotkeyObjects(expected.editorHotkey, actual.editorHotkey);
-        }
 
         TEST_METHOD_INITIALIZE(Init)
         {
@@ -407,6 +407,7 @@ namespace FancyZonesUnitTests
     TEST_CLASS(FancyZonesSettingsCallbackUnitTests)
     {
         winrt::com_ptr<IFancyZonesSettings> m_settings = nullptr;
+        PCWSTR m_moduleName = L"FancyZonesTest";
 
         struct FZCallback : public winrt::implements<FZCallback, IFancyZonesCallback>
         {
@@ -445,7 +446,6 @@ namespace FancyZonesUnitTests
         TEST_METHOD_INITIALIZE(Init)
         {
             HINSTANCE hInst = (HINSTANCE)GetModuleHandleW(nullptr);
-            PCWSTR moduleName = L"FancyZonesTest";
             const Settings expected{
                 .shiftDrag = false,
                 .displayChange_moveWindows = true,
@@ -462,7 +462,7 @@ namespace FancyZonesUnitTests
                 .excludedAppsArray = { L"APP" },
             };
 
-            PowerToysSettings::PowerToyValues values(moduleName);
+            PowerToysSettings::PowerToyValues values(m_moduleName);
             values.add_property(L"fancyzones_shiftDrag", expected.shiftDrag);
             values.add_property(L"fancyzones_displayChange_moveWindows", expected.displayChange_moveWindows);
             values.add_property(L"fancyzones_virtualDesktopChange_moveWindows", expected.virtualDesktopChange_moveWindows);
@@ -478,8 +478,14 @@ namespace FancyZonesUnitTests
 
             values.save_to_settings_file();
 
-            m_settings = MakeFancyZonesSettings(hInst, moduleName);
+            m_settings = MakeFancyZonesSettings(hInst, m_moduleName);
             Assert::IsTrue(m_settings != nullptr);
+        }
+
+        TEST_METHOD_CLEANUP(Cleanup)
+        {
+            const auto settingsFile = PTSettingsHelper::get_module_save_folder_location(m_moduleName) + L"\\settings.json";
+            std::filesystem::remove(settingsFile);
         }
 
         TEST_METHOD(CallbackSetConfig)
@@ -553,11 +559,40 @@ namespace FancyZonesUnitTests
     {
         winrt::com_ptr<IFancyZonesSettings> m_settings = nullptr;
         PowerToysSettings::Settings* m_ptSettings = nullptr;
+        PCWSTR m_moduleName = L"FancyZonesTest";
+
+        std::wstring serializedPowerToySettings(const Settings& settings)
+        {
+            PowerToysSettings::Settings ptSettings(HINSTANCE{}, m_moduleName);
+            ptSettings.set_description(IDS_SETTING_DESCRIPTION);
+            ptSettings.set_icon_key(L"pt-fancy-zones");
+            ptSettings.set_overview_link(L"https://github.com/microsoft/PowerToys/blob/master/src/modules/fancyzones/README.md");
+            ptSettings.set_video_link(L"https://youtu.be/rTtGzZYAXgY");
+
+            ptSettings.add_custom_action(
+                L"ToggledFZEditor", // action name.
+                IDS_SETTING_LAUNCH_EDITOR_LABEL,
+                IDS_SETTING_LAUNCH_EDITOR_BUTTON,
+                IDS_SETTING_LAUNCH_EDITOR_DESCRIPTION);
+            ptSettings.add_hotkey(L"fancyzones_editor_hotkey", IDS_SETTING_LAUNCH_EDITOR_HOTKEY_LABEL, settings.editorHotkey);
+            ptSettings.add_bool_toogle(L"fancyzones_shiftDrag", IDS_SETTING_DESCRIPTION_SHIFTDRAG, settings.shiftDrag);
+            ptSettings.add_bool_toogle(L"fancyzones_overrideSnapHotkeys", IDS_SETTING_DESCRIPTION_OVERRIDE_SNAP_HOTKEYS, settings.overrideSnapHotkeys);
+            ptSettings.add_bool_toogle(L"fancyzones_zoneSetChange_flashZones", IDS_SETTING_DESCRIPTION_ZONESETCHANGE_FLASHZONES, settings.zoneSetChange_flashZones);
+            ptSettings.add_bool_toogle(L"fancyzones_displayChange_moveWindows", IDS_SETTING_DESCRIPTION_DISPLAYCHANGE_MOVEWINDOWS, settings.displayChange_moveWindows);
+            ptSettings.add_bool_toogle(L"fancyzones_zoneSetChange_moveWindows", IDS_SETTING_DESCRIPTION_ZONESETCHANGE_MOVEWINDOWS, settings.zoneSetChange_moveWindows);
+            ptSettings.add_bool_toogle(L"fancyzones_virtualDesktopChange_moveWindows", IDS_SETTING_DESCRIPTION_VIRTUALDESKTOPCHANGE_MOVEWINDOWS, settings.virtualDesktopChange_moveWindows);
+            ptSettings.add_bool_toogle(L"fancyzones_appLastZone_moveWindows", IDS_SETTING_DESCRIPTION_APPLASTZONE_MOVEWINDOWS, settings.appLastZone_moveWindows);
+            ptSettings.add_bool_toogle(L"use_cursorpos_editor_startupscreen", IDS_SETTING_DESCRIPTION_USE_CURSORPOS_EDITOR_STARTUPSCREEN, settings.use_cursorpos_editor_startupscreen);
+            ptSettings.add_int_spinner(L"fancyzones_highlight_opacity", IDS_SETTINGS_HIGHLIGHT_OPACITY, settings.zoneHighlightOpacity, 0, 100, 1);
+            ptSettings.add_color_picker(L"fancyzones_zoneHighlightColor", IDS_SETTING_DESCRIPTION_ZONEHIGHLIGHTCOLOR, settings.zoneHightlightColor);
+            ptSettings.add_multiline_string(L"fancyzones_excluded_apps", IDS_SETTING_EXCLCUDED_APPS_DESCRIPTION, settings.excludedApps);
+
+            return ptSettings.serialize();
+        }
 
         TEST_METHOD_INITIALIZE(Init)
         {
             HINSTANCE hInst = (HINSTANCE)GetModuleHandleW(nullptr);
-            PCWSTR moduleName = L"FancyZonesTest";
 
             //init m_settings
             const Settings expected{
@@ -576,7 +611,7 @@ namespace FancyZonesUnitTests
                 .excludedAppsArray = { L"APP" },
             };
 
-            PowerToysSettings::PowerToyValues values(moduleName);
+            PowerToysSettings::PowerToyValues values(m_moduleName);
             values.add_property(L"fancyzones_shiftDrag", expected.shiftDrag);
             values.add_property(L"fancyzones_displayChange_moveWindows", expected.displayChange_moveWindows);
             values.add_property(L"fancyzones_virtualDesktopChange_moveWindows", expected.virtualDesktopChange_moveWindows);
@@ -592,11 +627,11 @@ namespace FancyZonesUnitTests
 
             values.save_to_settings_file();
 
-            m_settings = MakeFancyZonesSettings(hInst, moduleName);
+            m_settings = MakeFancyZonesSettings(hInst, m_moduleName);
             Assert::IsTrue(m_settings != nullptr);
 
             //init m_ptSettings
-            m_ptSettings = new PowerToysSettings::Settings(hInst, moduleName);
+            m_ptSettings = new PowerToysSettings::Settings(hInst, m_moduleName);
             m_ptSettings->set_description(IDS_SETTING_DESCRIPTION);
             m_ptSettings->set_icon_key(L"pt-fancy-zones");
             m_ptSettings->set_overview_link(L"https://github.com/microsoft/PowerToys/blob/master/src/modules/fancyzones/README.md");
@@ -619,6 +654,12 @@ namespace FancyZonesUnitTests
             m_ptSettings->add_int_spinner(L"fancyzones_highlight_opacity", IDS_SETTINGS_HIGHLIGHT_OPACITY, expected.zoneHighlightOpacity, 0, 100, 1);
             m_ptSettings->add_color_picker(L"fancyzones_zoneHighlightColor", IDS_SETTING_DESCRIPTION_ZONEHIGHLIGHTCOLOR, expected.zoneHightlightColor);
             m_ptSettings->add_multiline_string(L"fancyzones_excluded_apps", IDS_SETTING_EXCLCUDED_APPS_DESCRIPTION, expected.excludedApps);
+        }
+
+        TEST_METHOD_CLEANUP(Cleanup)
+        {
+            const auto settingsFile = PTSettingsHelper::get_module_save_folder_location(m_moduleName) + L"\\settings.json";
+            std::filesystem::remove(settingsFile);          
         }
 
         TEST_METHOD(GetConfig)
@@ -657,6 +698,51 @@ namespace FancyZonesUnitTests
 
             Assert::IsFalse(m_settings->GetConfig(actualBuffer, &actualBufferSize));
             Assert::AreEqual(expectedSize, actualBufferSize);
+        }
+
+        TEST_METHOD(SetConfig)
+        {
+            //cleanup file before call set config
+            const auto settingsFile = PTSettingsHelper::get_module_save_folder_location(m_moduleName) + L"\\settings.json";
+            std::filesystem::remove(settingsFile);
+
+            const Settings expected {
+                .shiftDrag = true,
+                .displayChange_moveWindows = true,
+                .virtualDesktopChange_moveWindows = true,
+                .zoneSetChange_flashZones = false,
+                .zoneSetChange_moveWindows = true,
+                .overrideSnapHotkeys = false,
+                .appLastZone_moveWindows = true,
+                .use_cursorpos_editor_startupscreen = true,
+                .zoneHightlightColor = L"#00AABB",
+                .zoneHighlightOpacity = 45,
+                .editorHotkey = PowerToysSettings::HotkeyObject::from_settings(false, false, false, false, VK_OEM_3),
+                .excludedApps = L"app\r\napp2",
+                .excludedAppsArray = { L"APP", L"APP2" },
+            };
+
+            auto config = serializedPowerToySettings(expected);
+            m_settings->SetConfig(config.c_str());
+
+            auto actual = m_settings->GetSettings();
+            compareSettings(expected, actual);
+
+            Assert::IsTrue(std::filesystem::exists(settingsFile));
+        }
+
+        TEST_METHOD(SetConfigNullptr)
+        {
+            //cleanup file before call set config
+            const auto settingsFile = PTSettingsHelper::get_module_save_folder_location(m_moduleName) + L"\\settings.json";
+            std::filesystem::remove(settingsFile);
+
+            const auto expected = m_settings->GetSettings();
+            m_settings->SetConfig(nullptr);
+
+            auto actual = m_settings->GetSettings();
+            compareSettings(expected, actual);
+            Assert::IsTrue(std::filesystem::exists(settingsFile));
         }
     };
 }
