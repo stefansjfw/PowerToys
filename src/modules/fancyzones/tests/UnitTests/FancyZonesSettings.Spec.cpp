@@ -548,4 +548,115 @@ namespace FancyZonesUnitTests
             Assert::IsFalse(flag);
         }
     };
+
+    TEST_CLASS(FancyZonesSettingsUnitTests)
+    {
+        winrt::com_ptr<IFancyZonesSettings> m_settings = nullptr;
+        PowerToysSettings::Settings* m_ptSettings = nullptr;
+
+        TEST_METHOD_INITIALIZE(Init)
+        {
+            HINSTANCE hInst = (HINSTANCE)GetModuleHandleW(nullptr);
+            PCWSTR moduleName = L"FancyZonesTest";
+
+            //init m_settings
+            const Settings expected{
+                .shiftDrag = false,
+                .displayChange_moveWindows = true,
+                .virtualDesktopChange_moveWindows = true,
+                .zoneSetChange_flashZones = true,
+                .zoneSetChange_moveWindows = true,
+                .overrideSnapHotkeys = false,
+                .appLastZone_moveWindows = false,
+                .use_cursorpos_editor_startupscreen = true,
+                .zoneHightlightColor = L"#00FFD7",
+                .zoneHighlightOpacity = 45,
+                .editorHotkey = PowerToysSettings::HotkeyObject::from_settings(false, true, true, false, VK_OEM_3),
+                .excludedApps = L"app",
+                .excludedAppsArray = { L"APP" },
+            };
+
+            PowerToysSettings::PowerToyValues values(moduleName);
+            values.add_property(L"fancyzones_shiftDrag", expected.shiftDrag);
+            values.add_property(L"fancyzones_displayChange_moveWindows", expected.displayChange_moveWindows);
+            values.add_property(L"fancyzones_virtualDesktopChange_moveWindows", expected.virtualDesktopChange_moveWindows);
+            values.add_property(L"fancyzones_zoneSetChange_flashZones", expected.zoneSetChange_flashZones);
+            values.add_property(L"fancyzones_zoneSetChange_moveWindows", expected.zoneSetChange_moveWindows);
+            values.add_property(L"fancyzones_overrideSnapHotkeys", expected.overrideSnapHotkeys);
+            values.add_property(L"fancyzones_appLastZone_moveWindows", expected.appLastZone_moveWindows);
+            values.add_property(L"use_cursorpos_editor_startupscreen", expected.use_cursorpos_editor_startupscreen);
+            values.add_property(L"fancyzones_zoneHighlightColor", expected.zoneHightlightColor);
+            values.add_property(L"fancyzones_highlight_opacity", expected.zoneHighlightOpacity);
+            values.add_property(L"fancyzones_editor_hotkey", expected.editorHotkey.get_json());
+            values.add_property(L"fancyzones_excluded_apps", expected.excludedApps);
+
+            values.save_to_settings_file();
+
+            m_settings = MakeFancyZonesSettings(hInst, moduleName);
+            Assert::IsTrue(m_settings != nullptr);
+
+            //init m_ptSettings
+            m_ptSettings = new PowerToysSettings::Settings(hInst, moduleName);
+            m_ptSettings->set_description(IDS_SETTING_DESCRIPTION);
+            m_ptSettings->set_icon_key(L"pt-fancy-zones");
+            m_ptSettings->set_overview_link(L"https://github.com/microsoft/PowerToys/blob/master/src/modules/fancyzones/README.md");
+            m_ptSettings->set_video_link(L"https://youtu.be/rTtGzZYAXgY");
+
+            m_ptSettings->add_custom_action(
+                L"ToggledFZEditor", // action name.
+                IDS_SETTING_LAUNCH_EDITOR_LABEL,
+                IDS_SETTING_LAUNCH_EDITOR_BUTTON,
+                IDS_SETTING_LAUNCH_EDITOR_DESCRIPTION);
+            m_ptSettings->add_hotkey(L"fancyzones_editor_hotkey", IDS_SETTING_LAUNCH_EDITOR_HOTKEY_LABEL, expected.editorHotkey);
+            m_ptSettings->add_bool_toogle(L"fancyzones_shiftDrag", IDS_SETTING_DESCRIPTION_SHIFTDRAG, expected.shiftDrag);
+            m_ptSettings->add_bool_toogle(L"fancyzones_overrideSnapHotkeys", IDS_SETTING_DESCRIPTION_OVERRIDE_SNAP_HOTKEYS, expected.overrideSnapHotkeys);
+            m_ptSettings->add_bool_toogle(L"fancyzones_zoneSetChange_flashZones", IDS_SETTING_DESCRIPTION_ZONESETCHANGE_FLASHZONES, expected.zoneSetChange_flashZones);
+            m_ptSettings->add_bool_toogle(L"fancyzones_displayChange_moveWindows", IDS_SETTING_DESCRIPTION_DISPLAYCHANGE_MOVEWINDOWS, expected.displayChange_moveWindows);
+            m_ptSettings->add_bool_toogle(L"fancyzones_zoneSetChange_moveWindows", IDS_SETTING_DESCRIPTION_ZONESETCHANGE_MOVEWINDOWS, expected.zoneSetChange_moveWindows);
+            m_ptSettings->add_bool_toogle(L"fancyzones_virtualDesktopChange_moveWindows", IDS_SETTING_DESCRIPTION_VIRTUALDESKTOPCHANGE_MOVEWINDOWS, expected.virtualDesktopChange_moveWindows);
+            m_ptSettings->add_bool_toogle(L"fancyzones_appLastZone_moveWindows", IDS_SETTING_DESCRIPTION_APPLASTZONE_MOVEWINDOWS, expected.appLastZone_moveWindows);
+            m_ptSettings->add_bool_toogle(L"use_cursorpos_editor_startupscreen", IDS_SETTING_DESCRIPTION_USE_CURSORPOS_EDITOR_STARTUPSCREEN, expected.use_cursorpos_editor_startupscreen);
+            m_ptSettings->add_int_spinner(L"fancyzones_highlight_opacity", IDS_SETTINGS_HIGHLIGHT_OPACITY, expected.zoneHighlightOpacity, 0, 100, 1);
+            m_ptSettings->add_color_picker(L"fancyzones_zoneHighlightColor", IDS_SETTING_DESCRIPTION_ZONEHIGHLIGHTCOLOR, expected.zoneHightlightColor);
+            m_ptSettings->add_multiline_string(L"fancyzones_excluded_apps", IDS_SETTING_EXCLCUDED_APPS_DESCRIPTION, expected.excludedApps);
+        }
+
+        TEST_METHOD(GetConfig)
+        {
+            const int expectedSize = m_ptSettings->serialize().size() + 1;
+
+            int actualBufferSize = expectedSize;
+            PWSTR actualBuffer = new wchar_t[actualBufferSize];
+
+            Assert::IsTrue(m_settings->GetConfig(actualBuffer, &actualBufferSize));
+            Assert::AreEqual(expectedSize, actualBufferSize);
+
+            Assert::AreEqual(m_ptSettings->serialize().c_str(), actualBuffer);
+        }
+
+        TEST_METHOD(GetConfigSmallBuffer)
+        {
+            const auto serialized = m_ptSettings->serialize();
+            const int expectedSize = serialized.size() + 1;
+
+            int actualBufferSize = m_ptSettings->serialize().size() - 1;
+            PWSTR actualBuffer = new wchar_t[actualBufferSize];
+
+            Assert::IsFalse(m_settings->GetConfig(actualBuffer, &actualBufferSize));
+            Assert::AreEqual(expectedSize, actualBufferSize);
+            Assert::AreNotEqual(serialized.c_str(), actualBuffer);
+        }
+
+        TEST_METHOD(GetConfigNullBuffer)
+        {
+            const auto serialized = m_ptSettings->serialize();
+            const int expectedSize = serialized.size() + 1;
+
+            int actualBufferSize = 0;
+            PWSTR actualBuffer = nullptr;
+
+            Assert::IsFalse(m_settings->GetConfig(actualBuffer, &actualBufferSize));
+            Assert::AreEqual(expectedSize, actualBufferSize);
+        }
+    };
 }
