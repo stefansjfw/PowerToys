@@ -22,10 +22,10 @@ namespace FancyZonesUnitTests
         {
             return RGB(0xFF, 0xFF, 0xFF);
         }
-        IFACEMETHODIMP_(GUID)
-        GetCurrentMonitorZoneSetId(HMONITOR monitor) noexcept
+        IFACEMETHODIMP_(IZoneSet*)
+        GetCurrentMonitorZoneSet(HMONITOR monitor) noexcept
         {
-            return m_guid;
+            return m_zoneSet;
         }
         IFACEMETHODIMP_(int)
         GetZoneHighlightOpacity() noexcept
@@ -33,7 +33,7 @@ namespace FancyZonesUnitTests
             return 100;
         }
 
-        GUID m_guid;
+        IZoneSet* m_zoneSet;
     };
 
     TEST_CLASS(ZoneWindowUnitTests)
@@ -73,8 +73,6 @@ namespace FancyZonesUnitTests
             m_monitor = MonitorFromPoint(POINT{ 0, 0 }, MONITOR_DEFAULTTOPRIMARY);
             m_monitorInfo.cbSize = sizeof(m_monitorInfo);
             Assert::AreNotEqual(0, GetMonitorInfoW(m_monitor, &m_monitorInfo));
-
-            Assert::AreEqual(S_OK, CoCreateGuid(&m_zoneWindowHost.m_guid));
 
             m_uniqueId << L"DELA026#5&10a58c63&0&UID16777488_" << m_monitorInfo.rcMonitor.right << "_" << m_monitorInfo.rcMonitor.bottom << "_MyVirtualDesktopId";
 

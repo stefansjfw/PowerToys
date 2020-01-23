@@ -694,16 +694,10 @@ void ZoneWindow::ChooseDefaultActiveZoneSet() noexcept
     // desktop from which this virtual desktop is created.
     if (m_host)
     {
-        if (GUID id{ m_host->GetCurrentMonitorZoneSetId(m_monitor) }; id != GUID_NULL)
+        auto* zoneSet = m_host->GetCurrentMonitorZoneSet(m_monitor);
+        if (zoneSet)
         {
-            for (const auto& zoneSet : m_zoneSets)
-            {
-                if (id == zoneSet->Id())
-                {
-                    UpdateActiveZoneSet(zoneSet.get());
-                    return;
-                }
-            }
+            UpdateActiveZoneSet(zoneSet);
         }
     }
 }

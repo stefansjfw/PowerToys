@@ -7,6 +7,7 @@
 #include "lib/ZoneWindow.h"
 #include "lib/RegistryHelpers.h"
 #include "lib/JsonHelpers.h"
+#include "lib/ZoneSet.h"
 #include "trace.h"
 
 #include <functional>
@@ -81,14 +82,14 @@ public:
         const auto nB = (tmp & 0xFF);
         return RGB(nR, nG, nB);
     }
-    IFACEMETHODIMP_(GUID)
-    GetCurrentMonitorZoneSetId(HMONITOR monitor) noexcept
+    IFACEMETHODIMP_(IZoneSet*)
+    GetCurrentMonitorZoneSet(HMONITOR monitor) noexcept
     {
         if (auto it = m_zoneWindowMap.find(monitor); it != m_zoneWindowMap.end() && it->second->ActiveZoneSet())
         {
-            return it->second->ActiveZoneSet()->Id();
+            return it->second->ActiveZoneSet();
         }
-        return GUID_NULL;
+        return nullptr;
     }
     IFACEMETHODIMP_(int)
     GetZoneHighlightOpacity() noexcept
