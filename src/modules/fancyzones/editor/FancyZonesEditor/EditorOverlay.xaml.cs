@@ -82,8 +82,6 @@ namespace FancyZonesEditor
 
         public void ShowLayoutPicker()
         {
-            DataContext = null;
-
             _editor = null;
             _layoutPreview = new LayoutPreview
             {
