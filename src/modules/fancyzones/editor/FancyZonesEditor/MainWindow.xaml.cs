@@ -21,7 +21,6 @@ namespace FancyZonesEditor
         public const int MaxZones = 40;
         private readonly Settings _settings = ((App)Application.Current).ZoneSettings;
         private static readonly string _defaultNamePrefix = "Custom Layout ";
-        private bool _editing = false;
 
         public int WrapPanelItemSize { get; set; } = 262;
 
@@ -95,7 +94,6 @@ namespace FancyZonesEditor
             }
 
             model.IsSelected = false;
-            _editing = true;
             Hide();
 
             bool isPredefinedLayout = Settings.IsPredefinedLayout(model);
@@ -166,10 +164,7 @@ namespace FancyZonesEditor
         private void OnClosing(object sender, EventArgs e)
         {
             LayoutModel.SerializeDeletedCustomZoneSets();
-            if (!_editing)
-            {
-                EditorOverlay.Current.Close();
-            }
+            EditorOverlay.Current.Close();
         }
 
         private void OnInitialized(object sender, EventArgs e)
