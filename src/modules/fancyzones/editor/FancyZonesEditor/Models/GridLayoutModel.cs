@@ -189,6 +189,7 @@ namespace FancyZonesEditor.Models
                 {
                     writer.WriteNumberValue(RowPercents[row]);
                 }
+
                 writer.WriteEndArray();
 
                 writer.WriteStartArray("columns-percentage");
@@ -196,6 +197,7 @@ namespace FancyZonesEditor.Models
                 {
                     writer.WriteNumberValue(ColumnPercents[col]);
                 }
+
                 writer.WriteEndArray();
 
                 writer.WriteStartArray("cell-child-map");
@@ -206,16 +208,20 @@ namespace FancyZonesEditor.Models
                     {
                         writer.WriteNumberValue(CellChildMap[row, col]);
                     }
+
                     writer.WriteEndArray();
                 }
+
                 writer.WriteEndArray();
 
                 // end info object
                 writer.WriteEndObject();
+
                 // end root object
                 writer.WriteEndObject();
                 writer.Flush();
             }
+
             outputStream.Close();
         }
     }

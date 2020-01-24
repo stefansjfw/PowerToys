@@ -138,8 +138,10 @@ namespace FancyZonesEditor.Models
         protected override void PersistData()
         {
             FileStream outputStream = File.Open(Settings.AppliedZoneSetTmpFile, FileMode.Create);
-            JsonWriterOptions writerOptions = new JsonWriterOptions();
-            writerOptions.SkipValidation = true;
+            JsonWriterOptions writerOptions = new JsonWriterOptions
+            {
+                SkipValidation = true,
+            };
             using (var writer = new Utf8JsonWriter(outputStream, writerOptions))
             {
                 writer.WriteStartObject();
@@ -163,13 +165,17 @@ namespace FancyZonesEditor.Models
                     writer.WriteNumber("height", rect.Height);
                     writer.WriteEndObject();
                 }
+
                 writer.WriteEndArray();
+
                 // end info object
                 writer.WriteEndObject();
+
                 // end root object
                 writer.WriteEndObject();
                 writer.Flush();
             }
+
             outputStream.Close();
         }
     }

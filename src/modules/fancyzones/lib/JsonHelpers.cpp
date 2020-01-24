@@ -51,7 +51,7 @@ namespace JSONHelpers
         std::vector<int> vec;
         for (const auto& val : arr)
         {
-            vec.emplace_back(val.GetNumber());
+            vec.emplace_back(static_cast<int>(val.GetNumber()));
         }
 
         return vec;
@@ -287,7 +287,7 @@ namespace JSONHelpers
         {
             auto appLastZones = fancyZonesDataJSON.GetNamedArray(L"app-zone-history");
 
-            for (int i = 0; i < appLastZones.Size(); ++i)
+            for (uint32_t i = 0; i < appLastZones.Size(); ++i)
             {
                 json::JsonObject appLastZone = appLastZones.GetObjectAt(i);
                 const auto appZoneHistory = AppZoneHistoryJSON::FromJson(appLastZone);
@@ -327,7 +327,7 @@ namespace JSONHelpers
         {
             auto devices = fancyZonesDataJSON.GetNamedArray(L"devices");
 
-            for (int i = 0; i < devices.Size(); ++i)
+            for (uint32_t i = 0; i < devices.Size(); ++i)
             {
                 const auto device = DeviceInfoJSON::DeviceInfoJSON::FromJson(devices.GetObjectAt(i));
                 if (device.has_value())
@@ -366,7 +366,7 @@ namespace JSONHelpers
         {
             auto customZoneSets = fancyZonesDataJSON.GetNamedArray(L"custom-zone-sets");
 
-            for (int i = 0; i < customZoneSets.Size(); ++i)
+            for (uint32_t i = 0; i < customZoneSets.Size(); ++i)
             {
                 const auto zoneSet = CustomZoneSetJSON::FromJson(customZoneSets.GetObjectAt(i));
                 if (zoneSet.has_value())
@@ -377,7 +377,7 @@ namespace JSONHelpers
 
             return true;
         }
-        catch (const winrt::hresult_error& e)
+        catch (const winrt::hresult_error&)
         {
             return false;
         }
@@ -524,7 +524,6 @@ namespace JSONHelpers
     {
         wchar_t key[256];
         StringCchPrintf(key, ARRAYSIZE(key), L"%s\\%s", RegistryHelpers::REG_SETTINGS, deviceId.c_str());
-        HKEY hkey;
 
         wchar_t activeZoneSetId[256];
         activeZoneSetId[0] = '\0';
@@ -663,12 +662,12 @@ namespace JSONHelpers
             zoneSetData.type = TypeFromString(std::wstring{ zoneSet.GetNamedString(L"type") });
             if (zoneSetData.type != ZoneSetLayoutType::Custom)
             {
-                zoneSetData.zoneCount = zoneSet.GetNamedNumber(L"zone-count");
+                zoneSetData.zoneCount = static_cast<int>(zoneSet.GetNamedNumber(L"zone-count"));
             }
 
             return zoneSetData;
         }
-        catch (const winrt::hresult_error& e)
+        catch (const winrt::hresult_error&)
         {
             return std::nullopt;
         }
@@ -693,11 +692,11 @@ namespace JSONHelpers
 
             result.appPath = zoneSet.GetNamedString(L"app-path");
             result.data.zoneSetUuid = zoneSet.GetNamedString(L"zoneset-uuid");
-            result.data.zoneIndex = zoneSet.GetNamedNumber(L"zone-index");
+            result.data.zoneIndex = static_cast<int>(zoneSet.GetNamedNumber(L"zone-index"));
 
             return result;
         }
-        catch (const winrt::hresult_error& e)
+        catch (const winrt::hresult_error&)
         {
             return std::nullopt;
         }
@@ -735,12 +734,13 @@ namespace JSONHelpers
             }
 
             result.data.showSpacing = device.GetNamedBoolean(L"editor-show-spacing");
-            result.data.spacing = device.GetNamedNumber(L"editor-spacing");
-            result.data.zoneCount = device.GetNamedNumber(L"editor-zone-count");
+            result.data.spacing = static_cast<int>(device.GetNamedNumber(L"editor-spacing"));
+            result.data.zoneCount = static_cast<int>(
+              device.GetNamedNumber(L"editor-zone-count"));
 
             return result;
         }
-        catch (const winrt::hresult_error& e)
+        catch (const winrt::hresult_error&)
         {
             return std::nullopt;
         }
@@ -771,18 +771,22 @@ namespace JSONHelpers
         try
         {
             CanvasLayoutInfo info;
-            info.referenceWidth = infoJson.GetNamedNumber(L"ref-width");
-            info.referenceHeight = infoJson.GetNamedNumber(L"ref-height");
+            info.referenceWidth = static_cast<int>(infoJson.GetNamedNumber(L"ref-width"));
+            info.referenceHeight = static_cast<int>(infoJson.GetNamedNumber(L"ref-height"));
             json::JsonArray zonesJson = infoJson.GetNamedArray(L"zones");
-            for (int i = 0; i < zonesJson.Size(); ++i)
+            for (uint32_t i = 0; i < zonesJson.Size(); ++i)
             {
                 json::JsonObject zoneJson = zonesJson.GetObjectAt(i);
-                CanvasLayoutInfo::Rect zone{ zoneJson.GetNamedNumber(L"X"), zoneJson.GetNamedNumber(L"Y"), zoneJson.GetNamedNumber(L"width"), zoneJson.GetNamedNumber(L"height") };
+                const int x = static_cast<int>(zoneJson.GetNamedNumber(L"X"));
+                const int y = static_cast<int>(zoneJson.GetNamedNumber(L"Y"));
+                const int width = static_cast<int>(zoneJson.GetNamedNumber(L"width"));
+                const int height = static_cast<int>(zoneJson.GetNamedNumber(L"height"));
+                CanvasLayoutInfo::Rect zone{ x, y, width, height };
                 info.zones.push_back(zone);
             }
             return info;
         }
-        catch (const winrt::hresult_error& e)
+        catch (const winrt::hresult_error&)
         {
             return std::nullopt;
         }
@@ -841,8 +845,8 @@ namespace JSONHelpers
         {
             GridLayoutInfo info(GridLayoutInfo::Minimal{});
 
-            info.m_rows = infoJson.GetNamedNumber(L"rows");
-            info.m_columns = infoJson.GetNamedNumber(L"columns");
+            info.m_rows = static_cast<int>(infoJson.GetNamedNumber(L"rows"));
+            info.m_columns = static_cast<int>(infoJson.GetNamedNumber(L"columns"));
 
             json::JsonArray rowsPercentage = infoJson.GetNamedArray(L"rows-percentage");
             json::JsonArray columnsPercentage = infoJson.GetNamedArray(L"columns-percentage");
@@ -867,7 +871,7 @@ namespace JSONHelpers
 
             return info;
         }
-        catch (const winrt::hresult_error& e)
+        catch (const winrt::hresult_error&)
         {
             return std::nullopt;
         }
@@ -948,7 +952,7 @@ namespace JSONHelpers
 
             return result;
         }
-        catch (const winrt::hresult_error& e)
+        catch (const winrt::hresult_error&)
         {
             return std::nullopt;
         }

@@ -1018,7 +1018,7 @@ namespace FancyZonesUnitTests
             Assert::IsTrue(std::filesystem::exists(m_path));
 
             const int spacing = 10;
-            const int zoneCount = info.zones.size();
+            const auto zoneCount = info.zones.size();
 
             ZoneSetConfig m_config = ZoneSetConfig(m_id, TZoneSetLayoutType::Custom, m_monitor, m_resolutionKey);
             auto set = MakeZoneSet(m_config);
@@ -1062,7 +1062,7 @@ namespace FancyZonesUnitTests
             Assert::IsTrue(std::filesystem::exists(m_path));
 
             const int spacing = 10;
-            const int zoneCount = info.zones.size();
+            const auto zoneCount = info.zones.size();
 
             ZoneSetConfig m_config = ZoneSetConfig(m_id, TZoneSetLayoutType::Custom, m_monitor, m_resolutionKey);
             auto set = MakeZoneSet(m_config);

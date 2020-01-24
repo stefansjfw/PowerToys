@@ -76,6 +76,7 @@ namespace FancyZonesEditor.Models
         }
 
         private string _name;
+
         public LayoutType Type { get; set; }
 
         public Guid Guid
@@ -121,7 +122,6 @@ namespace FancyZonesEditor.Models
         // Removes this Layout from the registry and the loaded CustomModels list
         public void Delete()
         {
-
             int i = _customModels.IndexOf(this);
             if (i != -1)
             {
@@ -173,6 +173,7 @@ namespace FancyZonesEditor.Models
                     {
                         rowsPercentage[i++] = rowsPercentageEnumerator.Current.GetInt32();
                     }
+
                     i = 0;
                     int[] columnsPercentage = new int[columns];
                     JsonElement.ArrayEnumerator columnsPercentageEnumerator = info.GetProperty("columns-percentage").EnumerateArray();
@@ -180,6 +181,7 @@ namespace FancyZonesEditor.Models
                     {
                         columnsPercentage[i++] = columnsPercentageEnumerator.Current.GetInt32();
                     }
+
                     i = 0;
                     JsonElement.ArrayEnumerator cellChildMapRows = info.GetProperty("cell-child-map").EnumerateArray();
                     int[,] cellChildMap = new int[rows, columns];
@@ -191,8 +193,10 @@ namespace FancyZonesEditor.Models
                         {
                             cellChildMap[i, j++] = cellChildMapRowElems.Current.GetInt32();
                         }
+
                         i++;
                     }
+
                     _customModels.Add(new GridLayoutModel(uuid, name, LayoutType.Custom, rows, columns, rowsPercentage, columnsPercentage, cellChildMap));
                 }
                 else if (type.Equals("canvas"))
@@ -209,6 +213,7 @@ namespace FancyZonesEditor.Models
                         int height = zonesEnumerator.Current.GetProperty("height").GetInt32();
                         zones.Add(new Int32Rect(x, y, width, height));
                     }
+
                     _customModels.Add(new CanvasLayoutModel(uuid, name, LayoutType.Custom, referenceWidth, referenceHeight, zones));
                 }
             }
@@ -218,8 +223,6 @@ namespace FancyZonesEditor.Models
 
         private static ObservableCollection<LayoutModel> _customModels = null;
         private static List<string> _deletedCustomModels = new List<string>();
-
-        private static ushort _maxId = 0;
 
         // Callbacks that the base LayoutModel makes to derived types
         protected abstract void PersistData();

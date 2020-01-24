@@ -6,8 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO;
 using System.Globalization;
+using System.IO;
 using System.Text.Json;
 using System.Windows;
 using FancyZonesEditor.Models;
@@ -259,26 +259,26 @@ namespace FancyZonesEditor
 
         public static LayoutType ActiveZoneSetLayoutType { get; private set; }
 
-        public static String ActiveZoneSetTmpFile
+        public static string ActiveZoneSetTmpFile
         {
             get { return _activeZoneSetTmpFile; }
         }
 
-        private static String _activeZoneSetTmpFile;
+        private static string _activeZoneSetTmpFile;
 
-        public static String AppliedZoneSetTmpFile
+        public static string AppliedZoneSetTmpFile
         {
             get { return _appliedZoneSetTmpFile; }
         }
 
-        private static String _appliedZoneSetTmpFile;
+        private static string _appliedZoneSetTmpFile;
 
-        public static String CustomZoneSetsTmpFile
+        public static string CustomZoneSetsTmpFile
         {
             get { return _customZoneSetsTmpFile; }
         }
 
-        private static String _customZoneSetsTmpFile;
+        private static string _customZoneSetsTmpFile;
 
         public static string WorkAreaKey { get; private set; }
 

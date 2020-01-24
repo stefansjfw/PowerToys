@@ -762,7 +762,7 @@ namespace FancyZonesUnitTests
         void compareJsonArrays(const json::JsonArray& expected, const json::JsonArray& actual)
         {
             Assert::AreEqual(expected.Size(), actual.Size());
-            for (int i = 0; i < expected.Size(); i++)
+            for (uint32_t i = 0; i < expected.Size(); i++)
             {
                 compareJsonObjects(expected.GetObjectAt(i), actual.GetObjectAt(i));
             }
