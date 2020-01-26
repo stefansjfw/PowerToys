@@ -10,16 +10,12 @@
 
 namespace
 {
-    struct Monitors
-    {
-        HMONITOR* data;
-        int count;
-    };
+    using TMonitors = std::vector<HMONITOR>;
 
     BOOL CALLBACK CollectMonitorsData(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
     {
-        Monitors* monitors = reinterpret_cast<Monitors*>(dwData);
-        monitors->data[monitors->count++] = hMonitor;
+        TMonitors* monitors = reinterpret_cast<TMonitors*>(dwData);
+        monitors->push_back(hMonitor);
         return true;
     }
 
@@ -491,15 +487,11 @@ namespace JSONHelpers
 
     void FancyZonesData::MigrateAppZoneHistoryFromRegistry()
     {
-        HMONITOR buffer[10];
-        Monitors monitors;
-        monitors.data = buffer;
-        monitors.count = 0;
+        TMonitors monitors;
         EnumDisplayMonitors(NULL, NULL, &CollectMonitorsData, reinterpret_cast<LPARAM>(&monitors));
 
-        for (int i = 0; i < monitors.count; i++)
+        for (HMONITOR monitor : monitors)
         {
-            HMONITOR monitor = monitors.data[i];
             wchar_t key[256];
             StringCchPrintf(key, ARRAYSIZE(key), L"%s\\%s\\%x", RegistryHelpers::REG_SETTINGS, RegistryHelpers::APP_ZONE_HISTORY_SUBKEY, monitor);
             HKEY hkey;
