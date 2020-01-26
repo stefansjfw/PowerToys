@@ -225,7 +225,7 @@ namespace JSONHelpers
                 }
             }
 
-            DeleteFileW(tmpFilePath.c_str());
+            DeleteTmpFile(tmpFilePath);
         }
     }
 
@@ -251,7 +251,7 @@ namespace JSONHelpers
                 res = false;
             }
 
-            DeleteFileW(tmpFilePath.c_str());
+            DeleteTmpFile(tmpFilePath);
         }
         return res;
     }
@@ -271,11 +271,12 @@ namespace JSONHelpers
                     customZoneSetsMap.erase(std::wstring{ uuid });
                 }
             }
-            catch (const winrt::hresult_error&) 
+            catch (const winrt::hresult_error&)
             {
                 res = false;
             }
-            DeleteFileW(tmpFilePath.c_str());
+
+            DeleteTmpFile(tmpFilePath);
         }
 
         return res;

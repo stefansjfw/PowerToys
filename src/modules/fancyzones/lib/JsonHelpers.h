@@ -192,6 +192,11 @@ namespace JSONHelpers
             return appZoneHistoryMap;
         }
 
+        inline bool DeleteTmpFile(const std::wstring& tmpFilePath)
+        {
+            return DeleteFileW(tmpFilePath.c_str());
+        }
+
         int GetAppLastZone(HWND window, PCWSTR appPath) const;
         bool SetAppLastZone(HWND window, PCWSTR appPath, DWORD zoneIndex); //TODO(stefan): Missing zone uuid (pass as arg)
 
