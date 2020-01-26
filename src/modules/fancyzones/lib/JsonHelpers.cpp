@@ -16,7 +16,7 @@ namespace
         int count;
     };
 
-    BOOL CALLBACK MyInfoEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+    BOOL CALLBACK CollectMonitorsData(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
     {
         Monitors* monitors = reinterpret_cast<Monitors*>(dwData);
         monitors->data[monitors->count++] = hMonitor;
@@ -495,7 +495,7 @@ namespace JSONHelpers
         Monitors monitors;
         monitors.data = buffer;
         monitors.count = 0;
-        EnumDisplayMonitors(NULL, NULL, &MyInfoEnumProc, reinterpret_cast<LPARAM>(&monitors));
+        EnumDisplayMonitors(NULL, NULL, &CollectMonitorsData, reinterpret_cast<LPARAM>(&monitors));
 
         for (int i = 0; i < monitors.count; i++)
         {
