@@ -584,7 +584,8 @@ void ZoneWindow::CalculateZoneSet() noexcept
             monitorInfo.cbSize = sizeof(monitorInfo);
             if (GetMonitorInfoW(m_monitor, &monitorInfo))
             {
-                int spacing = deviceInfoMap.at(std::wstring{ m_uniqueId }).spacing;
+                bool showSpacing = deviceInfoMap.at(std::wstring{ m_uniqueId }).showSpacing;
+                int spacing = showSpacing ? deviceInfoMap.at(std::wstring{ m_uniqueId }).spacing : 0;
                 int zoneCount = activeZoneSet.zoneCount.has_value() ? activeZoneSet.zoneCount.value() : 0;
                 zoneSet->CalculateZones(monitorInfo, zoneCount, spacing, ZoneWindowUtils::GetAppliedZoneSetTmpPath());
                 UpdateActiveZoneSet(zoneSet.get());
