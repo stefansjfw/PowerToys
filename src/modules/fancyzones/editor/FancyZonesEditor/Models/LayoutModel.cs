@@ -20,6 +20,7 @@ namespace FancyZonesEditor.Models
         Grid,
         PriorityGrid,
         Custom,
+        Blank,
     }
 
     // Base LayoutModel

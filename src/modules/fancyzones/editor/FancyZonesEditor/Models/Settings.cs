@@ -97,7 +97,7 @@ namespace FancyZonesEditor
             _priorityGridModel = new GridLayoutModel("Priority Grid", LayoutType.PriorityGrid);
             DefaultModels.Add(_priorityGridModel);
 
-            _blankCustomModel = new CanvasLayoutModel("Create new custom", LayoutType.Custom, (int)_workArea.Width, (int)_workArea.Height);
+            _blankCustomModel = new CanvasLayoutModel("Create new custom", LayoutType.Blank, (int)_workArea.Width, (int)_workArea.Height);
 
             _settingsToPersist = new SettingsToPersist(_showSpacing, _spacing, _zoneCount);
 
