@@ -13,6 +13,15 @@
 #include <functional>
 #include <common/common.h>
 
+enum class DisplayChangeType
+{
+    WorkArea,
+    DisplayChange,
+    VirtualDesktop,
+    Editor,
+    Initialization
+};
+
 namespace std
 {
     template<>

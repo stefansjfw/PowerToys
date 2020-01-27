@@ -4,15 +4,6 @@ interface IZoneWindow;
 interface IFancyZonesSettings;
 interface IZoneSet;
 
-enum class DisplayChangeType
-{
-    WorkArea,
-    DisplayChange,
-    VirtualDesktop,
-    Editor,
-    Initialization
-};
-
 interface __declspec(uuid("{50D3F0F5-736E-4186-BDF4-3D6BEE150C3A}")) IFancyZones : public IUnknown
 {
     IFACEMETHOD_(void, Run)() = 0;
