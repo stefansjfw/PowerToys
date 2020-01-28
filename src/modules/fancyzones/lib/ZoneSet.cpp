@@ -518,8 +518,8 @@ bool ZoneSet::CalculateCustomLayout(Rect workArea, const std::wstring& customZon
                     return false;
                 }
 
-                DPIAware::Convert(NULL, x, y);
-                DPIAware::Convert(NULL, width, height);
+                DPIAware::Convert(m_config.Monitor, x, y);
+                DPIAware::Convert(m_config.Monitor, width, height);
 
                 RECT focusZoneRect{ x, y, x + width, y + height };
                 AddZone(MakeZone(focusZoneRect));
