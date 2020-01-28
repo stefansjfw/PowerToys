@@ -936,5 +936,10 @@ void FancyZones::HandleVirtualDesktopUpdates(HANDLE fancyZonesDestroyedEvent) no
 
 winrt::com_ptr<IFancyZones> MakeFancyZones(HINSTANCE hinstance, const winrt::com_ptr<IFancyZonesSettings>& settings) noexcept
 {
+    if (!settings)
+    {
+        return nullptr;
+    }
+
     return winrt::make_self<FancyZones>(hinstance, settings);
 }
