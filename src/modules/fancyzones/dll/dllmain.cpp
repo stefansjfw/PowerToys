@@ -6,6 +6,7 @@
 #include <interface/win_hook_event_data.h>
 #include <lib/ZoneSet.h>
 
+#include <lib/resource.h>
 #include <lib/trace.h>
 #include <lib/Settings.h>
 #include <lib/FancyZones.h>
@@ -37,7 +38,7 @@ public:
     // Return the display name of the powertoy, this will be cached
     virtual PCWSTR get_name() override
     {
-        return L"FancyZones";
+        return app_name.c_str();
     }
 
     // Return array of the names of all events that this powertoy listens for, with
@@ -126,6 +127,7 @@ public:
 
     FancyZonesModule()
     {
+        app_name = GET_RESOURCE_STRING(IDS_FANCYZONES);
         m_settings = MakeFancyZonesSettings(reinterpret_cast<HINSTANCE>(&__ImageBase), FancyZonesModule::get_name());
         JSONHelpers::FancyZonesDataInstance().LoadFancyZonesData();
     }
@@ -188,6 +190,7 @@ private:
     HANDLE m_movedWindow = nullptr;
     winrt::com_ptr<IFancyZones> m_app;
     winrt::com_ptr<IFancyZonesSettings> m_settings;
+    std::wstring app_name;
 };
 
 intptr_t FancyZonesModule::HandleKeyboardHookEvent(LowlevelKeyboardEvent* data) noexcept
