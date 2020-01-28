@@ -556,7 +556,7 @@ namespace JSONHelpers
                 // int version =  data[0] * 256 + data[1]; - Not used anymore
 
                 std::wstring uuid = std::to_wstring(data[3] * 256 + data[4]);
-                auto it = std::find_if(appliedZoneSetsMap.begin(), appliedZoneSetsMap.end(), [&uuid](std::pair<TZoneUUID, ZoneSetData> zoneSetMap) {
+                auto it = std::find_if(appliedZoneSetsMap.begin(), appliedZoneSetsMap.end(), [&uuid](std::pair<TZoneSetUUID, ZoneSetData> zoneSetMap) {
                     return zoneSetMap.second.uuid.compare(uuid) == 0;
                 });
 

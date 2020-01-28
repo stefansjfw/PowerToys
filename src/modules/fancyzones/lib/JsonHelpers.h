@@ -37,7 +37,7 @@ namespace JSONHelpers
     ZoneSetLayoutType TypeFromLayoutId(int layoutID);
 
     using TZoneCount = int;
-    using TZoneUUID = std::wstring;
+    using TZoneSetUUID = std::wstring;
     using TAppPath = std::wstring;
     using TDeviceID = std::wstring;
 
@@ -111,7 +111,7 @@ namespace JSONHelpers
 
     struct CustomZoneSetJSON
     {
-        TZoneUUID uuid;
+        TZoneSetUUID uuid;
         CustomZoneSetData data;
 
         static json::JsonObject ToJson(const CustomZoneSetJSON& device);
@@ -121,7 +121,7 @@ namespace JSONHelpers
     // TODO(stefan): This needs to be moved to ZoneSet.h (probably)
     struct ZoneSetData
     {
-        TZoneUUID uuid;
+        TZoneSetUUID uuid;
         ZoneSetLayoutType type;
         std::optional<int> zoneCount;
 
@@ -131,7 +131,7 @@ namespace JSONHelpers
 
     struct AppZoneHistoryData
     {
-        TZoneUUID zoneSetUuid; //TODO(stefan): is this nessecary? It doesn't exist with registry impl.
+        TZoneSetUUID zoneSetUuid; //TODO(stefan): is this nessecary? It doesn't exist with registry impl.
         int zoneIndex;
         //TODO(stefan): Also, do we need DeviceID here? Do we want to support that - app history per monitor?
     };
@@ -162,9 +162,9 @@ namespace JSONHelpers
         static std::optional<DeviceInfoJSON> FromJson(const json::JsonObject& device);
     };
 
-    using TDeviceInfosMap = std::unordered_map<TZoneUUID, DeviceInfoData>;
-    using TCustomZoneSetsMap = std::unordered_map<TZoneUUID, CustomZoneSetData>;
-    using TAppliedZoneSetsMap = std::unordered_map<TZoneUUID, ZoneSetData>;
+    using TDeviceInfosMap = std::unordered_map<TZoneSetUUID, DeviceInfoData>;
+    using TCustomZoneSetsMap = std::unordered_map<TZoneSetUUID, CustomZoneSetData>;
+    using TAppliedZoneSetsMap = std::unordered_map<TZoneSetUUID, ZoneSetData>;
     using TAppZoneHistoryMap = std::unordered_map<TAppPath, AppZoneHistoryData>;
 
     static const std::wstring FANCY_ZONES_DATA_FILE = L"PersistFancyZones.json";
