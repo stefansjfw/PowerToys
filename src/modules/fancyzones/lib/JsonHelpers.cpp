@@ -187,11 +187,11 @@ namespace JSONHelpers
         return false;
     }
 
-    void FancyZonesData::SetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& uuid)
+    void FancyZonesData::SetActiveZoneSet(const TDeviceID& deviceId, const TZoneSetUUID& uuid)
     {
-        if (!uuid.empty() && deviceInfoMap.find(uniqueID) != deviceInfoMap.end())
+        if (!uuid.empty() && deviceInfoMap.find(deviceId) != deviceInfoMap.end())
         {
-            deviceInfoMap[uniqueID].activeZoneSet.uuid = uuid;
+            deviceInfoMap[deviceId].activeZoneSet.uuid = uuid;
         }
     }
 
@@ -201,12 +201,12 @@ namespace JSONHelpers
         json::to_file(tmpFilePath, deviceInfoJson);
     }
 
-    void FancyZonesData::ParseDeviceInfoFromTmpFile(const std::wstring& uniqueID, const std::wstring& tmpFilePath)
+    void FancyZonesData::ParseDeviceInfoFromTmpFile(const TDeviceID& deviceId, const std::wstring& tmpFilePath)
     {
-        if (!deviceInfoMap.contains(uniqueID))
+        if (!deviceInfoMap.contains(deviceId))
         {
             // Creates entry in map when ZoneWindow is created
-            deviceInfoMap[uniqueID] = DeviceInfoData{ ZoneSetData{ L"null", ZoneSetLayoutType::Grid, 1 }, true, 16, 3 };
+            deviceInfoMap[deviceId] = DeviceInfoData{ ZoneSetData{ L"null", ZoneSetLayoutType::Grid, 1 }, true, 16, 3 };
         }
 
         if (std::filesystem::exists(tmpFilePath))
@@ -215,16 +215,16 @@ namespace JSONHelpers
             if (zoneSetJson.has_value())
             {
                 const auto deviceInfo = DeviceInfoJSON::FromJson(*zoneSetJson);
-                if (deviceInfo.has_value() && deviceInfo->deviceId.compare(uniqueID) == 0)
+                if (deviceInfo.has_value() && deviceInfo->deviceId.compare(deviceId) == 0)
                 {
-                    deviceInfoMap[uniqueID] = deviceInfo->data;
+                    deviceInfoMap[deviceId] = deviceInfo->data;
                     DeleteTmpFile(tmpFilePath);
                 }
             }
         }
     }
 
-    bool FancyZonesData::ParseCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath, const std::wstring& uuid)
+    bool FancyZonesData::ParseCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath, const TZoneSetUUID& uuid)
     {
         bool res = true;
         if (std::filesystem::exists(tmpFilePath))
@@ -512,7 +512,7 @@ namespace JSONHelpers
         }
     }
 
-    void FancyZonesData::MigrateDeviceInfoFromRegistry(const std::wstring& deviceId)
+    void FancyZonesData::MigrateDeviceInfoFromRegistry(const TDeviceID& deviceId)
     {
         wchar_t key[256];
         StringCchPrintf(key, ARRAYSIZE(key), L"%s\\%s", RegistryHelpers::REG_SETTINGS, deviceId.c_str());

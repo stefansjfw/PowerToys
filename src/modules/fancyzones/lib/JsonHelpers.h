@@ -200,12 +200,12 @@ namespace JSONHelpers
         int GetAppLastZone(HWND window, PCWSTR appPath) const;
         bool SetAppLastZone(HWND window, PCWSTR appPath, DWORD zoneIndex); //TODO(stefan): Missing zone uuid (pass as arg)
 
-        void SetActiveZoneSet(const std::wstring& uniqueID, const std::wstring& uuid);
+        void SetActiveZoneSet(const TDeviceID& deviceId, const TZoneSetUUID& uuid);
 
         void SerializeDeviceInfoToTmpFile(const DeviceInfoJSON& deviceInfo, const std::wstring& tmpFilePath) const;
-        void ParseDeviceInfoFromTmpFile(const std::wstring& uniqueID, const std::wstring& tmpFilePath);
+        void ParseDeviceInfoFromTmpFile(const TDeviceID& deviceId, const std::wstring& tmpFilePath);
 
-        bool ParseCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath, const std::wstring& uuid);
+        bool ParseCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath, const TZoneSetUUID& uuid);
         bool ParseDeletedCustomZoneSetsFromTmpFile(const std::wstring& tmpFilePath);
 
         bool ParseAppZoneHistory(const json::JsonObject& fancyZonesDataJSON);
@@ -219,7 +219,7 @@ namespace JSONHelpers
         void LoadFancyZonesData();
         void SaveFancyZonesData() const;
 
-        void MigrateDeviceInfoFromRegistry(const std::wstring& deviceId);
+        void MigrateDeviceInfoFromRegistry(const TDeviceID& deviceId);
 
     private:
         void TmpMigrateAppliedZoneSetsFromRegistry();
