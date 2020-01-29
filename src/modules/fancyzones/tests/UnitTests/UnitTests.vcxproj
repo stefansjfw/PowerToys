@@ -96,6 +96,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FancyZones.Spec.cpp" />
     <ClCompile Include="FancyZonesSettings.Spec.cpp" />
     <ClCompile Include="JsonHelpers.Tests.cpp" />
     <ClCompile Include="pch.cpp">
