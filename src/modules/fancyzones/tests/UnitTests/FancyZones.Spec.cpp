@@ -44,7 +44,7 @@ namespace FancyZonesUnitTests
         TEST_METHOD(CreateWithNullSettings)
         {
             auto actual = MakeFancyZones(m_hInst, nullptr);
-            Assert::IsNotNull(actual.get());
+            Assert::IsNull(actual.get());
         }
 
         TEST_METHOD(Run)
