@@ -106,7 +106,7 @@ namespace FancyZonesUnitTests
             const auto type = JSONHelpers::ZoneSetLayoutType::Columns;
             const auto expectedZoneSet = JSONHelpers::ZoneSetData{ guidString(), type, 5 };
             const auto data = JSONHelpers::DeviceInfoData{ expectedZoneSet, true, 16, 3 };
-            const auto deviceInfo = JSONHelpers::DeviceInfoJSON{ guidString(), data };
+            const auto deviceInfo = JSONHelpers::DeviceInfoJSON{ m_uniqueId.str(), data };
             const auto json = JSONHelpers::DeviceInfoJSON::ToJson(deviceInfo);
             json::to_file(activeZoneSetTempPath, json);
             Assert::IsTrue(std::filesystem::exists(activeZoneSetTempPath));
@@ -217,7 +217,7 @@ namespace FancyZonesUnitTests
             {
                 const auto expectedZoneSet = ZoneSetData{ guidString(), static_cast<ZoneSetLayoutType>(type), 5 };
                 const auto data = DeviceInfoData{ expectedZoneSet, true, 16, 3 };
-                const auto deviceInfo = DeviceInfoJSON{ L"default_device_id", data };
+                const auto deviceInfo = DeviceInfoJSON{ m_uniqueId.str(), data };
                 const auto json = DeviceInfoJSON::ToJson(deviceInfo);
                 json::to_file(activeZoneSetTempPath, json);
 
@@ -241,7 +241,7 @@ namespace FancyZonesUnitTests
             const ZoneSetLayoutType type = ZoneSetLayoutType::Custom;
             const auto expectedZoneSet = ZoneSetData{ guidString(), type, 5 };
             const auto data = DeviceInfoData{ expectedZoneSet, true, 16, 3 };
-            const auto deviceInfo = DeviceInfoJSON{ L"default_device_id", data };
+            const auto deviceInfo = DeviceInfoJSON{ m_uniqueId.str(), data };
             const auto json = DeviceInfoJSON::ToJson(deviceInfo);
             json::to_file(activeZoneSetTempPath, json);
 
@@ -267,7 +267,7 @@ namespace FancyZonesUnitTests
             const ZoneSetLayoutType type = ZoneSetLayoutType::Custom;
             const auto expectedZoneSet = ZoneSetData{ guidString(), type, 5 };
             const auto data = DeviceInfoData{ expectedZoneSet, true, 16, 3 };
-            const auto deviceInfo = DeviceInfoJSON{ L"default_device_id", data };
+            const auto deviceInfo = DeviceInfoJSON{ m_uniqueId.str(), data };
             const auto json = DeviceInfoJSON::ToJson(deviceInfo);
             json::to_file(activeZoneSetTempPath, json);
 
@@ -301,7 +301,7 @@ namespace FancyZonesUnitTests
             const ZoneSetLayoutType type = ZoneSetLayoutType::Custom;
             const auto expectedZoneSet = ZoneSetData{ guidString(), type, 5 };
             const auto data = DeviceInfoData{ expectedZoneSet, true, 16, 3 };
-            const auto deviceInfo = DeviceInfoJSON{ L"default_device_id", data };
+            const auto deviceInfo = DeviceInfoJSON{ m_uniqueId.str(), data };
             const auto json = DeviceInfoJSON::ToJson(deviceInfo);
             json::to_file(activeZoneSetTempPath, json);
 
@@ -342,7 +342,7 @@ namespace FancyZonesUnitTests
             const ZoneSetLayoutType type = ZoneSetLayoutType::Custom;
             const auto expectedZoneSet = ZoneSetData{ guidString(), type, 5 };
             const auto data = DeviceInfoData{ expectedZoneSet, true, 16, 3 };
-            const auto deviceInfo = DeviceInfoJSON{ L"default_device_id", data };
+            const auto deviceInfo = DeviceInfoJSON{ m_uniqueId.str(), data };
             const auto json = DeviceInfoJSON::ToJson(deviceInfo);
             json::to_file(activeZoneSetTempPath, json);
 
