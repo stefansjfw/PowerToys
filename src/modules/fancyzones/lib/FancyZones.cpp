@@ -79,6 +79,7 @@ public:
     }
     IFACEMETHODIMP_(IZoneSet*) GetCurrentMonitorZoneSet(HMONITOR monitor) noexcept
     {
+        std::shared_lock readLock(m_lock);
         if (auto it = m_zoneWindowMap.find(monitor); it != m_zoneWindowMap.end() && it->second->ActiveZoneSet())
         {
             return it->second->ActiveZoneSet();
@@ -253,6 +254,7 @@ IFACEMETHODIMP_(void) FancyZones::VirtualDesktopChanged() noexcept
 {
     // VirtualDesktopChanged is called from another thread but results in new windows being created.
     // Jump over to the UI thread to handle it.
+    std::shared_lock readLock(m_lock);
     PostMessage(m_window, WM_PRIV_VDCHANGED, 0, 0);
 }
 
@@ -283,6 +285,8 @@ IFACEMETHODIMP_(void) FancyZones::WindowCreated(HWND window) noexcept
 // IFancyZonesCallback
 IFACEMETHODIMP_(bool) FancyZones::OnKeyDown(PKBDLLHOOKSTRUCT info) noexcept
 {
+    std::shared_lock readLock(m_lock);
+
     // Return true to swallow the keyboard event
     bool const shift = GetAsyncKeyState(VK_SHIFT) & 0x8000;
     bool const win = GetAsyncKeyState(VK_LWIN) & 0x8000;
@@ -451,6 +455,7 @@ void FancyZones::ToggleEditor() noexcept
 
 void FancyZones::SettingsChanged() noexcept
 {
+    std::shared_lock readLock(m_lock);
     // Update the hotkey
     UnregisterHotKey(m_window, 1);
     RegisterHotKey(m_window, 1, m_settings->GetSettings().editorHotkey.get_modifiers(), m_settings->GetSettings().editorHotkey.get_code());
@@ -536,11 +541,12 @@ void FancyZones::OnDisplayChange(DisplayChangeType changeType) noexcept
         // the first virtual desktop switch happens. If the user hasn't switched virtual desktops in this session
         // then this value will be empty. This means loading the first virtual desktop's configuration can be
         // funky the first time we load up at boot since the user will not have switched virtual desktops yet.
-        std::shared_lock readLock(m_lock);
         GUID currentVirtualDesktopId{};
         if (SUCCEEDED(RegistryHelpers::GetCurrentVirtualDesktop(&currentVirtualDesktopId)))
         {
+            m_lock.lock();
             m_currentVirtualDesktopId = currentVirtualDesktopId;
+            m_lock.unlock();
         }
         else
         {
