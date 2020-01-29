@@ -192,6 +192,11 @@ namespace JSONHelpers
             return appZoneHistoryMap;
         }
 
+        const TDeviceID GetActiveDeviceId()
+        {
+            return activeDeviceId;
+        }
+
         inline bool DeleteTmpFile(const std::wstring& tmpFilePath)
         {
             return DeleteFileW(tmpFilePath.c_str());
@@ -231,6 +236,7 @@ namespace JSONHelpers
         TDeviceInfosMap deviceInfoMap{};
         TCustomZoneSetsMap customZoneSetsMap{};
 
+        TDeviceID activeDeviceId;
         std::wstring jsonFilePath;
     };
 

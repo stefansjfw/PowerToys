@@ -570,7 +570,7 @@ void ZoneWindow::CalculateZoneSet() noexcept
     const auto& deviceInfoMap = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap();
 
     const auto& activeZoneSet = deviceInfoMap.at(std::wstring{ m_uniqueId }).activeZoneSet;
-    if (!activeZoneSet.uuid.empty())
+    if (!activeZoneSet.uuid.empty() && JSONHelpers::FancyZonesDataInstance().GetActiveDeviceId().compare(m_uniqueId) == 0)
     {
         GUID zoneSetId;
         if (SUCCEEDED_LOG(CLSIDFromString(activeZoneSet.uuid.c_str(), &zoneSetId)))

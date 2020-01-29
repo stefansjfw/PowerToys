@@ -215,7 +215,8 @@ namespace JSONHelpers
             if (zoneSetJson.has_value())
             {
                 const auto deviceInfo = DeviceInfoJSON::FromJson(*zoneSetJson);
-                if (deviceInfo.has_value() && deviceInfo->deviceId.compare(deviceId) == 0)
+                activeDeviceId = deviceInfo->deviceId;
+                if (deviceInfo.has_value() && activeDeviceId.compare(deviceId) == 0)
                 {
                     deviceInfoMap[deviceId] = deviceInfo->data;
                     DeleteTmpFile(tmpFilePath);
