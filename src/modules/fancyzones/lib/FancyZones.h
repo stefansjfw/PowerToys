@@ -4,15 +4,6 @@ interface IZoneWindow;
 interface IFancyZonesSettings;
 interface IZoneSet;
 
-enum class DisplayChangeType
-{
-    WorkArea,
-    DisplayChange,
-    VirtualDesktop,
-    Editor,
-    Initialization
-};
-
 interface __declspec(uuid("{50D3F0F5-736E-4186-BDF4-3D6BEE150C3A}")) IFancyZones : public IUnknown
 {
     IFACEMETHOD_(void, Run)() = 0;
@@ -40,4 +31,4 @@ interface __declspec(uuid("{5C8D99D6-34B2-4F4A-A8E5-7483F6869775}")) IZoneWindow
     IFACEMETHOD_(int, GetZoneHighlightOpacity)() = 0;
 };
 
-winrt::com_ptr<IFancyZones> MakeFancyZones(HINSTANCE hinstance, IFancyZonesSettings* settings) noexcept;
+winrt::com_ptr<IFancyZones> MakeFancyZones(HINSTANCE hinstance, const winrt::com_ptr<IFancyZonesSettings>& settings) noexcept;

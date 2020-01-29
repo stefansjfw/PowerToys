@@ -13,6 +13,15 @@
 #include <functional>
 #include <common/common.h>
 
+enum class DisplayChangeType
+{
+    WorkArea,
+    DisplayChange,
+    VirtualDesktop,
+    Editor,
+    Initialization
+};
+
 namespace std
 {
     template<>
@@ -29,7 +38,7 @@ namespace std
 struct FancyZones : public winrt::implements<FancyZones, IFancyZones, IFancyZonesCallback, IZoneWindowHost>
 {
 public:
-    FancyZones(HINSTANCE hinstance, IFancyZonesSettings* settings) noexcept :
+    FancyZones(HINSTANCE hinstance, const winrt::com_ptr<IFancyZonesSettings>& settings) noexcept :
         m_hinstance(hinstance),
         m_settings(settings)
     {
@@ -37,42 +46,28 @@ public:
     }
 
     // IFancyZones
-    IFACEMETHODIMP_(void)
-    Run() noexcept;
-    IFACEMETHODIMP_(void)
-    Destroy() noexcept;
+    IFACEMETHODIMP_(void) Run() noexcept;
+    IFACEMETHODIMP_(void) Destroy() noexcept;
 
     // IFancyZonesCallback
-    IFACEMETHODIMP_(bool)
-    InMoveSize() noexcept
+    IFACEMETHODIMP_(bool) InMoveSize() noexcept
     {
         std::shared_lock readLock(m_lock);
         return m_inMoveSize;
     }
-    IFACEMETHODIMP_(void)
-    MoveSizeStart(HWND window, HMONITOR monitor, POINT const& ptScreen) noexcept;
-    IFACEMETHODIMP_(void)
-    MoveSizeUpdate(HMONITOR monitor, POINT const& ptScreen) noexcept;
-    IFACEMETHODIMP_(void)
-    MoveSizeEnd(HWND window, POINT const& ptScreen) noexcept;
-    IFACEMETHODIMP_(void)
-    VirtualDesktopChanged() noexcept;
-    IFACEMETHODIMP_(void)
-    VirtualDesktopInitialize() noexcept;
-    IFACEMETHODIMP_(void)
-    WindowCreated(HWND window) noexcept;
-    IFACEMETHODIMP_(bool)
-    OnKeyDown(PKBDLLHOOKSTRUCT info) noexcept;
-    IFACEMETHODIMP_(void)
-    ToggleEditor() noexcept;
-    IFACEMETHODIMP_(void)
-    SettingsChanged() noexcept;
+    IFACEMETHODIMP_(void) MoveSizeStart(HWND window, HMONITOR monitor, POINT const& ptScreen) noexcept;
+    IFACEMETHODIMP_(void) MoveSizeUpdate(HMONITOR monitor, POINT const& ptScreen) noexcept;
+    IFACEMETHODIMP_(void) MoveSizeEnd(HWND window, POINT const& ptScreen) noexcept;
+    IFACEMETHODIMP_(void) VirtualDesktopChanged() noexcept;
+    IFACEMETHODIMP_(void) VirtualDesktopInitialize() noexcept;
+    IFACEMETHODIMP_(void) WindowCreated(HWND window) noexcept;
+    IFACEMETHODIMP_(bool) OnKeyDown(PKBDLLHOOKSTRUCT info) noexcept;
+    IFACEMETHODIMP_(void) ToggleEditor() noexcept;
+    IFACEMETHODIMP_(void) SettingsChanged() noexcept;
 
     // IZoneWindowHost
-    IFACEMETHODIMP_(void)
-    MoveWindowsOnActiveZoneSetChange() noexcept;
-    IFACEMETHODIMP_(COLORREF)
-    GetZoneHighlightColor() noexcept
+    IFACEMETHODIMP_(void) MoveWindowsOnActiveZoneSetChange() noexcept;
+    IFACEMETHODIMP_(COLORREF) GetZoneHighlightColor() noexcept
     {
         // Skip the leading # and convert to long
         const auto color = m_settings->GetSettings().zoneHightlightColor;
@@ -82,8 +77,7 @@ public:
         const auto nB = (tmp & 0xFF);
         return RGB(nR, nG, nB);
     }
-    IFACEMETHODIMP_(IZoneSet*)
-    GetCurrentMonitorZoneSet(HMONITOR monitor) noexcept
+    IFACEMETHODIMP_(IZoneSet*) GetCurrentMonitorZoneSet(HMONITOR monitor) noexcept
     {
         if (auto it = m_zoneWindowMap.find(monitor); it != m_zoneWindowMap.end() && it->second->ActiveZoneSet())
         {
@@ -91,8 +85,7 @@ public:
         }
         return nullptr;
     }
-    IFACEMETHODIMP_(int)
-    GetZoneHighlightOpacity() noexcept
+    IFACEMETHODIMP_(int) GetZoneHighlightOpacity() noexcept
     {
         return m_settings->GetSettings().zoneHighlightOpacity;
     }
@@ -151,7 +144,7 @@ private:
     bool m_dragEnabled{}; // True if we should be showing zone hints while dragging
     std::map<HMONITOR, winrt::com_ptr<IZoneWindow>> m_zoneWindowMap; // Map of monitor to ZoneWindow (one per monitor)
     winrt::com_ptr<IZoneWindow> m_zoneWindowMoveSize; // "Active" ZoneWindow, where the move/size is happening. Will update as drag moves between monitors.
-    IFancyZonesSettings* m_settings{};
+    winrt::com_ptr<IFancyZonesSettings> m_settings{};
     GUID m_currentVirtualDesktopId{}; // UUID of the current virtual desktop. Is GUID_NULL until first VD switch per session.
     std::unordered_map<GUID, bool> m_virtualDesktopIds;
     wil::unique_handle m_terminateEditorEvent; // Handle of FancyZonesEditor.exe we launch and wait on
@@ -177,8 +170,7 @@ UINT FancyZones::WM_PRIV_VDINIT = RegisterWindowMessage(L"{469818a8-00fa-4069-b8
 UINT FancyZones::WM_PRIV_EDITOR = RegisterWindowMessage(L"{87543824-7080-4e91-9d9c-0404642fc7b6}");
 
 // IFancyZones
-IFACEMETHODIMP_(void)
-FancyZones::Run() noexcept
+IFACEMETHODIMP_(void) FancyZones::Run() noexcept
 {
     std::unique_lock writeLock(m_lock);
 
@@ -214,8 +206,7 @@ FancyZones::Run() noexcept
 }
 
 // IFancyZones
-IFACEMETHODIMP_(void)
-FancyZones::Destroy() noexcept
+IFACEMETHODIMP_(void) FancyZones::Destroy() noexcept
 {
     std::unique_lock writeLock(m_lock);
     m_zoneWindowMap.clear();
@@ -237,32 +228,28 @@ FancyZones::Destroy() noexcept
 }
 
 // IFancyZonesCallback
-IFACEMETHODIMP_(void)
-FancyZones::MoveSizeStart(HWND window, HMONITOR monitor, POINT const& ptScreen) noexcept
+IFACEMETHODIMP_(void) FancyZones::MoveSizeStart(HWND window, HMONITOR monitor, POINT const& ptScreen) noexcept
 {
     std::unique_lock writeLock(m_lock);
     MoveSizeStartInternal(window, monitor, ptScreen, writeLock);
 }
 
 // IFancyZonesCallback
-IFACEMETHODIMP_(void)
-FancyZones::MoveSizeUpdate(HMONITOR monitor, POINT const& ptScreen) noexcept
+IFACEMETHODIMP_(void) FancyZones::MoveSizeUpdate(HMONITOR monitor, POINT const& ptScreen) noexcept
 {
     std::unique_lock writeLock(m_lock);
     MoveSizeUpdateInternal(monitor, ptScreen, writeLock);
 }
 
 // IFancyZonesCallback
-IFACEMETHODIMP_(void)
-FancyZones::MoveSizeEnd(HWND window, POINT const& ptScreen) noexcept
+IFACEMETHODIMP_(void) FancyZones::MoveSizeEnd(HWND window, POINT const& ptScreen) noexcept
 {
     std::unique_lock writeLock(m_lock);
     MoveSizeEndInternal(window, ptScreen, writeLock);
 }
 
 // IFancyZonesCallback
-IFACEMETHODIMP_(void)
-FancyZones::VirtualDesktopChanged() noexcept
+IFACEMETHODIMP_(void) FancyZones::VirtualDesktopChanged() noexcept
 {
     // VirtualDesktopChanged is called from another thread but results in new windows being created.
     // Jump over to the UI thread to handle it.
@@ -270,15 +257,13 @@ FancyZones::VirtualDesktopChanged() noexcept
 }
 
 // IFancyZonesCallback
-IFACEMETHODIMP_(void)
-FancyZones::VirtualDesktopInitialize() noexcept
+IFACEMETHODIMP_(void) FancyZones::VirtualDesktopInitialize() noexcept
 {
     PostMessage(m_window, WM_PRIV_VDINIT, 0, 0);
 }
 
 // IFancyZonesCallback
-IFACEMETHODIMP_(void)
-FancyZones::WindowCreated(HWND window) noexcept
+IFACEMETHODIMP_(void) FancyZones::WindowCreated(HWND window) noexcept
 {
     if (m_settings->GetSettings().appLastZone_moveWindows)
     {
@@ -296,8 +281,7 @@ FancyZones::WindowCreated(HWND window) noexcept
 }
 
 // IFancyZonesCallback
-IFACEMETHODIMP_(bool)
-FancyZones::OnKeyDown(PKBDLLHOOKSTRUCT info) noexcept
+IFACEMETHODIMP_(bool) FancyZones::OnKeyDown(PKBDLLHOOKSTRUCT info) noexcept
 {
     // Return true to swallow the keyboard event
     bool const shift = GetAsyncKeyState(VK_SHIFT) & 0x8000;
@@ -473,8 +457,7 @@ void FancyZones::SettingsChanged() noexcept
 }
 
 // IZoneWindowHost
-IFACEMETHODIMP_(void)
-FancyZones::MoveWindowsOnActiveZoneSetChange() noexcept
+IFACEMETHODIMP_(void) FancyZones::MoveWindowsOnActiveZoneSetChange() noexcept
 {
     if (m_settings->GetSettings().zoneSetChange_moveWindows)
     {
@@ -933,7 +916,12 @@ void FancyZones::HandleVirtualDesktopUpdates(HANDLE fancyZonesDestroyedEvent) no
     }
 }
 
-winrt::com_ptr<IFancyZones> MakeFancyZones(HINSTANCE hinstance, IFancyZonesSettings* settings) noexcept
+winrt::com_ptr<IFancyZones> MakeFancyZones(HINSTANCE hinstance, const winrt::com_ptr<IFancyZonesSettings>& settings) noexcept
 {
+    if (!settings)
+    {
+        return nullptr;
+    }
+
     return winrt::make_self<FancyZones>(hinstance, settings);
 }

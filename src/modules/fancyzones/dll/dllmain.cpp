@@ -76,7 +76,7 @@ public:
         if (!m_app)
         {
             Trace::FancyZones::EnableFancyZones(true);
-            m_app = MakeFancyZones(reinterpret_cast<HINSTANCE>(&__ImageBase), m_settings.get());
+            m_app = MakeFancyZones(reinterpret_cast<HINSTANCE>(&__ImageBase), m_settings);
             if (m_app)
             {
                 m_app->Run();

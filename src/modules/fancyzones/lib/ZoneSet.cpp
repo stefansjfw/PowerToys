@@ -189,7 +189,7 @@ ZoneSet::ZoneFromPoint(POINT pt) noexcept
                     if (newZoneArea < smallestKnownZoneArea)
                     {
                         smallestKnownZone = zone;
-                        newZoneArea = smallestKnownZoneArea;
+                        smallestKnownZoneArea = newZoneArea;
                     }
                 }
             }

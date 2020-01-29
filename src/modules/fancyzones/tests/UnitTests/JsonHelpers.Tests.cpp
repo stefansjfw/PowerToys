@@ -976,7 +976,7 @@ namespace FancyZonesUnitTests
         TEST_METHOD(DeviceInfoReadTempUnexsisted)
         {
             FancyZonesData data;
-            DeviceInfoData expected{ ZoneSetData{ L"", ZoneSetLayoutType::Grid, 0 }, true, 16, 3 };
+            DeviceInfoData expected{ ZoneSetData{ L"null", ZoneSetLayoutType::Grid, 1 }, true, 16, 3 };
 
             const std::wstring zoneUuid = L"default_device_id";
             const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
