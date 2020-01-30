@@ -569,27 +569,29 @@ void ZoneWindow::CalculateZoneSet() noexcept
 {
     const auto& deviceInfoMap = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap();
 
+    const auto& activeDeviceId = JSONHelpers::FancyZonesDataInstance().GetActiveDeviceId();
     const auto& activeZoneSet = deviceInfoMap.at(std::wstring{ m_uniqueId }).activeZoneSet;
-    if (!activeZoneSet.uuid.empty() && JSONHelpers::FancyZonesDataInstance().GetActiveDeviceId().compare(m_uniqueId) == 0)
+    if (!activeDeviceId.empty() && activeDeviceId.compare(m_uniqueId) != 0 && !activeZoneSet.uuid.empty())
     {
-        GUID zoneSetId;
-        if (SUCCEEDED_LOG(CLSIDFromString(activeZoneSet.uuid.c_str(), &zoneSetId)))
+        return;
+    }
+    GUID zoneSetId;
+    if (SUCCEEDED_LOG(CLSIDFromString(activeZoneSet.uuid.c_str(), &zoneSetId)))
+    {
+        auto zoneSet = MakeZoneSet(ZoneSetConfig(
+            zoneSetId,
+            activeZoneSet.type,
+            m_monitor,
+            m_workArea));
+        MONITORINFO monitorInfo{};
+        monitorInfo.cbSize = sizeof(monitorInfo);
+        if (GetMonitorInfoW(m_monitor, &monitorInfo))
         {
-            auto zoneSet = MakeZoneSet(ZoneSetConfig(
-                zoneSetId,
-                activeZoneSet.type,
-                m_monitor,
-                m_workArea));
-            MONITORINFO monitorInfo{};
-            monitorInfo.cbSize = sizeof(monitorInfo);
-            if (GetMonitorInfoW(m_monitor, &monitorInfo))
-            {
-                bool showSpacing = deviceInfoMap.at(std::wstring{ m_uniqueId }).showSpacing;
-                int spacing = showSpacing ? deviceInfoMap.at(std::wstring{ m_uniqueId }).spacing : 0;
-                int zoneCount = activeZoneSet.zoneCount.has_value() ? activeZoneSet.zoneCount.value() : 0;
-                zoneSet->CalculateZones(monitorInfo, zoneCount, spacing, ZoneWindowUtils::GetAppliedZoneSetTmpPath());
-                UpdateActiveZoneSet(zoneSet.get());
-            }
+            bool showSpacing = deviceInfoMap.at(std::wstring{ m_uniqueId }).showSpacing;
+            int spacing = showSpacing ? deviceInfoMap.at(std::wstring{ m_uniqueId }).spacing : 0;
+            int zoneCount = activeZoneSet.zoneCount.has_value() ? activeZoneSet.zoneCount.value() : 0;
+            zoneSet->CalculateZones(monitorInfo, zoneCount, spacing, ZoneWindowUtils::GetAppliedZoneSetTmpPath());
+            UpdateActiveZoneSet(zoneSet.get());
         }
     }
 }

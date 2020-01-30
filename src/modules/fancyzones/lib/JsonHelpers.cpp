@@ -223,6 +223,10 @@ namespace JSONHelpers
                 }
             }
         }
+        else
+        {
+            activeDeviceId.clear();
+        }
     }
 
     bool FancyZonesData::ParseCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath, const TZoneSetUUID& uuid)
