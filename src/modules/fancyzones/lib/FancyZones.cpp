@@ -79,7 +79,8 @@ public:
     }
     IFACEMETHODIMP_(IZoneSet*) GetCurrentMonitorZoneSet(HMONITOR monitor) noexcept
     {
-        std::shared_lock readLock(m_lock);
+        //NOTE: as public method it's unsafe without lock, but it's called from AddZoneWindow through making ZoneWindow that causes deadlock
+        //TODO: needs refactoring
         if (auto it = m_zoneWindowMap.find(monitor); it != m_zoneWindowMap.end() && it->second->ActiveZoneSet())
         {
             return it->second->ActiveZoneSet();
@@ -285,8 +286,6 @@ IFACEMETHODIMP_(void) FancyZones::WindowCreated(HWND window) noexcept
 // IFancyZonesCallback
 IFACEMETHODIMP_(bool) FancyZones::OnKeyDown(PKBDLLHOOKSTRUCT info) noexcept
 {
-    std::shared_lock readLock(m_lock);
-
     // Return true to swallow the keyboard event
     bool const shift = GetAsyncKeyState(VK_SHIFT) & 0x8000;
     bool const win = GetAsyncKeyState(VK_LWIN) & 0x8000;
