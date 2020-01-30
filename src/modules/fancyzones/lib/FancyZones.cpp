@@ -79,6 +79,8 @@ public:
     }
     IFACEMETHODIMP_(IZoneSet*) GetCurrentMonitorZoneSet(HMONITOR monitor) noexcept
     {
+        //NOTE: as public method it's unsafe without lock, but it's called from AddZoneWindow through making ZoneWindow that causes deadlock
+        //TODO: needs refactoring
         if (auto it = m_zoneWindowMap.find(monitor); it != m_zoneWindowMap.end() && it->second->ActiveZoneSet())
         {
             return it->second->ActiveZoneSet();
@@ -253,6 +255,7 @@ IFACEMETHODIMP_(void) FancyZones::VirtualDesktopChanged() noexcept
 {
     // VirtualDesktopChanged is called from another thread but results in new windows being created.
     // Jump over to the UI thread to handle it.
+    std::shared_lock readLock(m_lock);
     PostMessage(m_window, WM_PRIV_VDCHANGED, 0, 0);
 }
 
@@ -451,6 +454,7 @@ void FancyZones::ToggleEditor() noexcept
 
 void FancyZones::SettingsChanged() noexcept
 {
+    std::shared_lock readLock(m_lock);
     // Update the hotkey
     UnregisterHotKey(m_window, 1);
     RegisterHotKey(m_window, 1, m_settings->GetSettings().editorHotkey.get_modifiers(), m_settings->GetSettings().editorHotkey.get_code());
@@ -536,11 +540,12 @@ void FancyZones::OnDisplayChange(DisplayChangeType changeType) noexcept
         // the first virtual desktop switch happens. If the user hasn't switched virtual desktops in this session
         // then this value will be empty. This means loading the first virtual desktop's configuration can be
         // funky the first time we load up at boot since the user will not have switched virtual desktops yet.
-        std::shared_lock readLock(m_lock);
         GUID currentVirtualDesktopId{};
         if (SUCCEEDED(RegistryHelpers::GetCurrentVirtualDesktop(&currentVirtualDesktopId)))
         {
+            m_lock.lock();
             m_currentVirtualDesktopId = currentVirtualDesktopId;
+            m_lock.unlock();
         }
         else
         {
