@@ -52,21 +52,7 @@ namespace FancyZonesUnitTests
         std::wstring m_tmpName;
 
         const PowerToysSettings::HotkeyObject m_defaultHotkeyObject = PowerToysSettings::HotkeyObject::from_settings(true, false, false, false, VK_OEM_3);
-        const Settings m_defaultSettings = Settings{
-            .shiftDrag = true,
-            .displayChange_moveWindows = false,
-            .virtualDesktopChange_moveWindows = false,
-            .zoneSetChange_flashZones = false,
-            .zoneSetChange_moveWindows = false,
-            .overrideSnapHotkeys = false,
-            .appLastZone_moveWindows = false,
-            .use_cursorpos_editor_startupscreen = true,
-            .zoneHightlightColor = L"#0078D7",
-            .zoneHighlightOpacity = 90,
-            .editorHotkey = m_defaultHotkeyObject,
-            .excludedApps = L"",
-            .excludedAppsArray = {},
-        };
+        const Settings m_defaultSettings;
 
         TEST_METHOD_INITIALIZE(Init)
         {
