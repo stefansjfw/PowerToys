@@ -177,7 +177,7 @@ namespace JSONHelpers
         const std::wstring& GetPersistFancyZonesJSONPath() const;
         json::JsonObject GetPersistFancyZonesJSON();
 
-        const TDeviceInfosMap& GetDeviceInfoMap()
+        TDeviceInfosMap& GetDeviceInfoMap()
         {
             return deviceInfoMap;
         }
@@ -197,6 +197,11 @@ namespace JSONHelpers
             return activeDeviceId;
         }
 
+        void SetActiveDeviceId(std::wstring deviceId)
+        {
+            activeDeviceId = deviceId;
+        }
+
         inline bool DeleteTmpFile(const std::wstring& tmpFilePath)
         {
             return DeleteFileW(tmpFilePath.c_str());
@@ -208,7 +213,7 @@ namespace JSONHelpers
         void SetActiveZoneSet(const TDeviceID& deviceId, const TZoneSetUUID& uuid);
 
         void SerializeDeviceInfoToTmpFile(const DeviceInfoJSON& deviceInfo, const std::wstring& tmpFilePath) const;
-        void ParseDeviceInfoFromTmpFile(const TDeviceID& deviceId, const std::wstring& tmpFilePath);
+        void ParseDeviceInfoFromTmpFile(const std::wstring& tmpFilePath);
 
         bool ParseCustomZoneSetFromTmpFile(const std::wstring& tmpFilePath, const TZoneSetUUID& uuid);
         bool ParseDeletedCustomZoneSetsFromTmpFile(const std::wstring& tmpFilePath);

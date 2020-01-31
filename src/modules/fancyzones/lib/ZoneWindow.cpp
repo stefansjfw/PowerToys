@@ -258,7 +258,7 @@ struct ZoneWindow : public winrt::implements<ZoneWindow, IZoneWindow>
 {
 public:
     ZoneWindow(HINSTANCE hinstance);
-    bool Init(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monitor, PCWSTR deviceId, PCWSTR virtualDesktopId, bool flashZones);
+    bool Init(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monitor, std::wstring deviceId, bool flashZones);
 
     IFACEMETHODIMP MoveSizeEnter(HWND window, bool dragEnabled) noexcept;
     IFACEMETHODIMP MoveSizeUpdate(POINT const& ptScreen, bool dragEnabled) noexcept;
@@ -280,7 +280,6 @@ protected:
 private:
     void ShowZoneWindow() noexcept;
     void HideZoneWindow() noexcept;
-    void InitializeId(PCWSTR deviceId, PCWSTR virtualDesktopId) noexcept;
     void LoadSettings() noexcept;
     void InitializeZoneSets(MONITORINFO const& mi) noexcept;
     void CalculateZoneSet() noexcept;
@@ -295,7 +294,7 @@ private:
 
     winrt::com_ptr<IZoneWindowHost> m_host;
     HMONITOR m_monitor{};
-    wchar_t m_uniqueId[256]{}; // Parsed deviceId + resolution + virtualDesktopId
+    std::wstring m_uniqueId; // Parsed deviceId + resolution + virtualDesktopId
     wchar_t m_workArea[256]{};
     wil::unique_cotaskmem_string m_deviceId{};
     wil::unique_hwnd m_window{};
@@ -323,7 +322,7 @@ ZoneWindow::ZoneWindow(HINSTANCE hinstance)
     RegisterClassExW(&wcex);
 }
 
-bool ZoneWindow::Init(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monitor, PCWSTR deviceId, PCWSTR virtualDesktopId, bool flashZones)
+bool ZoneWindow::Init(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monitor, std::wstring uniqueId, bool flashZones)
 {
     if (!host)
     {
@@ -344,7 +343,7 @@ bool ZoneWindow::Init(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monit
     const Rect workAreaRect(mi.rcWork, dpi);
     StringCchPrintf(m_workArea, ARRAYSIZE(m_workArea), L"%d_%d", monitorRect.width(), monitorRect.height());
 
-    InitializeId(deviceId, virtualDesktopId);
+    m_uniqueId = uniqueId;
     LoadSettings();
     InitializeZoneSets(mi);
 
@@ -527,31 +526,18 @@ void ZoneWindow::HideZoneWindow() noexcept
     }
 }
 
-void ZoneWindow::InitializeId(PCWSTR deviceId, PCWSTR virtualDesktopId) noexcept
-{
-    deviceId ? SHStrDup(deviceId, &m_deviceId) : SHStrDup(L"", &m_deviceId);
-
-    MONITORINFOEXW mi;
-    mi.cbSize = sizeof(mi);
-    if (virtualDesktopId && GetMonitorInfo(m_monitor, &mi))
-    {
-        wchar_t parsedId[256]{};
-        ParseDeviceId(m_deviceId.get(), parsedId, 256);
-
-        Rect const monitorRect(mi.rcMonitor);
-        StringCchPrintf(m_uniqueId, ARRAYSIZE(m_uniqueId), L"%s_%d_%d_%s", parsedId, monitorRect.width(), monitorRect.height(), virtualDesktopId);
-    }
-}
-
 void ZoneWindow::LoadSettings() noexcept
 {
-    const auto& deviceInfoMap = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap();
+    auto& deviceInfoMap = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap();
     if (!deviceInfoMap.contains(m_uniqueId))
     {
+        // Creates entry in map when ZoneWindow is created
+        deviceInfoMap[m_uniqueId] = JSONHelpers::DeviceInfoData{ JSONHelpers::ZoneSetData{ L"null", JSONHelpers::ZoneSetLayoutType::Grid, 1 }, true, 16, 3 };
+
         JSONHelpers::FancyZonesDataInstance().MigrateDeviceInfoFromRegistry(m_uniqueId);
     }
 
-    JSONHelpers::FancyZonesDataInstance().ParseDeviceInfoFromTmpFile(m_uniqueId, ZoneWindowUtils::GetActiveZoneSetTmpPath());
+    JSONHelpers::FancyZonesDataInstance().ParseDeviceInfoFromTmpFile(ZoneWindowUtils::GetActiveZoneSetTmpPath());
     JSONHelpers::FancyZonesDataInstance().ParseDeletedCustomZoneSetsFromTmpFile(ZoneWindowUtils::GetCustomZoneSetsTmpPath());
 }
 
@@ -568,9 +554,9 @@ void ZoneWindow::InitializeZoneSets(MONITORINFO const& mi) noexcept
 void ZoneWindow::CalculateZoneSet() noexcept
 {
     const auto& deviceInfoMap = JSONHelpers::FancyZonesDataInstance().GetDeviceInfoMap();
-
     const auto& activeDeviceId = JSONHelpers::FancyZonesDataInstance().GetActiveDeviceId();
-    const auto& activeZoneSet = deviceInfoMap.at(std::wstring{ m_uniqueId }).activeZoneSet;
+    const auto& activeZoneSet = deviceInfoMap.at(m_uniqueId).activeZoneSet;
+
     if (!activeDeviceId.empty() && activeDeviceId.compare(m_uniqueId) != 0 && !activeZoneSet.uuid.empty())
     {
         return;
@@ -587,8 +573,8 @@ void ZoneWindow::CalculateZoneSet() noexcept
         monitorInfo.cbSize = sizeof(monitorInfo);
         if (GetMonitorInfoW(m_monitor, &monitorInfo))
         {
-            bool showSpacing = deviceInfoMap.at(std::wstring{ m_uniqueId }).showSpacing;
-            int spacing = showSpacing ? deviceInfoMap.at(std::wstring{ m_uniqueId }).spacing : 0;
+            bool showSpacing = deviceInfoMap.at(m_uniqueId).showSpacing;
+            int spacing = showSpacing ? deviceInfoMap.at(m_uniqueId).spacing : 0;
             int zoneCount = activeZoneSet.zoneCount.has_value() ? activeZoneSet.zoneCount.value() : 0;
             zoneSet->CalculateZones(monitorInfo, zoneCount, spacing, ZoneWindowUtils::GetAppliedZoneSetTmpPath());
             UpdateActiveZoneSet(zoneSet.get());
@@ -605,7 +591,7 @@ void ZoneWindow::UpdateActiveZoneSet(_In_opt_ IZoneSet* zoneSet) noexcept
         wil::unique_cotaskmem_string zoneSetId;
         if (SUCCEEDED_LOG(StringFromCLSID(m_activeZoneSet->Id(), &zoneSetId)))
         {
-            JSONHelpers::FancyZonesDataInstance().SetActiveZoneSet(std::wstring(m_uniqueId), zoneSetId.get());
+            JSONHelpers::FancyZonesDataInstance().SetActiveZoneSet(m_uniqueId, zoneSetId.get());
         }
     }
 }
@@ -778,10 +764,10 @@ LRESULT CALLBACK ZoneWindow::s_WndProc(HWND window, UINT message, WPARAM wparam,
                                   DefWindowProc(window, message, wparam, lparam);
 }
 
-winrt::com_ptr<IZoneWindow> MakeZoneWindow(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monitor, PCWSTR deviceId, PCWSTR virtualDesktopId, bool flashZones) noexcept
+winrt::com_ptr<IZoneWindow> MakeZoneWindow(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monitor, std::wstring uniqueId, bool flashZones) noexcept
 {
     auto self = winrt::make_self<ZoneWindow>(hinstance);
-    if (self->Init(host, hinstance, monitor, deviceId, virtualDesktopId, flashZones))
+    if (self->Init(host, hinstance, monitor, uniqueId, flashZones))
     {
         return self;
     }

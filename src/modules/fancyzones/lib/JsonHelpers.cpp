@@ -201,14 +201,8 @@ namespace JSONHelpers
         json::to_file(tmpFilePath, deviceInfoJson);
     }
 
-    void FancyZonesData::ParseDeviceInfoFromTmpFile(const TDeviceID& deviceId, const std::wstring& tmpFilePath)
+    void FancyZonesData::ParseDeviceInfoFromTmpFile(const std::wstring& tmpFilePath)
     {
-        if (!deviceInfoMap.contains(deviceId))
-        {
-            // Creates entry in map when ZoneWindow is created
-            deviceInfoMap[deviceId] = DeviceInfoData{ ZoneSetData{ L"null", ZoneSetLayoutType::Grid, 1 }, true, 16, 3 };
-        }
-
         if (std::filesystem::exists(tmpFilePath))
         {
             auto zoneSetJson = json::from_file(tmpFilePath);
@@ -216,9 +210,9 @@ namespace JSONHelpers
             {
                 const auto deviceInfo = DeviceInfoJSON::FromJson(*zoneSetJson);
                 activeDeviceId = deviceInfo->deviceId;
-                if (deviceInfo.has_value() && activeDeviceId.compare(deviceId) == 0)
+                if (deviceInfo.has_value())
                 {
-                    deviceInfoMap[deviceId] = deviceInfo->data;
+                    deviceInfoMap[activeDeviceId] = deviceInfo->data;
                     DeleteTmpFile(tmpFilePath);
                 }
             }

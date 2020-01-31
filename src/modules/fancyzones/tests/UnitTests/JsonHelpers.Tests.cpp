@@ -952,7 +952,7 @@ namespace FancyZonesUnitTests
             const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
             data.SerializeDeviceInfoToTmpFile(expected, path);
 
-            data.ParseDeviceInfoFromTmpFile(zoneUuid, path);
+            data.ParseDeviceInfoFromTmpFile(path);
 
             bool actualFileExists = std::filesystem::exists(path);
             if (actualFileExists)
@@ -980,7 +980,7 @@ namespace FancyZonesUnitTests
 
             const std::wstring zoneUuid = L"default_device_id";
             const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
-            data.ParseDeviceInfoFromTmpFile(zoneUuid, path);
+            data.ParseDeviceInfoFromTmpFile(path);
 
             auto devices = data.GetDeviceInfoMap();
             Assert::AreEqual((size_t)1, devices.size());
