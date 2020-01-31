@@ -197,7 +197,7 @@ namespace JSONHelpers
             return activeDeviceId;
         }
 
-        void SetActiveDeviceId(std::wstring deviceId)
+        void SetActiveDeviceId(TDeviceID deviceId)
         {
             activeDeviceId = deviceId;
         }

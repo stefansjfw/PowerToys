@@ -976,23 +976,11 @@ namespace FancyZonesUnitTests
         TEST_METHOD(DeviceInfoReadTempUnexsisted)
         {
             FancyZonesData data;
-            DeviceInfoData expected{ ZoneSetData{ L"null", ZoneSetLayoutType::Grid, 1 }, true, 16, 3 };
-
-            const std::wstring zoneUuid = L"default_device_id";
             const std::wstring path = data.GetPersistFancyZonesJSONPath() + L".test_tmp";
             data.ParseDeviceInfoFromTmpFile(path);
 
             auto devices = data.GetDeviceInfoMap();
-            Assert::AreEqual((size_t)1, devices.size());
-
-            auto actual = devices.find(zoneUuid)->second;
-            Assert::AreEqual(expected.showSpacing, actual.showSpacing);
-            Assert::AreEqual(expected.spacing, actual.spacing);
-            Assert::AreEqual(expected.zoneCount, actual.zoneCount);
-            Assert::AreEqual((int)expected.activeZoneSet.type, (int)actual.activeZoneSet.type);
-            Assert::AreEqual(expected.activeZoneSet.uuid.c_str(), actual.activeZoneSet.uuid.c_str());
-            Assert::IsTrue(actual.activeZoneSet.zoneCount.has_value());
-            Assert::AreEqual(*expected.activeZoneSet.zoneCount, *actual.activeZoneSet.zoneCount);
+            Assert::AreEqual((size_t)0, devices.size());
         }
 
         TEST_METHOD(AppZoneHistoryParseSingle)

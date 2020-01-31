@@ -117,6 +117,12 @@ inline void ParseDeviceId(PCWSTR deviceId, PWSTR parsedId, size_t size)
     // We're interested in the unique part between the first and last #'s
     // Example input: \\?\DISPLAY#DELA026#5&10a58c63&0&UID16777488#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}
     // Example output: DELA026#5&10a58c63&0&UID16777488 
+    const std::wstring defaultDeviceId = L"FallbackDevice";
+    if (!deviceId)
+    {
+        StringCchCopy(parsedId, size, defaultDeviceId.c_str());
+        return;
+    }
     wchar_t buffer[256];
     StringCchCopy(buffer, 256, deviceId);
 
@@ -130,7 +136,7 @@ inline void ParseDeviceId(PCWSTR deviceId, PWSTR parsedId, size_t size)
     }
     else
     {
-        StringCchCopy(parsedId, size, L"FallbackDevice");
+        StringCchCopy(parsedId, size, defaultDeviceId.c_str());
     }
 }
 

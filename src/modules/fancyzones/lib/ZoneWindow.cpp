@@ -258,7 +258,7 @@ struct ZoneWindow : public winrt::implements<ZoneWindow, IZoneWindow>
 {
 public:
     ZoneWindow(HINSTANCE hinstance);
-    bool Init(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monitor, std::wstring deviceId, bool flashZones);
+    bool Init(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monitor, std::wstring uniqueId, bool flashZones);
 
     IFACEMETHODIMP MoveSizeEnter(HWND window, bool dragEnabled) noexcept;
     IFACEMETHODIMP MoveSizeUpdate(POINT const& ptScreen, bool dragEnabled) noexcept;
@@ -268,7 +268,6 @@ public:
     IFACEMETHODIMP_(void) MoveWindowIntoZoneByIndex(HWND window, int index) noexcept;
     IFACEMETHODIMP_(void) MoveWindowIntoZoneByDirection(HWND window, DWORD vkCode) noexcept;
     IFACEMETHODIMP_(void) CycleActiveZoneSet(DWORD vkCode) noexcept;
-    IFACEMETHODIMP_(std::wstring) DeviceId() noexcept { return { m_deviceId.get() }; }
     IFACEMETHODIMP_(std::wstring) UniqueId() noexcept { return { m_uniqueId }; }
     IFACEMETHODIMP_(std::wstring) WorkAreaKey() noexcept { return { m_workArea }; }
     IFACEMETHODIMP_(void) SaveWindowProcessToZoneIndex(HWND window) noexcept;
@@ -296,7 +295,6 @@ private:
     HMONITOR m_monitor{};
     std::wstring m_uniqueId; // Parsed deviceId + resolution + virtualDesktopId
     wchar_t m_workArea[256]{};
-    wil::unique_cotaskmem_string m_deviceId{};
     wil::unique_hwnd m_window{};
     HWND m_windowMoveSize{};
     bool m_drawHints{};
