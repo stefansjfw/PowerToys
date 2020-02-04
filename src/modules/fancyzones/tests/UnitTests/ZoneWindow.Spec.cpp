@@ -52,11 +52,8 @@ namespace FancyZonesUnitTests
 
         JSONHelpers::FancyZonesData& m_fancyZonesData = JSONHelpers::FancyZonesDataInstance();
 
-        std::wstring guidString()
+        std::wstring GuidString(const GUID& guid)
         {
-            GUID guid;
-            Assert::AreEqual(S_OK, CoCreateGuid(&guid));
-
             OLECHAR* guidString;
             Assert::AreEqual(S_OK, StringFromCLSID(guid, &guidString));
 
@@ -64,6 +61,14 @@ namespace FancyZonesUnitTests
             CoTaskMemFree(guidString);
 
             return guidStr;
+        }
+
+        std::wstring CreateGuidString()
+        {
+            GUID guid;
+            Assert::AreEqual(S_OK, CoCreateGuid(&guid));
+
+            return GuidString(guid);           
         }
 
         TEST_METHOD_INITIALIZE(Init)
@@ -103,7 +108,7 @@ namespace FancyZonesUnitTests
             Assert::IsFalse(std::filesystem::exists(activeZoneSetTempPath));
 
             const auto type = JSONHelpers::ZoneSetLayoutType::Columns;
-            const auto expectedZoneSet = JSONHelpers::ZoneSetData{ guidString(), type, 5 };
+            const auto expectedZoneSet = JSONHelpers::ZoneSetData{ CreateGuidString(), type, 5 };
             const auto data = JSONHelpers::DeviceInfoData{ expectedZoneSet, true, 16, 3 };
             const auto deviceInfo = JSONHelpers::DeviceInfoJSON{ m_uniqueId.str(), data };
             const auto json = JSONHelpers::DeviceInfoJSON::ToJson(deviceInfo);
@@ -201,7 +206,7 @@ namespace FancyZonesUnitTests
 
             for (int type = static_cast<int>(ZoneSetLayoutType::Focus); type < static_cast<int>(ZoneSetLayoutType::Custom); type++)
             {
-                const auto expectedZoneSet = ZoneSetData{ guidString(), static_cast<ZoneSetLayoutType>(type), 5 };
+                const auto expectedZoneSet = ZoneSetData{ CreateGuidString(), static_cast<ZoneSetLayoutType>(type), 5 };
                 const auto data = DeviceInfoData{ expectedZoneSet, true, 16, 3 };
                 const auto deviceInfo = DeviceInfoJSON{ m_uniqueId.str(), data };
                 const auto json = DeviceInfoJSON::ToJson(deviceInfo);
@@ -225,7 +230,7 @@ namespace FancyZonesUnitTests
             const auto activeZoneSetTempPath = ZoneWindowUtils::GetActiveZoneSetTmpPath();
 
             const ZoneSetLayoutType type = ZoneSetLayoutType::Custom;
-            const auto expectedZoneSet = ZoneSetData{ guidString(), type, 5 };
+            const auto expectedZoneSet = ZoneSetData{ CreateGuidString(), type, 5 };
             const auto data = DeviceInfoData{ expectedZoneSet, true, 16, 3 };
             const auto deviceInfo = DeviceInfoJSON{ m_uniqueId.str(), data };
             const auto json = DeviceInfoJSON::ToJson(deviceInfo);
@@ -346,7 +351,7 @@ namespace FancyZonesUnitTests
             //save different zone as deleted
             json::JsonObject deletedCustomZoneSets = {};
             json::JsonArray zonesArray{};
-            const auto uuid = guidString();
+            const auto uuid = CreateGuidString();
             zonesArray.Append(json::JsonValue::CreateStringValue(uuid.substr(1, uuid.size() - 2).c_str()));
             deletedCustomZoneSets.SetNamedValue(L"deleted-custom-zone-sets", zonesArray);
             json::to_file(deletedZonesTempPath, deletedCustomZoneSets);
@@ -603,9 +608,9 @@ namespace FancyZonesUnitTests
             const auto processPath = get_process_path(window);
             const auto deviceId = m_zoneWindow->UniqueId();
             const auto zoneSetId = m_zoneWindow->ActiveZoneSet()->Id();
-
+            
             //fill app zone history map
-            Assert::IsTrue(m_fancyZonesData.SetAppLastZone(window, deviceId, zoneSetId, 0));
+            Assert::IsTrue(m_fancyZonesData.SetAppLastZone(window, deviceId, GuidString(zoneSetId), 0));
             Assert::AreEqual((size_t)1, m_fancyZonesData.GetAppZoneHistoryMap().size());
             Assert::AreEqual(0, m_fancyZonesData.GetAppZoneHistoryMap().at(processPath).zoneIndex);
 
@@ -633,7 +638,7 @@ namespace FancyZonesUnitTests
             m_zoneWindow->ActiveZoneSet()->AddZone(zone);
 
             //fill app zone history map
-            Assert::IsTrue(m_fancyZonesData.SetAppLastZone(window, deviceId, zoneSetId, 2));
+            Assert::IsTrue(m_fancyZonesData.SetAppLastZone(window, deviceId, GuidString(zoneSetId), 2));
             Assert::AreEqual((size_t)1, m_fancyZonesData.GetAppZoneHistoryMap().size());
             Assert::AreEqual(2, m_fancyZonesData.GetAppZoneHistoryMap().at(processPath).zoneIndex);
 
