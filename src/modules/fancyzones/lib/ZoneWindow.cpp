@@ -497,9 +497,11 @@ ZoneWindow::SaveWindowProcessToZoneIndex(HWND window) noexcept
         if (zoneIndex != -1)
         {
             OLECHAR* guidString;
-            StringFromCLSID(m_activeZoneSet->Id(), &guidString);
+            if (StringFromCLSID(m_activeZoneSet->Id(), &guidString) == S_OK)
+            {
+                JSONHelpers::FancyZonesDataInstance().SetAppLastZone(window, m_uniqueId, guidString, zoneIndex);
+            }
 
-            JSONHelpers::FancyZonesDataInstance().SetAppLastZone(window, m_uniqueId, guidString, zoneIndex);
             CoTaskMemFree(guidString);
         }
     }
