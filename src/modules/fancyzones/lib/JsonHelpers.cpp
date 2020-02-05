@@ -192,8 +192,8 @@ namespace JSONHelpers
                     return true;
                 }
             }
-        }      
-                
+        }
+
         return false;
     }
 
@@ -314,7 +314,7 @@ namespace JSONHelpers
                 else
                 {
                     return false;
-                }                
+                }
             }
 
             return true;
