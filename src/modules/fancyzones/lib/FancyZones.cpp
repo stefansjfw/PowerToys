@@ -84,7 +84,10 @@ public:
         //TODO: needs refactoring
         if (auto it = m_zoneWindowMap.find(monitor); it != m_zoneWindowMap.end())
         {
-            return it->second->ActiveZoneSet();
+            if (const auto zoneWindowPtr = it->second)
+            {
+                return zoneWindowPtr->ActiveZoneSet();
+            }
         }
         return nullptr;
     }
@@ -277,20 +280,23 @@ IFACEMETHODIMP_(void) FancyZones::WindowCreated(HWND window) noexcept
             auto zoneWindow = m_zoneWindowMap.find(monitor);
             if (zoneWindow != m_zoneWindowMap.end())
             {
-                const auto& fancyZonesData = JSONHelpers::FancyZonesDataInstance();
-
-                OLECHAR* guidString;
-                StringFromCLSID(zoneWindow->second->ActiveZoneSet()->Id(), &guidString);
-
-                int zoneIndex = fancyZonesData.GetAppLastZoneIndex(window, zoneWindow->second->UniqueId(), guidString);
-                if (zoneIndex != -1)
+                if (const auto zoneWindowPtr = zoneWindow->second; const auto activeZoneSet = zoneWindowPtr->ActiveZoneSet())
                 {
-                    MoveWindowIntoZoneByIndex(window, zoneIndex);
-                }
+                    const auto& fancyZonesData = JSONHelpers::FancyZonesDataInstance();
 
-                CoTaskMemFree(guidString);
+                    OLECHAR* guidString;
+                    StringFromCLSID(activeZoneSet->Id(), &guidString);
+
+                    int zoneIndex = fancyZonesData.GetAppLastZoneIndex(window, zoneWindowPtr->UniqueId(), guidString);
+                    if (zoneIndex != -1)
+                    {
+                        MoveWindowIntoZoneByIndex(window, zoneIndex);
+                    }
+
+                    CoTaskMemFree(guidString);
+                }
             }
-        }                
+        }
     }
 }
 
@@ -620,9 +626,9 @@ void FancyZones::MoveWindowIntoZoneByIndex(HWND window, int index) noexcept
         if (const HMONITOR monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONULL))
         {
             auto iter = m_zoneWindowMap.find(monitor);
-            if (iter != m_zoneWindowMap.end())
+            if (iter != m_zoneWindowMap.end(); const auto zoneWindowPtr = iter->second)
             {
-                iter->second->MoveWindowIntoZoneByIndex(window, index);
+                zoneWindowPtr->MoveWindowIntoZoneByIndex(window, index);
             }
         }
     }
@@ -742,9 +748,9 @@ void FancyZones::CycleActiveZoneSet(DWORD vkCode) noexcept
         {
             std::shared_lock readLock(m_lock);
             auto iter = m_zoneWindowMap.find(monitor);
-            if (iter != m_zoneWindowMap.end())
+            if (iter != m_zoneWindowMap.end(); const auto zoneWindowPtr = iter->second)
             {
-                iter->second->CycleActiveZoneSet(vkCode);
+                zoneWindowPtr->CycleActiveZoneSet(vkCode);
             }
         }
     }
@@ -762,9 +768,9 @@ void FancyZones::OnSnapHotkey(DWORD vkCode) noexcept
         {
             std::shared_lock readLock(m_lock);
             auto iter = m_zoneWindowMap.find(monitor);
-            if (iter != m_zoneWindowMap.end())
+            if (iter != m_zoneWindowMap.end(); const auto zoneWindowPtr = iter->second)
             {
-                iter->second->MoveWindowIntoZoneByDirection(window, vkCode);
+                zoneWindowPtr->MoveWindowIntoZoneByDirection(window, vkCode);
             }
         }
     }
@@ -832,14 +838,14 @@ void FancyZones::MoveSizeEndInternal(HWND window, POINT const& ptScreen, require
         if (monitor)
         {
             auto zoneWindow = m_zoneWindowMap.find(monitor);
-            if (zoneWindow != m_zoneWindowMap.end())
+            if (zoneWindow != m_zoneWindowMap.end(); const auto zoneWindowPtr = zoneWindow->second)
             {
                 OLECHAR* guidString;
-                StringFromCLSID(zoneWindow->second->ActiveZoneSet()->Id(), &guidString);
+                StringFromCLSID(zoneWindowPtr->ActiveZoneSet()->Id(), &guidString);
 
-                JSONHelpers::FancyZonesDataInstance().RemoveAppLastZone(window, zoneWindow->second->UniqueId(), guidString);
+                JSONHelpers::FancyZonesDataInstance().RemoveAppLastZone(window, zoneWindowPtr->UniqueId(), guidString);
                 CoTaskMemFree(guidString);
-            }            
+            }
         }
     }
 }
