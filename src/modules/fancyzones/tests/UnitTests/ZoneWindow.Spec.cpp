@@ -256,7 +256,7 @@ namespace FancyZonesUnitTests
             const auto appliedZoneSetTempPath = ZoneWindowUtils::GetAppliedZoneSetTmpPath();
 
             const ZoneSetLayoutType type = ZoneSetLayoutType::Custom;
-            const auto customSetGuid = guidString();
+            const auto customSetGuid = CreateGuidString();
             const auto expectedZoneSet = ZoneSetData{ customSetGuid, type, 5 };
             const auto data = DeviceInfoData{ expectedZoneSet, true, 16, 3 };
             const auto deviceInfo = DeviceInfoJSON{ m_uniqueId.str(), data };
@@ -291,7 +291,7 @@ namespace FancyZonesUnitTests
             const auto deletedZonesTempPath = ZoneWindowUtils::GetCustomZoneSetsTmpPath();
 
             const ZoneSetLayoutType type = ZoneSetLayoutType::Custom;
-            const auto customSetGuid = guidString();
+            const auto customSetGuid = CreateGuidString();
             const auto expectedZoneSet = ZoneSetData{ customSetGuid, type, 5 };
             const auto data = DeviceInfoData{ expectedZoneSet, true, 16, 3 };
             const auto deviceInfo = DeviceInfoJSON{ m_uniqueId.str(), data };
@@ -333,7 +333,7 @@ namespace FancyZonesUnitTests
             const auto deletedZonesTempPath = ZoneWindowUtils::GetCustomZoneSetsTmpPath();
 
             const ZoneSetLayoutType type = ZoneSetLayoutType::Custom;
-            const auto customSetGuid = guidString();
+            const auto customSetGuid = CreateGuidString();
             const auto expectedZoneSet = ZoneSetData{ customSetGuid, type, 5 };
             const auto data = DeviceInfoData{ expectedZoneSet, true, 16, 3 };
             const auto deviceInfo = DeviceInfoJSON{ m_uniqueId.str(), data };
