@@ -285,16 +285,15 @@ IFACEMETHODIMP_(void) FancyZones::WindowCreated(HWND window) noexcept
                 {
                     const auto& fancyZonesData = JSONHelpers::FancyZonesDataInstance();
 
-                    OLECHAR* guidString;
-                    StringFromCLSID(activeZoneSet->Id(), &guidString);
-
-                    int zoneIndex = fancyZonesData.GetAppLastZoneIndex(window, zoneWindowPtr->UniqueId(), guidString);
-                    if (zoneIndex != -1)
+                    wil::unique_cotaskmem_string guidString;
+                    if (SUCCEEDED_LOG(StringFromCLSID(activeZoneSet->Id(), &guidString)))
                     {
-                        MoveWindowIntoZoneByIndex(window, zoneIndex);
+                        int zoneIndex = fancyZonesData.GetAppLastZoneIndex(window, zoneWindowPtr->UniqueId(), guidString.get());
+                        if (zoneIndex != -1)
+                        {
+                            MoveWindowIntoZoneByIndex(window, zoneIndex);
+                        }
                     }
-
-                    CoTaskMemFree(guidString);
                 }
             }
         }
@@ -860,11 +859,11 @@ void FancyZones::MoveSizeEndInternal(HWND window, POINT const& ptScreen, require
                 const auto activeZoneSet = zoneWindowPtr->ActiveZoneSet();
                 if (activeZoneSet)
                 {
-                    OLECHAR* guidString;
-                    StringFromCLSID(activeZoneSet->Id(), &guidString);
-
-                    JSONHelpers::FancyZonesDataInstance().RemoveAppLastZone(window, zoneWindowPtr->UniqueId(), guidString);
-                    CoTaskMemFree(guidString);
+                    wil::unique_cotaskmem_string guidString;
+                    if (SUCCEEDED_LOG(StringFromCLSID(activeZoneSet->Id(), &guidString)))
+                    {
+                        JSONHelpers::FancyZonesDataInstance().RemoveAppLastZone(window, zoneWindowPtr->UniqueId(), guidString.get());
+                    }
                 }
             }
         }
