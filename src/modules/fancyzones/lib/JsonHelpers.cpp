@@ -209,11 +209,11 @@ namespace JSONHelpers
         return true;
     }
 
-    void FancyZonesData::SetActiveZoneSet(const std::wstring& deviceId, const std::wstring& uuid)
+    void FancyZonesData::SetActiveZoneSet(const std::wstring& deviceId, const ZoneSetData& data)
     {
-        if (!uuid.empty() && deviceInfoMap.find(deviceId) != deviceInfoMap.end())
+        if (deviceInfoMap.find(deviceId) != deviceInfoMap.end())
         {
-            deviceInfoMap[deviceId].activeZoneSet.uuid = uuid;
+            deviceInfoMap[deviceId].activeZoneSet = data;
         }
     }
 

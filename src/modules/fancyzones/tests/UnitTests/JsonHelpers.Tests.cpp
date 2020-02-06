@@ -1367,7 +1367,6 @@ namespace FancyZonesUnitTests
         TEST_METHOD(SetActiveZoneSet)
         {
             FancyZonesData data;
-            const std::wstring uuid = L"uuid";
             const std::wstring uniqueId = L"default_device_id";
 
             json::JsonArray devices;
@@ -1376,16 +1375,24 @@ namespace FancyZonesUnitTests
             json.SetNamedValue(L"devices", devices);
             data.ParseDeviceInfos(json);
 
-            data.SetActiveZoneSet(uniqueId, uuid);
+            JSONHelpers::ZoneSetData expectedZoneSetData{
+                .uuid = L"uuid",
+                .type = ZoneSetLayoutType::Focus,
+                .zoneCount = 15
+            };
+
+            data.SetActiveZoneSet(uniqueId, expectedZoneSetData);
 
             auto actual = data.GetDeviceInfoMap().find(uniqueId)->second;
-            Assert::AreEqual(uuid, actual.activeZoneSet.uuid);
+            Assert::AreEqual(expectedZoneSetData.uuid.c_str(), actual.activeZoneSet.uuid.c_str());
+            Assert::IsTrue(expectedZoneSetData.type == actual.activeZoneSet.type);
+            Assert::IsTrue(actual.activeZoneSet.zoneCount.has_value());
+            Assert::AreEqual(expectedZoneSetData.zoneCount.value(), actual.activeZoneSet.zoneCount.value());
         }
 
         TEST_METHOD(SetActiveZoneSetUuidEmpty)
         {
             FancyZonesData data;
-            const std::wstring uuid = L"";
             const std::wstring expected = L"uuid";
             const std::wstring uniqueId = L"default_device_id";
 
@@ -1395,16 +1402,24 @@ namespace FancyZonesUnitTests
             json.SetNamedValue(L"devices", devices);
             data.ParseDeviceInfos(json);
 
-            data.SetActiveZoneSet(uniqueId, uuid);
+            JSONHelpers::ZoneSetData expectedZoneSetData{
+                .uuid = L"",
+                .type = ZoneSetLayoutType::Focus,
+                .zoneCount = 15
+            };
+
+            data.SetActiveZoneSet(uniqueId, expectedZoneSetData);
 
             auto actual = data.GetDeviceInfoMap().find(uniqueId)->second;
-            Assert::AreEqual(expected, actual.activeZoneSet.uuid);
+            Assert::AreEqual(expectedZoneSetData.uuid.c_str(), actual.activeZoneSet.uuid.c_str());
+            Assert::IsTrue(expectedZoneSetData.type == actual.activeZoneSet.type);
+            Assert::IsTrue(actual.activeZoneSet.zoneCount.has_value());
+            Assert::AreEqual(expectedZoneSetData.zoneCount.value(), actual.activeZoneSet.zoneCount.value());
         }
 
         TEST_METHOD(SetActiveZoneSetUniqueIdInvalid)
         {
             FancyZonesData data;
-            const std::wstring uuid = L"new_uuid";
             const std::wstring expected = L"uuid";
             const std::wstring uniqueId = L"id_not_contained_by_device_info_map";
 
@@ -1415,12 +1430,17 @@ namespace FancyZonesUnitTests
             bool parseRes = data.ParseDeviceInfos(json);
             Assert::IsTrue(parseRes);
 
-            data.SetActiveZoneSet(uniqueId, uuid);
+            JSONHelpers::ZoneSetData zoneSetData{
+                .uuid = L"new_uuid",
+                .type = ZoneSetLayoutType::Focus,
+                .zoneCount = 15
+            };
+
+            data.SetActiveZoneSet(uniqueId, zoneSetData);
 
             const auto& deviceInfoMap = data.GetDeviceInfoMap();
             auto actual = deviceInfoMap.find(L"default_device_id")->second;
-            Assert::AreEqual(expected, actual.activeZoneSet.uuid);
-
+            Assert::AreEqual(expected.c_str(), actual.activeZoneSet.uuid.c_str());
             Assert::IsTrue(deviceInfoMap.end() == deviceInfoMap.find(uniqueId), L"new device info should not be added");
         }
 

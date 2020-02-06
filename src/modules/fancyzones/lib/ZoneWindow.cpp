@@ -599,7 +599,12 @@ void ZoneWindow::UpdateActiveZoneSet(_In_opt_ IZoneSet* zoneSet) noexcept
         wil::unique_cotaskmem_string zoneSetId;
         if (SUCCEEDED_LOG(StringFromCLSID(m_activeZoneSet->Id(), &zoneSetId)))
         {
-            JSONHelpers::FancyZonesDataInstance().SetActiveZoneSet(m_uniqueId, zoneSetId.get());
+            JSONHelpers::ZoneSetData data{
+                .uuid = zoneSetId.get(),
+                .type = m_activeZoneSet->LayoutType(),
+                .zoneCount = m_activeZoneSet->GetZones().size()
+            };
+            JSONHelpers::FancyZonesDataInstance().SetActiveZoneSet(m_uniqueId, data);
         }
     }
 }
