@@ -601,8 +601,7 @@ void ZoneWindow::UpdateActiveZoneSet(_In_opt_ IZoneSet* zoneSet) noexcept
         {
             JSONHelpers::ZoneSetData data{
                 .uuid = zoneSetId.get(),
-                .type = m_activeZoneSet->LayoutType(),
-                .zoneCount = m_activeZoneSet->GetZones().size()
+                .type = m_activeZoneSet->LayoutType()
             };
             JSONHelpers::FancyZonesDataInstance().SetActiveZoneSet(m_uniqueId, data);
         }

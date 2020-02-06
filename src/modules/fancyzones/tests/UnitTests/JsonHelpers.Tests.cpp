@@ -1377,8 +1377,7 @@ namespace FancyZonesUnitTests
 
             JSONHelpers::ZoneSetData expectedZoneSetData{
                 .uuid = L"uuid",
-                .type = ZoneSetLayoutType::Focus,
-                .zoneCount = 15
+                .type = ZoneSetLayoutType::Focus
             };
 
             data.SetActiveZoneSet(uniqueId, expectedZoneSetData);
@@ -1386,8 +1385,6 @@ namespace FancyZonesUnitTests
             auto actual = data.GetDeviceInfoMap().find(uniqueId)->second;
             Assert::AreEqual(expectedZoneSetData.uuid.c_str(), actual.activeZoneSet.uuid.c_str());
             Assert::IsTrue(expectedZoneSetData.type == actual.activeZoneSet.type);
-            Assert::IsTrue(actual.activeZoneSet.zoneCount.has_value());
-            Assert::AreEqual(expectedZoneSetData.zoneCount.value(), actual.activeZoneSet.zoneCount.value());
         }
 
         TEST_METHOD(SetActiveZoneSetUuidEmpty)
@@ -1404,8 +1401,7 @@ namespace FancyZonesUnitTests
 
             JSONHelpers::ZoneSetData expectedZoneSetData{
                 .uuid = L"",
-                .type = ZoneSetLayoutType::Focus,
-                .zoneCount = 15
+                .type = ZoneSetLayoutType::Focus
             };
 
             data.SetActiveZoneSet(uniqueId, expectedZoneSetData);
@@ -1413,8 +1409,6 @@ namespace FancyZonesUnitTests
             auto actual = data.GetDeviceInfoMap().find(uniqueId)->second;
             Assert::AreEqual(expectedZoneSetData.uuid.c_str(), actual.activeZoneSet.uuid.c_str());
             Assert::IsTrue(expectedZoneSetData.type == actual.activeZoneSet.type);
-            Assert::IsTrue(actual.activeZoneSet.zoneCount.has_value());
-            Assert::AreEqual(expectedZoneSetData.zoneCount.value(), actual.activeZoneSet.zoneCount.value());
         }
 
         TEST_METHOD(SetActiveZoneSetUniqueIdInvalid)
@@ -1432,8 +1426,7 @@ namespace FancyZonesUnitTests
 
             JSONHelpers::ZoneSetData zoneSetData{
                 .uuid = L"new_uuid",
-                .type = ZoneSetLayoutType::Focus,
-                .zoneCount = 15
+                .type = ZoneSetLayoutType::Focus
             };
 
             data.SetActiveZoneSet(uniqueId, zoneSetData);
