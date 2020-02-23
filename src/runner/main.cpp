@@ -16,6 +16,7 @@
 #include <common/msi_to_msix_upgrade_lib/msi_to_msix_upgrade.h>
 #include <common/winstore.h>
 #include <common/notifications.h>
+#include <common/notifications-win32/NotificationActivator.h>
 
 #if _DEBUG && _WIN64
 #include "unhandled_exception_handler.h"
@@ -32,6 +33,11 @@ namespace
 {
     const wchar_t MSI_VERSION_MUTEX_NAME[] = L"Local\\PowerToyRunMutex";
     const wchar_t MSIX_VERSION_MUTEX_NAME[] = L"Local\\PowerToyMSIXRunMutex";
+}
+
+namespace NotificationsWin32
+{
+    bool RegisterNotificatorSender(const wchar_t* aumid, const GUID& guid);
 }
 
 void chdir_current_executable()
@@ -116,7 +122,7 @@ int runner(bool isProcessElevated)
 #endif
     Trace::RegisterProvider();
     start_tray_icon();
-
+    NotificationsWin32::RegisterNotificatorSender(L"aumind_aumid", __uuidof(NotificationsWin32::MyNotificationActivator));
     int result = -1;
     try
     {
