@@ -38,6 +38,7 @@ namespace
 namespace NotificationsWin32
 {
     bool RegisterNotificatorSender(const wchar_t* aumid, const GUID& guid);
+    void SendToastNotification(const std::wstring& title, const std::wstring& message);
 }
 
 void chdir_current_executable()
@@ -122,7 +123,8 @@ int runner(bool isProcessElevated)
 #endif
     Trace::RegisterProvider();
     start_tray_icon();
-    NotificationsWin32::RegisterNotificatorSender(L"aumind_aumid", __uuidof(NotificationsWin32::MyNotificationActivator));
+    NotificationsWin32::RegisterNotificatorSender(L"YourCompany.YourApp1122", __uuidof(NotificationsWin32::NotificationActivator));
+    NotificationsWin32::SendToastNotification(L"PowerToys: ", L"New version is available!");
     int result = -1;
     try
     {
