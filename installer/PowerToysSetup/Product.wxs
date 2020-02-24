@@ -212,6 +212,9 @@
       <Component Id="settings_exe" Guid="A5A461A9-7097-4CBA-9D39-3DBBB6B7B80C" Win64="yes">
         <File Id="PowerToysSettings.exe" KeyPath="yes" Checksum="yes" />
       </Component>
+      <Component Id="notifications_win32_dll" Guid="23B25EE4-BCA2-45DF-BBCD-82FBDF01C5AB" Win64="yes">
+        <File Id="notifications_win32.dll" KeyPath="yes" Checksum="yes" />
+      </Component>
       <Component Id="License_rtf" Guid="3E5AE43B-CFB4-449B-A346-94CAAFF3312E" Win64="yes">
         <File Source="$(var.RepoDir)\License.rtf" Id="License.rtf" KeyPath="yes" />
       </Component>
@@ -302,6 +305,7 @@
       <ComponentRef Id="DesktopShortcut" />
       <ComponentRef Id="Module_PowerRename" />
       <ComponentRef Id="settings_exe" />
+      <ComponentRef Id="notifications_win32_dll" />
       <ComponentRef Id="settings_html" />
       <ComponentRef Id="settings_dark_html" />
       <ComponentRef Id="settings_js_bundle" />
