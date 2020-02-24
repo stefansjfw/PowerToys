@@ -123,7 +123,7 @@ int runner(bool isProcessElevated)
 #endif
     Trace::RegisterProvider();
     start_tray_icon();
-    NotificationsWin32::RegisterNotificatorSender(L"YourCompany.YourApp1122", __uuidof(NotificationsWin32::NotificationActivator));
+    NotificationsWin32::RegisterNotificatorSender(L"Microsoft.PowerToysWin32", __uuidof(NotificationsWin32::NotificationActivator));
     NotificationsWin32::SendToastNotification(L"PowerToys: ", L"New version is available!");
     int result = -1;
     try
