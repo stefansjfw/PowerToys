@@ -148,40 +148,40 @@ namespace FancyZonesEditor.Models
         // Implements the LayoutModel.PersistData abstract method
         protected override void PersistData()
         {
+            CanvasLayoutInfo layoutInfo = new CanvasLayoutInfo
+            {
+                RefWidth = _referenceWidth,
+                RefHeight = _referenceHeight,
+                Zones = new Zone[Zones.Count],
+            };
+            for (int i = 0; i < Zones.Count; ++i)
+            {
+                Zone zone = new Zone
+                {
+                    X = Zones[i].X,
+                    Y = Zones[i].Y,
+                    Width = Zones[i].Width,
+                    Height = Zones[i].Height,
+                };
+
+                layoutInfo.Zones[i] = zone;
+            }
+
+            CanvasLayoutJson jsonObj = new CanvasLayoutJson
+            {
+                Uuid = "{" + Guid.ToString().ToUpper() + "}",
+                Name = Name,
+                Type = "canvas",
+                Info = layoutInfo,
+            };
+
+            JsonSerializerOptions options = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = new DashCaseNamingPolicy(),
+            };
+
             try
             {
-                CanvasLayoutInfo layoutInfo = new CanvasLayoutInfo
-                {
-                    RefWidth = _referenceWidth,
-                    RefHeight = _referenceHeight,
-                    Zones = new Zone[Zones.Count],
-                };
-                for (int i = 0; i < Zones.Count; ++i)
-                {
-                    Zone zone = new Zone
-                    {
-                        X = Zones[i].X,
-                        Y = Zones[i].Y,
-                        Width = Zones[i].Width,
-                        Height = Zones[i].Height,
-                    };
-
-                    layoutInfo.Zones[i] = zone;
-                }
-
-                CanvasLayoutJson jsonObj = new CanvasLayoutJson
-                {
-                    Uuid = "{" + Guid.ToString().ToUpper() + "}",
-                    Name = Name,
-                    Type = "canvas",
-                    Info = layoutInfo,
-                };
-
-                JsonSerializerOptions options = new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = new DashCaseNamingPolicy(),
-                };
-
                 string jsonString = JsonSerializer.Serialize(jsonObj, options);
                 File.WriteAllText(Settings.AppliedZoneSetTmpFile, jsonString);
             }
