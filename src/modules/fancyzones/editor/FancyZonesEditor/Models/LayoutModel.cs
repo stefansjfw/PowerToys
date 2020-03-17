@@ -135,23 +135,27 @@ namespace FancyZonesEditor.Models
             }
         }
 
+        private struct DeletedCustomZoneSetsWrapper
+        {
+            public List<string> DeletedCustomZoneSets { get; set; }
+        }
+
         public static void SerializeDeletedCustomZoneSets()
         {
+            DeletedCustomZoneSetsWrapper deletedLayouts = new DeletedCustomZoneSetsWrapper
+            {
+                DeletedCustomZoneSets = _deletedCustomModels,
+            };
+
+            JsonSerializerOptions options = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = new DashCaseNamingPolicy(),
+            };
+
             try
             {
-                FileStream outputStream = File.Open(Settings.CustomZoneSetsTmpFile, FileMode.Create);
-                var writer = new Utf8JsonWriter(outputStream, options: default);
-                writer.WriteStartObject();
-                writer.WriteStartArray("deleted-custom-zone-sets");
-                foreach (string zoneSet in _deletedCustomModels)
-                {
-                    writer.WriteStringValue(zoneSet);
-                }
-
-                writer.WriteEndArray();
-                writer.WriteEndObject();
-                writer.Flush();
-                outputStream.Close();
+                string jsonString = JsonSerializer.Serialize(deletedLayouts, options);
+                File.WriteAllText(Settings.CustomZoneSetsTmpFile, jsonString);
             }
             catch (Exception ex)
             {
