@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Windows;
 
@@ -137,7 +138,7 @@ namespace FancyZonesEditor.Models
         {
             public string Uuid { get; set; }
 
-            public string Name { get; set; }
+            public Byte[] Name { get; set; }
 
             public string Type { get; set; }
 
@@ -167,10 +168,12 @@ namespace FancyZonesEditor.Models
                 layoutInfo.Zones[i] = zone;
             }
 
+            Encoding utf8 = Encoding.UTF8;
+
             CanvasLayoutJson jsonObj = new CanvasLayoutJson
             {
                 Uuid = "{" + Guid.ToString().ToUpper() + "}",
-                Name = Name,
+                Name = utf8.GetBytes(Name),
                 Type = "canvas",
                 Info = layoutInfo,
             };

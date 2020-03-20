@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Windows;
 
@@ -184,7 +185,7 @@ namespace FancyZonesEditor.Models
         {
             public string Uuid { get; set; }
 
-            public string Name { get; set; }
+            public Byte[] Name { get; set; }
 
             public string Type { get; set; }
 
@@ -212,13 +213,16 @@ namespace FancyZonesEditor.Models
                 }
             }
 
+            Encoding utf8 = Encoding.UTF8;
+
             GridLayoutJson jsonObj = new GridLayoutJson
             {
                 Uuid = "{" + Guid.ToString().ToUpper() + "}",
-                Name = Name,
+                Name = utf8.GetBytes(Name),
                 Type = "grid",
                 Info = layoutInfo,
             };
+
             JsonSerializerOptions options = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = new DashCaseNamingPolicy(),

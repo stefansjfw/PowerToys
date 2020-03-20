@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Windows;
 
@@ -177,7 +178,7 @@ namespace FancyZonesEditor.Models
                 while (customZoneSetsEnumerator.MoveNext())
                 {
                     var current = customZoneSetsEnumerator.Current;
-                    string name = current.GetProperty("name").GetString();
+                    string name = Encoding.UTF8.GetString(current.GetProperty("name").GetBytesFromBase64());
                     string type = current.GetProperty("type").GetString();
                     string uuid = current.GetProperty("uuid").GetString();
                     var info = current.GetProperty("info");
