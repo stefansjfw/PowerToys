@@ -24,8 +24,9 @@ namespace
 struct Zone : winrt::implements<Zone, IZone>
 {
 public:
-    Zone(RECT zoneRect) :
-        m_zoneRect(zoneRect)
+    Zone(RECT zoneRect, const size_t zoneId) :
+        m_zoneRect(zoneRect),
+        m_id(zoneId)
     {
     }
 
@@ -130,11 +131,11 @@ RECT Zone::ComputeActualZoneRect(HWND window, HWND zoneWindow) noexcept
     return newWindowRect;
 }
 
-winrt::com_ptr<IZone> MakeZone(const RECT& zoneRect) noexcept
+winrt::com_ptr<IZone> MakeZone(const RECT& zoneRect,const size_t zoneId) noexcept
 {
     if (ValidateZoneRect(zoneRect))
     {
-        return winrt::make_self<Zone>(zoneRect);
+        return winrt::make_self<Zone>(zoneRect, zoneId);
     }
     else
     {
