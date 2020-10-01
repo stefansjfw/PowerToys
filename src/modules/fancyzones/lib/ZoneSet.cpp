@@ -724,15 +724,15 @@ bool ZoneSet::CalculateGridLayout(Rect workArea, FancyZonesDataTypes::ZoneSetLay
         gridLayoutInfo.cellChildMap()[i] = std::vector<int>(columns);
     }
 
-    int index = 0;
+    int index = zoneCount - 1;
     for (int col = columns - 1; col >= 0; col--)
     {
         for (int row = rows - 1; row >= 0; row--)
         {
-            gridLayoutInfo.cellChildMap()[row][col] = index++;
-            if (index == zoneCount)
+            gridLayoutInfo.cellChildMap()[row][col] = index--;
+            if (index < 0)
             {
-                index--;
+                index = 0;
             }
         }
     }
@@ -860,7 +860,7 @@ bool ZoneSet::CalculateGridZones(Rect workArea, FancyZonesDataTypes::GridLayoutI
                 long right = columnInfo[maxCol].End;
                 long bottom = rowInfo[maxRow].End;
 
-                auto zone = MakeZone(RECT{ left, top, right, bottom }, i);
+                auto zone = MakeZone(RECT{ left, top, right, bottom }, i + 1);
                 if (zone)
                 {
                     AddZone(zone);

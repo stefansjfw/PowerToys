@@ -35,12 +35,11 @@ namespace FancyZonesUnitTests
             CustomAssert::AreEqual(zoneRect, zone->GetZoneRect());
         }
 
-        TEST_METHOD(GetSetId)
+        TEST_METHOD(GetId)
         {
-            winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect, 1);
+            constexpr size_t id = 123;
+            winrt::com_ptr<IZone> zone = MakeZone(m_zoneRect, id);
 
-            constexpr size_t id = 10;
-            zone->SetId(id);
             Assert::AreEqual(zone->Id(), id);
         }
     };

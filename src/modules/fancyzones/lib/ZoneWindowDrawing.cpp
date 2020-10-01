@@ -56,7 +56,7 @@ namespace
         return static_cast<BYTE>(opacity * 2.55);
     }
 
-    void DrawIndex(wil::unique_hdc& hdc, FancyZonesUtils::Rect rect, size_t index)
+    void DrawId(wil::unique_hdc& hdc, FancyZonesUtils::Rect rect, const size_t zoneId)
     {
         Gdiplus::Graphics g(hdc.get());
 
@@ -64,7 +64,7 @@ namespace
         Gdiplus::Font font(&fontFamily, 80, Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
         Gdiplus::SolidBrush solidBrush(Gdiplus::Color(255, 0, 0, 0));
 
-        std::wstring text = std::to_wstring(index);
+        std::wstring text = std::to_wstring(zoneId);
 
         g.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
         Gdiplus::StringFormat stringFormat = new Gdiplus::StringFormat();
@@ -95,7 +95,7 @@ namespace
 
         if (!flashMode)
         {
-            DrawIndex(hdc, zoneRect, zone->Id());
+            DrawId(hdc, zoneRect, zone->Id());
         }
     }
 }

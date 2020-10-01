@@ -94,25 +94,11 @@ namespace FancyZonesUnitTests
                 Assert::AreEqual((size_t)1, zones[0]->Id());
             }
 
-            TEST_METHOD (AddManySame)
-            {
-                winrt::com_ptr<IZone> zone = MakeZone({ 0, 0, 100, 100 }, 1);
-                Assert::IsNotNull(zone.get());
-                for (size_t i = 0; i < 1024; i++)
-                {
-                    m_set->AddZone(zone);
-                    auto zones = m_set->GetZones();
-                    Assert::AreEqual(i + 1, zones.size());
-                    compareZones(zone, zones[i]);
-                    Assert::AreEqual(i + 1, zones[i]->Id());
-                }
-            }
-
             TEST_METHOD (AddManyEqual)
             {
                 for (size_t i = 0; i < 1024; i++)
                 {
-                    winrt::com_ptr<IZone> zone = MakeZone({ 0, 0, 100, 100 }, 1);
+                    winrt::com_ptr<IZone> zone = MakeZone({ 0, 0, 100, 100 }, i + 1);
                     Assert::IsNotNull(zone.get());
                     m_set->AddZone(zone);
                     auto zones = m_set->GetZones();
@@ -130,7 +116,7 @@ namespace FancyZonesUnitTests
                     int top = rand() % 10;
                     int right = left + 1 + rand() % 100;
                     int bottom = top + 1 + rand() % 100;
-                    winrt::com_ptr<IZone> zone = MakeZone({ left, top, right, bottom }, 1);
+                    winrt::com_ptr<IZone> zone = MakeZone({ left, top, right, bottom }, i + 1);
                     Assert::IsNotNull(zone.get());
                     m_set->AddZone(zone);
                     auto zones = m_set->GetZones();
