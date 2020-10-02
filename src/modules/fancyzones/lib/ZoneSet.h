@@ -2,6 +2,8 @@
 
 #include "Zone.h"
 
+#include <map>
+
 namespace FancyZonesDataTypes
 {
     enum class ZoneSetLayoutType;
@@ -33,7 +35,7 @@ interface __declspec(uuid("{E4839EB7-669D-49CF-84A9-71A2DFD851A3}")) IZoneSet : 
      * @param   pt Cursor coordinates.
      * @returns Vector of indices, corresponding to the current set of zones - the zones considered active.
      */
-    IFACEMETHOD_(std::vector<size_t>, ZonesFromPoint)(POINT pt) = 0;
+    IFACEMETHOD_(std::vector<size_t>, ZonesFromPoint)(POINT pt) const = 0;
     /**
      * Get index set of the zones to which the window was assigned.
      *
@@ -44,7 +46,7 @@ interface __declspec(uuid("{E4839EB7-669D-49CF-84A9-71A2DFD851A3}")) IZoneSet : 
     /**
      * @returns Array of zone objects (defining coordinates of the zone) inside this zone layout.
      */
-    IFACEMETHOD_(std::vector<winrt::com_ptr<IZone>>, GetZones)() = 0;
+    virtual std::map<size_t, winrt::com_ptr<IZone>> GetZones() const = 0;
     /**
      * Assign window to the zone based on zone index inside zone layout.
      *
@@ -140,7 +142,7 @@ interface __declspec(uuid("{E4839EB7-669D-49CF-84A9-71A2DFD851A3}")) IZoneSet : 
      *
      * @returns A vector indicating describing the chosen zone index set.
      */
-    IFACEMETHOD_(std::vector<size_t>, GetCombinedZoneRange)(const std::vector<size_t>& initialZones, const std::vector<size_t>& finalZones) = 0;
+    IFACEMETHOD_(std::vector<size_t>, GetCombinedZoneRange)(const std::vector<size_t>& initialZones, const std::vector<size_t>& finalZones) const = 0;
 };
 
 struct ZoneSetConfig

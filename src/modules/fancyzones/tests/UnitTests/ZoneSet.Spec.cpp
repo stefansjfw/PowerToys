@@ -765,7 +765,7 @@ namespace FancyZonesUnitTests
                     {
                         Assert::IsTrue(set->IsZoneEmpty(zoneId));
 
-                        const auto& zoneRect = zone->GetZoneRect();
+                        const auto& zoneRect = zone.second->GetZoneRect();
                         Assert::IsTrue(zoneRect.left >= 0, L"left border is less than zero");
                         Assert::IsTrue(zoneRect.top >= 0, L"top border is less than zero");
 
