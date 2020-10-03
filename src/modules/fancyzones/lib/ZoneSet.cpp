@@ -196,13 +196,13 @@ ZoneSet::ZonesFromPoint(POINT pt) const noexcept
         if (zoneRect.left - m_config.SensitivityRadius <= pt.x && pt.x <= zoneRect.right + m_config.SensitivityRadius &&
             zoneRect.top - m_config.SensitivityRadius <= pt.y && pt.y <= zoneRect.bottom + m_config.SensitivityRadius)
         {
-            capturedZones.emplace_back(zone.second->Id());
+            capturedZones.emplace_back(zone.first);
         }
             
         if (zoneRect.left <= pt.x && pt.x < zoneRect.right &&
             zoneRect.top <= pt.y && pt.y < zoneRect.bottom)
         {
-            strictlyCapturedZones.emplace_back(zone.second->Id());
+            strictlyCapturedZones.emplace_back(zone.first);
         }
     }
 
@@ -388,21 +388,21 @@ ZoneSet::MoveWindowIntoZoneByDirection(HWND window, HWND workAreaWindow, DWORD v
         return false;
     }
 
-    std::vector<bool> usedZoneIndices(m_zones.size(), false);
-    for (size_t idx : GetWindowZoneIds(window))
+    std::vector<bool> usedZoneIndices(m_zones.size() + 1, false);
+    for (size_t id : GetWindowZoneIds(window))
     {
-        usedZoneIndices[idx] = true;
+        usedZoneIndices[id] = true;
     }
 
     std::vector<RECT> zoneRects;
     std::vector<size_t> freeZoneIndices;
 
-    for (size_t i = 0; i < m_zones.size(); i++)
+    for (const auto& zone : m_zones)
     {
-        if (!usedZoneIndices[i])
+        if (!usedZoneIndices[zone.first])
         {
-            zoneRects.emplace_back(m_zones[i]->GetZoneRect());
-            freeZoneIndices.emplace_back(i);
+            zoneRects.emplace_back(m_zones[zone.first]->GetZoneRect());
+            freeZoneIndices.emplace_back(zone.first);
         }
     }
 
@@ -916,7 +916,7 @@ std::vector<size_t> ZoneSet::GetCombinedZoneRange(const std::vector<size_t>& ini
             if (boundingRect.left <= rect.left && rect.right <= boundingRect.right &&
                 boundingRect.top <= rect.top && rect.bottom <= boundingRect.bottom)
             {
-                result.push_back(zone.second->Id());
+                result.push_back(zone.first);
             }
         }
     }
