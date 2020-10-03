@@ -162,7 +162,7 @@ private:
     bool CalculateCustomLayout(Rect workArea, int spacing) noexcept;
     bool CalculateGridZones(Rect workArea, FancyZonesDataTypes::GridLayoutInfo gridLayoutInfo, int spacing);
     void StampWindow(HWND window, size_t bitmask) noexcept;
-    
+
     std::map<size_t, winrt::com_ptr<IZone>> m_zones;
     std::map<HWND, std::vector<size_t>> m_windowIndexSet;
 
