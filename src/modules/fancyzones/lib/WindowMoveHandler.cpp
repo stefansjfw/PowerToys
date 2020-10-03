@@ -274,27 +274,27 @@ void WindowMoveHandler::MoveSizeEnd(HWND window, POINT const& ptScreen, const st
     }
 }
 
-void WindowMoveHandler::MoveWindowIntoZoneByIndexSet(HWND window, const std::vector<size_t>& indexSet, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept
+void WindowMoveHandler::MoveWindowIntoZones(HWND window, const std::vector<size_t>& zoneIds, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept
 {
     if (window != m_windowMoveSize)
     {
-        zoneWindow->MoveWindowIntoZoneByIndexSet(window, indexSet);
+        zoneWindow->MoveWindowIntoZones(window, zoneIds);
     }
 }
 
-bool WindowMoveHandler::MoveWindowIntoZoneByDirectionAndIndex(HWND window, DWORD vkCode, bool cycle, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept
+bool WindowMoveHandler::MoveWindowIntoZoneByIds(HWND window, DWORD vkCode, bool cycle, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept
 {
-    return zoneWindow && zoneWindow->MoveWindowIntoZoneByDirectionAndIndex(window, vkCode, cycle);
+    return zoneWindow && zoneWindow->MoveWindowIntoZoneByIds(window, vkCode, cycle);
 }
 
-bool WindowMoveHandler::MoveWindowIntoZoneByDirectionAndPosition(HWND window, DWORD vkCode, bool cycle, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept
+bool WindowMoveHandler::MoveWindowIntoZoneByDirection(HWND window, DWORD vkCode, bool cycle, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept
 {
-    return zoneWindow && zoneWindow->MoveWindowIntoZoneByDirectionAndPosition(window, vkCode, cycle);
+    return zoneWindow && zoneWindow->MoveWindowIntoZoneByDirection(window, vkCode, cycle);
 }
 
-bool WindowMoveHandler::ExtendWindowByDirectionAndPosition(HWND window, DWORD vkCode, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept
+bool WindowMoveHandler::ExtendWindowByDirection(HWND window, DWORD vkCode, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept
 {
-    return zoneWindow && zoneWindow->ExtendWindowByDirectionAndPosition(window, vkCode);
+    return zoneWindow && zoneWindow->ExtendWindowByDirection(window, vkCode);
 }
 
 void WindowMoveHandler::WarnIfElevationIsRequired(HWND window) noexcept

@@ -47,18 +47,18 @@ interface __declspec(uuid("{7F017528-8110-4FB3-BE41-F472969C2560}")) IZoneWindow
      * Assign window to the zone based on zone index inside zone layout.
      *
      * @param   window Handle of window which should be assigned to zone.
-     * @param   index  Zone index within zone layout.
+     * @param   zoneId Id of the Zone within zone layout.
      */
-    IFACEMETHOD_(void, MoveWindowIntoZoneByIndex)(HWND window, size_t index) = 0;
+    IFACEMETHOD_(void, MoveWindowIntoZone)(HWND window, size_t zoneId) = 0;
     /**
      * Assign window to the zones based on the set of zone indices inside zone layout.
      *
      * @param   window   Handle of window which should be assigned to zone.
-     * @param   indexSet The set of zone indices within zone layout.
+     * @param   zoneIds  The set of zone Ids within zone layout.
      */
-    IFACEMETHOD_(void, MoveWindowIntoZoneByIndexSet)(HWND window, const std::vector<size_t>& indexSet) = 0;
+    IFACEMETHOD_(void, MoveWindowIntoZones)(HWND window, const std::vector<size_t>& zoneIds) = 0;
     /**
-     * Assign window to the zone based on direction (using WIN + LEFT/RIGHT arrow), based on zone index numbers,
+     * Assign window to the zone based on direction (using WIN + LEFT/RIGHT arrow), based on zone Ids,
      * not their on-screen position.
      *
      * @param   window Handle of window which should be assigned to zone.
@@ -68,7 +68,7 @@ interface __declspec(uuid("{7F017528-8110-4FB3-BE41-F472969C2560}")) IZoneWindow
      * @returns Boolean which is always true if cycle argument is set, otherwise indicating if there is more
      *          zones left in the zone layout in which window can move.
      */
-    IFACEMETHOD_(bool, MoveWindowIntoZoneByDirectionAndIndex)(HWND window, DWORD vkCode, bool cycle) = 0;
+    IFACEMETHOD_(bool, MoveWindowIntoZoneByIds)(HWND window, DWORD vkCode, bool cycle) = 0;
     /**
      * Assign window to the zone based on direction (using WIN + LEFT/RIGHT/UP/DOWN arrow), based on
      * their on-screen position.
@@ -80,7 +80,7 @@ interface __declspec(uuid("{7F017528-8110-4FB3-BE41-F472969C2560}")) IZoneWindow
      * @returns Boolean which is always true if cycle argument is set, otherwise indicating if there is more
      *          zones left in the zone layout in which window can move.
      */
-    IFACEMETHOD_(bool, MoveWindowIntoZoneByDirectionAndPosition)(HWND window, DWORD vkCode, bool cycle) = 0;
+    IFACEMETHOD_(bool, MoveWindowIntoZoneByDirection)(HWND window, DWORD vkCode, bool cycle) = 0;
     /**
      * Extend or shrink the window to an adjacent zone based on direction (using CTRL+WIN+ALT + LEFT/RIGHT/UP/DOWN arrow), based on
      * their on-screen position.
@@ -91,7 +91,7 @@ interface __declspec(uuid("{7F017528-8110-4FB3-BE41-F472969C2560}")) IZoneWindow
      * @returns Boolean indicating whether the window was rezoned. False could be returned when there are no more
      *          zones available in the given direction.
      */
-    IFACEMETHOD_(bool, ExtendWindowByDirectionAndPosition)(HWND window, DWORD vkCode) = 0;
+    IFACEMETHOD_(bool, ExtendWindowByDirection)(HWND window, DWORD vkCode) = 0;
     /**
      * Cycle through active zone layouts (giving hints about each layout).
      *
@@ -109,11 +109,11 @@ interface __declspec(uuid("{7F017528-8110-4FB3-BE41-F472969C2560}")) IZoneWindow
     /**
      * @returns Unique work area identifier. Format: <device-id>_<resolution>_<virtual-desktop-id>
      */
-    IFACEMETHOD_(std::wstring, UniqueId)() = 0;
+    IFACEMETHOD_(std::wstring, UniqueId)() const = 0;
     /**
      * @returns Active zone layout for this work area.
      */
-    IFACEMETHOD_(IZoneSet*, ActiveZoneSet)() = 0;
+    IFACEMETHOD_(IZoneSet*, ActiveZoneSet)() const = 0;
     IFACEMETHOD_(void, ShowZoneWindow)() = 0;
     IFACEMETHOD_(void, HideZoneWindow)() = 0;
     /**

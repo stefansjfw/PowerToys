@@ -18,11 +18,11 @@ interface __declspec(uuid("{E4839EB7-669D-49CF-84A9-71A2DFD851A3}")) IZoneSet : 
     /**
      * @returns Unique identifier of zone layout.
      */
-    IFACEMETHOD_(GUID, Id)() = 0;
+    IFACEMETHOD_(GUID, Id)() const = 0;
     /**
      * @returns Type of the zone layout. Layout type can be focus, columns, rows, grid, priority grid or custom.
      */
-    IFACEMETHOD_(FancyZonesDataTypes::ZoneSetLayoutType, LayoutType)() = 0;
+    IFACEMETHOD_(FancyZonesDataTypes::ZoneSetLayoutType, LayoutType)() const = 0;
     /**
      * Add zone to the zone layout.
      *
@@ -42,7 +42,8 @@ interface __declspec(uuid("{E4839EB7-669D-49CF-84A9-71A2DFD851A3}")) IZoneSet : 
      * @param   window Handle of the window.
      * @returns A vector of size_t, 0-based, the index set.
      */
-    IFACEMETHOD_(std::vector<size_t>, GetZoneIndexSetFromWindow)(HWND window) = 0;
+    IFACEMETHOD_(std::vector<size_t>, GetWindowZoneIds)
+    (HWND window) const = 0;
     /**
      * @returns Array of zone objects (defining coordinates of the zone) inside this zone layout.
      */
@@ -50,71 +51,76 @@ interface __declspec(uuid("{E4839EB7-669D-49CF-84A9-71A2DFD851A3}")) IZoneSet : 
     /**
      * Assign window to the zone based on zone index inside zone layout.
      *
-     * @param   window     Handle of window which should be assigned to zone.
-     * @param   zoneWindow The m_window of a ZoneWindow, it's a hidden window representing the
-     *                     current monitor desktop work area.
-     * @param   index      Zone index within zone layout.
+     * @param   window           Handle of window which should be assigned to zone.
+     * @param   workAreaWindow   The m_window of a ZoneWindow, it's a hidden window representing the
+     *                           current monitor desktop work area.
+     * @param   zoneId           Id of the zone within zone layout.
      */
-    IFACEMETHOD_(void, MoveWindowIntoZoneByIndex)(HWND window, HWND zoneWindow, size_t index) = 0;
+    IFACEMETHOD_(void, MoveWindowIntoZone)(HWND window, HWND workAreaWindow, size_t zoneId) = 0;
     /**
      * Assign window to the zones based on the set of zone indices inside zone layout.
      *
-     * @param   window     Handle of window which should be assigned to zone.
-     * @param   zoneWindow The m_window of a ZoneWindow, it's a hidden window representing the
-     *                     current monitor desktop work area.
-     * @param   indexSet   The set of zone indices within zone layout.
+     * @param   window           Handle of window which should be assigned to zone.
+     * @param   workAreaWindow   The m_window of a ZoneWindow, it's a hidden window representing the
+     *                           current monitor desktop work area.
+     * @param   zoneIds          The set of zone Ids within zone layout.
      */
-    IFACEMETHOD_(void, MoveWindowIntoZoneByIndexSet)(HWND window, HWND zoneWindow, const std::vector<size_t>& indexSet) = 0;
+    IFACEMETHOD_(void, MoveWindowIntoZones)
+    (HWND window, HWND workAreaWindow, const std::vector<size_t>& zoneIds) = 0;
     /**
-     * Assign window to the zone based on direction (using WIN + LEFT/RIGHT arrow), based on zone index numbers,
+     * Assign window to the zone based on direction (using WIN + LEFT/RIGHT arrow), based on zone id,
      * not their on-screen position.
      *
-     * @param   window     Handle of window which should be assigned to zone.
-     * @param   zoneWindow The m_window of a ZoneWindow, it's a hidden window representing the
-     *                     current monitor desktop work area.
-     * @param   vkCode     Pressed arrow key.
-     * @param   cycle      Whether we should move window to the first zone if we reached last zone in layout.
+     * @param   window           Handle of window which should be assigned to zone.
+     * @param   workAreaWindow   The m_window of a ZoneWindow, it's a hidden window representing the
+     *                           current monitor desktop work area.
+     * @param   vkCode           Pressed arrow key.
+     * @param   cycle            Whether we should move window to the first zone if we reached last zone in layout.
      *
      * @returns Boolean which is always true if cycle argument is set, otherwise indicating if there is more
      *          zones left in the zone layout in which window can move.
      */
-    IFACEMETHOD_(bool, MoveWindowIntoZoneByDirectionAndIndex)(HWND window, HWND zoneWindow, DWORD vkCode, bool cycle) = 0;
+    IFACEMETHOD_(bool, MoveWindowIntoZoneByIds)
+    (HWND window, HWND workAreaWindow, DWORD vkCode, bool cycle) = 0;
     /**
      * Assign window to the zone based on direction (using WIN + LEFT/RIGHT/UP/DOWN arrow), based on
      * their on-screen position.
      *
-     * @param   window     Handle of window which should be assigned to zone.
-     * @param   zoneWindow The m_window of a ZoneWindow, it's a hidden window representing the
-     *                     current monitor desktop work area.
-     * @param   vkCode     Pressed arrow key.
-     * @param   cycle      Whether we should move window to the first zone if we reached last zone in layout.
+     * @param   window           Handle of window which should be assigned to zone.
+     * @param   workAreaWindow   The m_window of a ZoneWindow, it's a hidden window representing the
+     *                           current monitor desktop work area.
+     * @param   vkCode           Pressed arrow key.
+     * @param   cycle            Whether we should move window to the first zone if we reached last zone in layout.
      *
      * @returns Boolean which is always true if cycle argument is set, otherwise indicating if there is more
      *          zones left in the zone layout in which window can move.
      */
-    IFACEMETHOD_(bool, MoveWindowIntoZoneByDirectionAndPosition)(HWND window, HWND zoneWindow, DWORD vkCode, bool cycle) = 0;
+    IFACEMETHOD_(bool, MoveWindowIntoZoneByDirection)
+    (HWND window, HWND workAreaWindow, DWORD vkCode, bool cycle) = 0;
     /**
      * Extend or shrink the window to an adjacent zone based on direction (using CTRL+WIN+ALT + LEFT/RIGHT/UP/DOWN arrow), based on
      * their on-screen position.
      *
-     * @param   window     Handle of window which should be assigned to zone.
-     * @param   zoneWindow The m_window of a ZoneWindow, it's a hidden window representing the
-     *                     current monitor desktop work area.
-     * @param   vkCode     Pressed arrow key.
+     * @param   window           Handle of window which should be assigned to zone.
+     * @param   workAreaWindow   The m_window of a ZoneWindow, it's a hidden window representing the
+     *                           current monitor desktop work area.
+     * @param   vkCode           Pressed arrow key.
      *
      * @returns Boolean indicating whether the window was rezoned. False could be returned when there are no more
      *          zones available in the given direction.
      */
-    IFACEMETHOD_(bool, ExtendWindowByDirectionAndPosition)(HWND window, HWND zoneWindow, DWORD vkCode) = 0;
+    IFACEMETHOD_(bool, ExtendWindowByDirection)
+    (HWND window, HWND workAreaWindow, DWORD vkCode) = 0;
     /**
      * Assign window to the zone based on cursor coordinates.
      *
-     * @param   window     Handle of window which should be assigned to zone.
-     * @param   zoneWindow The m_window of a ZoneWindow, it's a hidden window representing the
-     *                     current monitor desktop work area.
-     * @param   pt         Cursor coordinates.
+     * @param   window           Handle of window which should be assigned to zone.
+     * @param   workAreaWindow   The m_window of a ZoneWindow, it's a hidden window representing the
+     *                           current monitor desktop work area.
+     * @param   pt               Cursor coordinates.
      */
-    IFACEMETHOD_(void, MoveWindowIntoZoneByPoint)(HWND window, HWND zoneWindow, POINT ptClient) = 0;
+    IFACEMETHOD_(void, MoveWindowIntoZoneByPoint)
+    (HWND window, HWND workAreaWindow, POINT ptClient) = 0;
     /**
      * Calculate zone coordinates within zone layout based on number of zones and spacing. Used for one of
      * the predefined layouts (focus, columns, rows, grid, priority grid) or for custom layout.
@@ -133,7 +139,7 @@ interface __declspec(uuid("{E4839EB7-669D-49CF-84A9-71A2DFD851A3}")) IZoneSet : 
      *
      * @returns Boolean indicating whether the zone is empty.
      */
-    IFACEMETHOD_(bool, IsZoneEmpty)(int zoneIndex) = 0;
+    IFACEMETHOD_(bool, IsZoneEmpty)(int zoneIndex) const = 0;
     /**
      * Returns all zones spanned by the minimum bounding rectangle containing the two given zone index sets.
      * 
@@ -142,7 +148,8 @@ interface __declspec(uuid("{E4839EB7-669D-49CF-84A9-71A2DFD851A3}")) IZoneSet : 
      *
      * @returns A vector indicating describing the chosen zone index set.
      */
-    IFACEMETHOD_(std::vector<size_t>, GetCombinedZoneRange)(const std::vector<size_t>& initialZones, const std::vector<size_t>& finalZones) const = 0;
+    IFACEMETHOD_(std::vector<size_t>, GetCombinedZoneRange)
+    (const std::vector<size_t>& initialZones, const std::vector<size_t>& finalZones) const = 0;
 };
 
 struct ZoneSetConfig

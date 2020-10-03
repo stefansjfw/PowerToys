@@ -17,10 +17,10 @@ public:
     void MoveSizeUpdate(HMONITOR monitor, POINT const& ptScreen, const std::unordered_map<HMONITOR, winrt::com_ptr<IZoneWindow>>& zoneWindowMap) noexcept;
     void MoveSizeEnd(HWND window, POINT const& ptScreen, const std::unordered_map<HMONITOR, winrt::com_ptr<IZoneWindow>>& zoneWindowMap) noexcept;
 
-    void MoveWindowIntoZoneByIndexSet(HWND window, const std::vector<size_t>& indexSet, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept;
-    bool MoveWindowIntoZoneByDirectionAndIndex(HWND window, DWORD vkCode, bool cycle, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept;
-    bool MoveWindowIntoZoneByDirectionAndPosition(HWND window, DWORD vkCode, bool cycle, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept;
-    bool ExtendWindowByDirectionAndPosition(HWND window, DWORD vkCode, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept;
+    void MoveWindowIntoZones(HWND window, const std::vector<size_t>& zoneIds, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept;
+    bool MoveWindowIntoZoneByIds(HWND window, DWORD vkCode, bool cycle, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept;
+    bool MoveWindowIntoZoneByDirection(HWND window, DWORD vkCode, bool cycle, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept;
+    bool ExtendWindowByDirection(HWND window, DWORD vkCode, winrt::com_ptr<IZoneWindow> zoneWindow) noexcept;
 
     inline void OnMouseDown() noexcept
     {

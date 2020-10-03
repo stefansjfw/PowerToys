@@ -218,7 +218,7 @@ private:
     std::vector<size_t> GetZoneIndexSetFromWorkAreaHistory(HWND window, winrt::com_ptr<IZoneWindow> workArea) noexcept;
     std::pair<winrt::com_ptr<IZoneWindow>, std::vector<size_t>> GetAppZoneHistoryInfo(HWND window, HMONITOR monitor, std::unordered_map<HMONITOR, winrt::com_ptr<IZoneWindow>>& workAreaMap) noexcept;
     std::pair<winrt::com_ptr<IZoneWindow>, std::vector<size_t>> GetAppZoneHistoryInfo(HWND window, HMONITOR monitor, bool isPrimaryMonitor) noexcept;
-    void MoveWindowIntoZone(HWND window, winrt::com_ptr<IZoneWindow> zoneWindow, const std::vector<size_t>& zoneIndexSet) noexcept;
+    void MoveWindowIntoZones(HWND window, winrt::com_ptr<IZoneWindow> zoneWindow, const std::vector<size_t>& zoneIds) noexcept;
 
     void OnEditorExitEvent() noexcept;
     bool ShouldProcessSnapHotkey(DWORD vkCode) noexcept;
@@ -405,12 +405,12 @@ std::pair<winrt::com_ptr<IZoneWindow>, std::vector<size_t>> FancyZones::GetAppZo
     return appZoneHistoryInfo;
 }
 
-void FancyZones::MoveWindowIntoZone(HWND window, winrt::com_ptr<IZoneWindow> zoneWindow, const std::vector<size_t>& zoneIndexSet) noexcept
+void FancyZones::MoveWindowIntoZones(HWND window, winrt::com_ptr<IZoneWindow> zoneWindow, const std::vector<size_t>& zoneIds) noexcept
 {
     auto& fancyZonesData = FancyZonesDataInstance();
     if (!fancyZonesData.IsAnotherWindowOfApplicationInstanceZoned(window, zoneWindow->UniqueId()))
     {
-        m_windowMoveHandler.MoveWindowIntoZoneByIndexSet(window, zoneIndexSet, zoneWindow);
+        m_windowMoveHandler.MoveWindowIntoZones(window, zoneIds, zoneWindow);
         fancyZonesData.UpdateProcessIdToHandleMap(window, zoneWindow->UniqueId());
     }
 }
@@ -514,7 +514,7 @@ FancyZones::WindowCreated(HWND window) noexcept
             std::pair<winrt::com_ptr<IZoneWindow>, std::vector<size_t>> appZoneHistoryInfo = GetAppZoneHistoryInfo(window, active, primaryActive);
             if (!appZoneHistoryInfo.second.empty())
             {
-                MoveWindowIntoZone(window, appZoneHistoryInfo.first, appZoneHistoryInfo.second);
+                MoveWindowIntoZones(window, appZoneHistoryInfo.first, appZoneHistoryInfo.second);
                 windowZoned = true;
             }
         }
@@ -1039,7 +1039,7 @@ void FancyZones::UpdateWindowsPositions() noexcept
             auto zoneWindow = strongThis->m_workAreaHandler.GetWorkArea(window);
             if (zoneWindow)
             {
-                strongThis->m_windowMoveHandler.MoveWindowIntoZoneByIndexSet(window, indexSet, zoneWindow);
+                strongThis->m_windowMoveHandler.MoveWindowIntoZones(window, indexSet, zoneWindow);
             }
         }
         return TRUE;
@@ -1087,7 +1087,7 @@ bool FancyZones::OnSnapHotkeyBasedOnZoneNumber(HWND window, DWORD vkCode) noexce
         do
         {
             std::unique_lock writeLock(m_lock);
-            if (m_windowMoveHandler.MoveWindowIntoZoneByDirectionAndIndex(window, vkCode, false /* cycle through zones */, m_workAreaHandler.GetWorkArea(m_currentDesktopId, *currMonitorInfo)))
+            if (m_windowMoveHandler.MoveWindowIntoZoneByIds(window, vkCode, false /* cycle through zones */, m_workAreaHandler.GetWorkArea(m_currentDesktopId, *currMonitorInfo)))
             {
                 return true;
             }
@@ -1116,7 +1116,7 @@ bool FancyZones::OnSnapHotkeyBasedOnZoneNumber(HWND window, DWORD vkCode) noexce
         std::unique_lock writeLock(m_lock);
         if (m_settings->GetSettings()->restoreSize)
         {
-            bool moved = m_windowMoveHandler.MoveWindowIntoZoneByDirectionAndIndex(window, vkCode, false /* cycle through zones */, m_workAreaHandler.GetWorkArea(m_currentDesktopId, current));
+            bool moved = m_windowMoveHandler.MoveWindowIntoZoneByIds(window, vkCode, false /* cycle through zones */, m_workAreaHandler.GetWorkArea(m_currentDesktopId, current));
             if (!moved)
             {
                 FancyZonesUtils::RestoreWindowOrigin(window);
@@ -1126,7 +1126,7 @@ bool FancyZones::OnSnapHotkeyBasedOnZoneNumber(HWND window, DWORD vkCode) noexce
         }
         else
         {
-            return m_windowMoveHandler.MoveWindowIntoZoneByDirectionAndIndex(window, vkCode, true /* cycle through zones */, m_workAreaHandler.GetWorkArea(m_currentDesktopId, current));
+            return m_windowMoveHandler.MoveWindowIntoZoneByIds(window, vkCode, true /* cycle through zones */, m_workAreaHandler.GetWorkArea(m_currentDesktopId, current));
         }
     }
 
@@ -1205,8 +1205,8 @@ bool FancyZones::OnSnapHotkeyBasedOnPosition(HWND window, DWORD vkCode) noexcept
         if (chosenIdx < zoneRects.size())
         {
             // Moving to another monitor succeeded
-            const auto& [trueZoneIdx, zoneWindow] = zoneRectsInfo[chosenIdx];
-            m_windowMoveHandler.MoveWindowIntoZoneByIndexSet(window, { trueZoneIdx }, zoneWindow);
+            const auto& [trueZoneId, zoneWindow] = zoneRectsInfo[chosenIdx];
+            m_windowMoveHandler.MoveWindowIntoZones(window, { trueZoneId }, zoneWindow);
             return true;
         }
 
@@ -1247,8 +1247,8 @@ bool FancyZones::OnSnapHotkeyBasedOnPosition(HWND window, DWORD vkCode) noexcept
         if (chosenIdx < zoneRects.size())
         {
             // Moving to another monitor succeeded
-            const auto& [trueZoneIdx, zoneWindow] = zoneRectsInfo[chosenIdx];
-            m_windowMoveHandler.MoveWindowIntoZoneByIndexSet(window, { trueZoneIdx }, zoneWindow);
+            const auto& [trueZoneId, zoneWindow] = zoneRectsInfo[chosenIdx];
+            m_windowMoveHandler.MoveWindowIntoZones(window, { trueZoneId }, zoneWindow);
             return true;
         }
         else
@@ -1286,11 +1286,11 @@ bool FancyZones::ProcessDirectedSnapHotkey(HWND window, DWORD vkCode, bool cycle
     // Check whether Alt is used in the shortcut key combination
     if (GetAsyncKeyState(VK_MENU) & 0x8000)
     {
-        return m_windowMoveHandler.ExtendWindowByDirectionAndPosition(window, vkCode, zoneWindow);
+        return m_windowMoveHandler.ExtendWindowByDirection(window, vkCode, zoneWindow);
     }
     else
     {
-        return m_windowMoveHandler.MoveWindowIntoZoneByDirectionAndPosition(window, vkCode, cycle, zoneWindow);
+        return m_windowMoveHandler.MoveWindowIntoZoneByDirection(window, vkCode, cycle, zoneWindow);
     }
 }
 

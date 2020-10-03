@@ -72,23 +72,23 @@ public:
     IFACEMETHODIMP MoveSizeUpdate(POINT const& ptScreen, bool dragEnabled, bool selectManyZones) noexcept;
     IFACEMETHODIMP MoveSizeEnd(HWND window, POINT const& ptScreen) noexcept;
     IFACEMETHODIMP_(void)
-    MoveWindowIntoZoneByIndex(HWND window, size_t index) noexcept;
+    MoveWindowIntoZone(HWND window, size_t zoneId) noexcept;
     IFACEMETHODIMP_(void)
-    MoveWindowIntoZoneByIndexSet(HWND window, const std::vector<size_t>& indexSet) noexcept;
+    MoveWindowIntoZones(HWND window, const std::vector<size_t>& zoneIds) noexcept;
     IFACEMETHODIMP_(bool)
-    MoveWindowIntoZoneByDirectionAndIndex(HWND window, DWORD vkCode, bool cycle) noexcept;
+    MoveWindowIntoZoneByIds(HWND window, DWORD vkCode, bool cycle) noexcept;
     IFACEMETHODIMP_(bool)
-    MoveWindowIntoZoneByDirectionAndPosition(HWND window, DWORD vkCode, bool cycle) noexcept;
+    MoveWindowIntoZoneByDirection(HWND window, DWORD vkCode, bool cycle) noexcept;
     IFACEMETHODIMP_(bool)
-    ExtendWindowByDirectionAndPosition(HWND window, DWORD vkCode) noexcept;
+    ExtendWindowByDirection(HWND window, DWORD vkCode) noexcept;
     IFACEMETHODIMP_(void)
     CycleActiveZoneSet(DWORD vkCode) noexcept;
     IFACEMETHODIMP_(std::wstring)
-    UniqueId() noexcept { return { m_uniqueId }; }
+    UniqueId() const noexcept { return { m_uniqueId }; }
     IFACEMETHODIMP_(void)
     SaveWindowProcessToZoneIndex(HWND window) noexcept;
     IFACEMETHODIMP_(IZoneSet*)
-    ActiveZoneSet() noexcept { return m_activeZoneSet.get(); }
+    ActiveZoneSet() const noexcept { return m_activeZoneSet.get(); }
     IFACEMETHODIMP_(void)
     ShowZoneWindow() noexcept;
     IFACEMETHODIMP_(void)
@@ -270,7 +270,7 @@ IFACEMETHODIMP ZoneWindow::MoveSizeEnd(HWND window, POINT const& ptScreen) noexc
     {
         POINT ptClient = ptScreen;
         MapWindowPoints(nullptr, m_window.get(), &ptClient, 1);
-        m_activeZoneSet->MoveWindowIntoZoneByIndexSet(window, m_window.get(), m_highlightZone);
+        m_activeZoneSet->MoveWindowIntoZones(window, m_window.get(), m_highlightZone);
 
         if (FancyZonesUtils::HasNoVisibleOwner(window))
         {
@@ -285,26 +285,26 @@ IFACEMETHODIMP ZoneWindow::MoveSizeEnd(HWND window, POINT const& ptScreen) noexc
 }
 
 IFACEMETHODIMP_(void)
-ZoneWindow::MoveWindowIntoZoneByIndex(HWND window, size_t index) noexcept
+ZoneWindow::MoveWindowIntoZone(HWND window, size_t zoneId) noexcept
 {
-    MoveWindowIntoZoneByIndexSet(window, { index });
+    MoveWindowIntoZones(window, { zoneId });
 }
 
 IFACEMETHODIMP_(void)
-ZoneWindow::MoveWindowIntoZoneByIndexSet(HWND window, const std::vector<size_t>& indexSet) noexcept
+ZoneWindow::MoveWindowIntoZones(HWND window, const std::vector<size_t>& zoneIds) noexcept
 {
     if (m_activeZoneSet)
     {
-        m_activeZoneSet->MoveWindowIntoZoneByIndexSet(window, m_window.get(), indexSet);
+        m_activeZoneSet->MoveWindowIntoZones(window, m_window.get(), zoneIds);
     }
 }
 
 IFACEMETHODIMP_(bool)
-ZoneWindow::MoveWindowIntoZoneByDirectionAndIndex(HWND window, DWORD vkCode, bool cycle) noexcept
+ZoneWindow::MoveWindowIntoZoneByIds(HWND window, DWORD vkCode, bool cycle) noexcept
 {
     if (m_activeZoneSet)
     {
-        if (m_activeZoneSet->MoveWindowIntoZoneByDirectionAndIndex(window, m_window.get(), vkCode, cycle))
+        if (m_activeZoneSet->MoveWindowIntoZoneByIds(window, m_window.get(), vkCode, cycle))
         {
             if (FancyZonesUtils::HasNoVisibleOwner(window))
             {
@@ -317,11 +317,11 @@ ZoneWindow::MoveWindowIntoZoneByDirectionAndIndex(HWND window, DWORD vkCode, boo
 }
 
 IFACEMETHODIMP_(bool)
-ZoneWindow::MoveWindowIntoZoneByDirectionAndPosition(HWND window, DWORD vkCode, bool cycle) noexcept
+ZoneWindow::MoveWindowIntoZoneByDirection(HWND window, DWORD vkCode, bool cycle) noexcept
 {
     if (m_activeZoneSet)
     {
-        if (m_activeZoneSet->MoveWindowIntoZoneByDirectionAndPosition(window, m_window.get(), vkCode, cycle))
+        if (m_activeZoneSet->MoveWindowIntoZoneByDirection(window, m_window.get(), vkCode, cycle))
         {
             SaveWindowProcessToZoneIndex(window);
             return true;
@@ -331,11 +331,11 @@ ZoneWindow::MoveWindowIntoZoneByDirectionAndPosition(HWND window, DWORD vkCode, 
 }
 
 IFACEMETHODIMP_(bool)
-ZoneWindow::ExtendWindowByDirectionAndPosition(HWND window, DWORD vkCode) noexcept
+ZoneWindow::ExtendWindowByDirection(HWND window, DWORD vkCode) noexcept
 {
     if (m_activeZoneSet)
     {
-        if (m_activeZoneSet->ExtendWindowByDirectionAndPosition(window, m_window.get(), vkCode))
+        if (m_activeZoneSet->ExtendWindowByDirection(window, m_window.get(), vkCode))
         {
             SaveWindowProcessToZoneIndex(window);
             return true;
@@ -364,7 +364,7 @@ ZoneWindow::SaveWindowProcessToZoneIndex(HWND window) noexcept
 {
     if (m_activeZoneSet)
     {
-        auto zoneIndexSet = m_activeZoneSet->GetZoneIndexSetFromWindow(window);
+        auto zoneIndexSet = m_activeZoneSet->GetWindowZoneIds(window);
         if (zoneIndexSet.size())
         {
             OLECHAR* guidString;
