@@ -210,7 +210,11 @@ void FancyZonesData::CloneDeviceInfo(const std::wstring& source, const std::wstr
     }
 
     // Clone information from source device if destination device is uninitialized (Blank).
-    deviceInfoMap[destination] = deviceInfoMap[source];
+    auto& destInfo = deviceInfoMap[destination];
+    if (destInfo.activeZoneSet.type == FancyZonesDataTypes::ZoneSetLayoutType::Blank)
+    {
+        destInfo = deviceInfoMap[source];
+    }
 }
 
 void FancyZonesData::UpdatePrimaryDesktopData(const std::wstring& desktopId)
