@@ -411,11 +411,17 @@ namespace JSONHelpers
         }
     }
 
-    json::JsonObject DeviceInfoJSON::ToJson(const DeviceInfoJSON& device)
+    std::optional<json::JsonObject> DeviceInfoJSON::ToJson(const DeviceInfoJSON& device)
     {
         json::JsonObject result{};
 
-        result.SetNamedValue(NonLocalizable::DeviceIdStr, json::value(device.deviceId.Serialize()));
+        auto serializedDeviceId = device.deviceId.Serialize();
+        if (!serializedDeviceId.has_value())
+        {
+            return std::nullopt;
+        }
+
+        result.SetNamedValue(NonLocalizable::DeviceIdStr, json::value(*serializedDeviceId)); 
         result.SetNamedValue(NonLocalizable::ActiveZoneSetStr, JSONHelpers::ZoneSetDataJSON::ToJson(device.data.activeZoneSet));
         result.SetNamedValue(NonLocalizable::EditorShowSpacingStr, json::value(device.data.showSpacing));
         result.SetNamedValue(NonLocalizable::EditorSpacingStr, json::value(device.data.spacing));
@@ -469,7 +475,11 @@ namespace JSONHelpers
         for (const auto& info : deviceInfoMap)
         {
             JSONHelpers::DeviceInfoJSON deviceInfoJson{ info.first, info.second };
-            array.Append(JSONHelpers::DeviceInfoJSON::ToJson(deviceInfoJson));
+            auto json = JSONHelpers::DeviceInfoJSON::ToJson(deviceInfoJson);
+            if (json.has_value())
+            {
+                array.Append(*json);
+            }
         }
 
         result.SetNamedValue(NonLocalizable::AppliedZonesets, array);
@@ -486,7 +496,11 @@ namespace JSONHelpers
             if (info.first.virtualDesktopId == currentVirtualDesktop)
             {
                 JSONHelpers::DeviceInfoJSON deviceInfoJson{ info.first, info.second };
-                array.Append(JSONHelpers::DeviceInfoJSON::ToJson(deviceInfoJson));
+                auto json = JSONHelpers::DeviceInfoJSON::ToJson(deviceInfoJson);
+                if (json.has_value())
+                {
+                    array.Append(*json);
+                }
             }
         }
 
@@ -632,7 +646,11 @@ namespace JSONHelpers
 
         for (const auto& [deviceID, deviceData] : deviceInfoMap)
         {
-            DeviceInfosJSON.Append(DeviceInfoJSON::DeviceInfoJSON::ToJson(DeviceInfoJSON{ deviceID, deviceData }));
+            auto json = DeviceInfoJSON::DeviceInfoJSON::ToJson(DeviceInfoJSON{ deviceID, deviceData });
+            if (json.has_value())
+            {
+                DeviceInfosJSON.Append(*json);
+            }
         }
 
         return DeviceInfosJSON;
