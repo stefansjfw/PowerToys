@@ -117,7 +117,8 @@ namespace FancyZonesDataTypes
 
     bool DeviceIdData::empty() const
     {
-        return *this == DeviceIdData{};
+        static DeviceIdData emptyDeviceIdData{};
+        return *this == emptyDeviceIdData;
     }
 
     std::optional<std::wstring> DeviceIdData::Serialize() const
